@@ -24,7 +24,8 @@ runMemtester() {
 	# launch memtester instances
 	for (( kk=1; kk<=$(nproc); kk++ )) do
 
-{ source /proc/self/fd/0; }<<<"{ coproc p${kk} {
+{ source /proc/self/fd/0; }<<<"{
+coproc p${kk} {
     memtester ${memUse} ${iter} 2>(tee >(cat >./memtester.${kk}.stderr.log) >&\${fd02}) | tee -a >(cat >./memtester/memtester.${kk}.stdout.log) >&\${fd1}
   } {fd01}>&\${fd1} {fd02}>&\${fd2}
 } 2>/dev/null
