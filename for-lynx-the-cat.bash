@@ -14,7 +14,7 @@ time {
 		declare -i fallocate_check_nlines fallocate_check_nlines0 byte_pos_cur byte_pos_last bytes_rm
 
 		# attempt to truncate file(in 4096-byte blocks) every time this many lines are read
-		fallocate_check_nlines0=1000\
+		fallocate_check_nlines0=1000
 		
 		# fork inotifywait to wattch tmpfile
 		inotifywait -m -e modify --format='\n' >&"$fd_wait" "${tdir}"/data 2>/dev/null &
@@ -38,7 +38,7 @@ time {
 			# wait for inotifywait to tell you there is data
 			read -r -u "$fd_wait"
 
-			# read all the data you can 
+			# read all the data you can. NOTE: no -t flag keeps the delimiter. Wont work with NULL delimiter.
 			mapfile -u "$fdr" A
 
 			# make sure you stopped reading data on a line break
