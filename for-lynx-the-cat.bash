@@ -24,7 +24,7 @@ time {
 		{ ping -A -c "$npings" -i 0.1 1.1.1.1 >&"$fdw"; touch "${tdir}"/done1; echo >&"$fdw"; } &
 		{ ping -A -c "$npings" -i 0.1 1.0.0.1 >&"$fdw"; touch "${tdir}"/done2; echo >&"$fdw"; } &
 		{ ping -A -c "$npings" -i 0.1 www.google.com >&"$fdw"; touch "${tdir}"/done3; echo >&"$fdw"; } &
-        { ping -A -c "$npings" -i 0.1 8.8.8.8 >&"$fdw"; touch "${tdir}"/done4; echo >&"$fdw"; } &
+		{ ping -A -c "$npings" -i 0.1 8.8.8.8 >&"$fdw"; touch "${tdir}"/done4; echo >&"$fdw"; } &
 		{ ping -A -c "$npings" -i 0.1 gstatic.com >&"$fdw"; touch "${tdir}"/done5; echo >&"$fdw"; } &
 
 		# loop until processes are finished
