@@ -106,3 +106,103 @@ time {
 		done                      
 	) {fd}<><(:)
 } >/dev/null
+
+## ROUGH APPEMPT WITH NO FALLOCATE
+
+#!/bin/bash
+
+npings=300
+
+time {
+
+
+    # create tmpdir
+    tdir=$(mktemp -d -p /dev/shm); : > ${tdir}/data
+    (
+        LC_ALL=C
+        LANG=C
+
+        declare -i check_nlines check_nlines0 byte_pos_cur byte_pos_last bytes_rm
+
+        # attempt to truncate file(in 4096-byte blocks) every time this many lines are read
+        check_nlines0=1000
+        
+        # fork inotifywait to wattch tmpfile
+        inotifywait -m -e modify,close_write --format='\n' >&"$fd_wait" "${tdir}"/data 2>/dev/null &
+        pid_inotify="${!}"
+
+        # fork 4x ping processes, each pings 10 times a second and writes output to file
+        { ping -A -c "$npings" -i 0.1 1.1.1.1 >&"$fdw"; touch "${tdir}"/done1; echo >&"$fdw"; } &
+        { ping -A -c "$npings" -i 0.1 1.0.0.1 >&"$fdw"; touch "${tdir}"/done2; echo >&"$fdw"; } &
+        { ping -A -c "$npings" -i 0.1 www.google.com >&"$fdw"; touch "${tdir}"/done3; echo >&"$fdw"; } &
+        { ping -A -c "$npings" -i 0.1 8.8.8.8 >&"$fdw"; touch "${tdir}"/done4; echo >&"$fdw"; } &
+        { ping -A -c "$npings" -i 0.1 gstatic.com >&"$fdw"; touch "${tdir}"/done5; echo >&"$fdw"; } &
+
+        # loop until processes are finished
+        stopFlag=false
+        until $stopFlag; do
+            \rm -f  "${tdir}"/catDone
+            ( trap 'touch "${tdir}"/catDone' EXIT; cat <&${fdw} >"${tdir}"/data; ) &
+            catPID=$!
+            check_nlines=0
+            truncateFlag=false
+            {
+                until { ${truncateFlag} || ${stopFlag}; }; do
+                
+                    printf -v pDone '%.1s' "${tdir}"/done*
+                                        
+                    if [[ ${#pDone} == 5 ]]; then
+                             stopFlag=true
+                            [[ ${#A[@]} == 0 ]] && { kill $catPID;  break; }
+
+                        
+                        
+                    else
+      
+                        read -r -u "$fd_wait" -t 0.1
+                    
+                        (( check_nlines >= check_nlines0 )) && {
+                            truncateFlag=true
+                            kill $catPID 2>/dev/null
+                        }   
+                    fi
+                    
+                    # read all the data you can. NOTE: no -t flag keeps the delimiter. Wont work with NULL delimiter.
+                    mapfile -u "$fdr" A
+
+                    # make sure you stopped reading data on a line break
+                    [[ "${#A[@]}" == 0 ]] || {
+                        { ${truncateFlag} && ${catDoneFlag}; } || ${stopFlag} || [[ "${A[-1]: -1}" == $'\n' ]] || { 
+                            read -r -u "$fdr"; 
+                            A[-1]="${A[-1]}${REPLY}"$'\n';
+                        }
+                        
+                        # add to running line count total
+                        check_nlines+="${#A[@]}"
+                    
+
+                        # DO SOMETHING - vectorized version (not used)
+                        #printf '%s\n' "${A[@]%$'\n'}"
+
+                        # DO SOMETHING - non-vectorized version        
+                        for nn in "${A[@]%$'\n'}"; do
+                            echo "$nn"
+                        done
+                    }
+
+                    
+                done 
+            } {fdr}<"${tdir}"/data
+            exec {fdr}<&-
+            \rm "${tdir}"/data
+        done
+
+        # kill inotifywait
+        kill -9 "$pid_inotify"
+
+    # rm tmp dir
+    \rm -r "$tdir"
+    exit
+    ) {fdw}<><(:) {fd_wait}<><(:)
+
+} >/dev/null
