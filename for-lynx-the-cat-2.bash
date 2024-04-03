@@ -1,4 +1,4 @@
-
+#!/usr/bin/env bash
 
 read_speedtest() (
 
