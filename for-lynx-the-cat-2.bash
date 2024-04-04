@@ -51,7 +51,10 @@ echo "BASE CASE (alt): reading in variables directly from pipe to an array"
 
 printf '\n-------------------------------\n'
 
+type -p inotifywait &>/dev/null && type -p fallocate &>/dev/null && {
+
 echo "reading using a tmpfile (forkruns method - requires inotifywait and fallocate)"
+
 
     tdir=$(mktemp -d -p /dev/shm); : > ${tdir}/data
     touch "${tdir}"/data
@@ -120,6 +123,7 @@ time {
 }  
 
 printf '\n-------------------------------\n'
+}
 
 for nLines in {1..10} {12..20..2} {24..40..4}; do
 echo "reading $nLines lines at a time (mapfile)"
