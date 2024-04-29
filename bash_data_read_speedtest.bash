@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-printf '\ngenerating random data for test...'
-dd if=/dev/urandom of=./data bs=8M count=1 status=none
-printf '...DONE\n\n'
+printf '\n\ngenerating random data for test...'
+dd if=/dev/urandom bs=8M count=1 status=none | tr -d '\0' >./data
+printf '...DONE!\n\ndata saved at: %s\n\n' "$(realpath ./data)"
 
 fSize=$(wc -c <./data)
 
