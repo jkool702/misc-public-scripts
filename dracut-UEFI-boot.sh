@@ -127,9 +127,9 @@ UEFIDracutUpdate() {
 		rootDisk='ZFS=FEDORA/ROOT'
 		rootFSType='zfs'
 		rootFlags='zfsutil,rw,relatime,xattr,posixacl'
-		bootDisk='/dev/disk/by-id/nvme-Samsung_SSD_970_PRO_1TB_S462NF0K403461K-part1'
-		luksUUID='luks-2aa2788a-59fe-4340-9335-3631d8193f59'
-		#luksUUID="luks-$(cryptsetup luksUUID /dev/disk/by-id/nvme-Samsung_SSD_970_PRO_1TB_S462NF0K403461K-part2)"
+		bootDisk='/dev/disk/by-id/____________________'
+		luksUUID='____________________'
+		#luksUUID="luks-$(cryptsetup luksUUID /dev/disk/by-id/_________________________)"
 		#usrDisk='ZFS=FEDORA/ROOT/USR'
 		#usrFSType='zfs'
 		#usrFlags='zfsutil,rw,relatime,xattr,posixacl'
