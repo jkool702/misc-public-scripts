@@ -70,12 +70,7 @@ mkdir -p "${memtesterTmpDir}"
 
 [[ ${nProcs} ]] || nProcs=$(nproc)
 
-[[ ${memBytes} ]] || {
-	read -r memKB </proc/meminfo
-	memKB="${memKB% kB*}"
-	memKB="${memKB#* }"
-	memBytes="$(( ( ${memKB} * 10 * memPrct ) / ${nProcs} ))"
-}
+[[ ${memBytes} ]] || memBytes="$(( ( ( ( ( $(grep 'MemTotal' </proc/meminfo | sed -E s/'^.*\:[ \t]*([0-9]+) .*$'/'\1'/) ) - $(grep 'Unevictable' </proc/meminfo | sed -E s/'^.*\:[ \t]*([0-9]+) .*$'/'\1'/) ) - ( 2 ** 20 ) ) * 10 * ${memPrct} ) / ( $(nproc) ) ))B"
 
 if ${quietFlag}; then
 	for (( kk=1; kk<=${nProcs}; kk++ )); do           
