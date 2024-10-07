@@ -2,7 +2,7 @@
 
 memtester_p() {
 ## runs several instances of "memtester" for you in parallel
-# after calling this function, check on their current status by running `getMemtesterStats`
+# after calling memtester_p, check on the status/progress of all forked memtester instances by running `getMemtesterStats`
 #
 # USAGE: memtester_p ( [-p <% total_mem>] || [-b <# bytes>] ) [-t <path>] [-n <# instances>] [-l <# loops>] [-q]
 #        getMemtesterStats
@@ -26,15 +26,22 @@ memtester_p() {
 #            This supresses this output. Status can still be determined by looking at the log files or by running `getMemtesterStats`.
 #
 # NOTE: Any inputs not specified above will be silently dropped. Any invalid options will also be silently dropped and defaults will be used.
+#
+# DEPENDENCIES: memtester, sed, grep, tee, nproc, mktemp
+#               tail (getMemtesterStats only)
 
 local -i memPrct memBytes nProcs nLoops kk
 local quietFlag memKB nn ff
 local -gx memtesterTmpDir
 
+# set defaults
+
 memPrct=80
 nLoops=3
 quietFlag=false
 memtesterTmpDir=''
+
+# parse inputs for user-specified options to override defaults
 
 while (( $# > 0 )); do
 	case "${1}" in
@@ -57,20 +64,27 @@ while (( $# > 0 )); do
 		'-l')
 			(( ${2} >= 0 )) && nLoops=${2}
 			shift 2
-		;;			'-q')
+		;;
+ 		'-q')
 			quietFlag=true
 			shift 1
 		;;
 	esac
 done
 
+[[ ${nProcs} ]] || nProcs=$(nproc)
+
+# setup tmpdir
+
 [[ ${memtesterTmpDir} ]] || memtesterTmpDir="/tmp/$(mktemp -u -d .memtester.XXXXXXXXX)"
 memtesterTmpDir="${memtesterTmpDir%/}"
 mkdir -p "${memtesterTmpDir}"
 
-[[ ${nProcs} ]] || nProcs=$(nproc)
+# figure out how much memory each memtester instance should use
 
 [[ ${memBytes} ]] || memBytes="$(( ( ( ( ( $(grep 'MemTotal' </proc/meminfo | sed -E s/'^.*\:[ \t]*([0-9]+) .*$'/'\1'/) ) - $(grep 'Unevictable' </proc/meminfo | sed -E s/'^.*\:[ \t]*([0-9]+) .*$'/'\1'/) ) - ( 2 ** 20 ) ) * 10 * ${memPrct} ) / ( $(nproc) ) ))"
+
+# fork ${nProcs} memtester instances
 
 if ${quietFlag}; then
 	for (( kk=1; kk<=${nProcs}; kk++ )); do           
@@ -81,10 +95,12 @@ if ${quietFlag}; then
 else
 	for (( kk=1; kk<=${nProcs}; kk++ )); do           
 		{
-			memtester ${memBytes}B ${nLoops} | tee -a "${memtesterTmpDir}"/memtester.log.$kk >&$fd
+			memtester ${memBytes}B ${nLoops} | tee -a "${memtesterTmpDir}"/memtester.log.$kk >&${fd}
 		} &
 	done {fd}>&2
 fi
+
+# define function "getMemtesterStats" to check status/progress of all memtester instances
 
 source /proc/self/fd/0 <<EOF
 export -nf getMemtesterStats
