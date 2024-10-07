@@ -4,7 +4,7 @@ memtester_p() {
 ## runs several instances of "memtester" for you in parallel
 # after calling memtester_p, check on the status/progress of all forked memtester instances by running `memtester_p -s`
 #
-# USAGE: memtester_p ( [-p <% total_mem>] || [-b <# bytes>] ) [-t <path>] [-n <# instances>] [-l <# loops>] [-q] 
+# USAGE: memtester_p ( [-p <% total_mem>] || [-b <# bytes>] ) [-t <path>] [-n <# instances>] [-l <# loops>] [-q]
 #        memtester_p -s [-t <path>]
 #
 # FLAGS: all flags are optional and have fairly reasonable defaults
@@ -93,21 +93,21 @@ done
 
 # setup tmpdir
 
-[[ ${memtesterTmpDir} ]] || {
+[[ ${memtesterTmpDir} ]] || ${getStatsFlag} || {
         memtesterTmpDir="/tmp/$(mktemp -u -d .memtester.XXXXXXXXX)"
         newTmpDirFlag=true
 }
 memtesterTmpDir="${memtesterTmpDir%/}"
-mkdir -p "${memtesterTmpDir}"
+${newTmpDirFlag} && mkdir -p "${memtesterTmpDir}"
 
 # define function "getMemtesterStats" to check status/progress of all memtester instances
 
 { ${newTmpDirFlag} || ! declare -F getMemtesterStats &>/dev/null; } && {
 source /proc/self/fd/0 <<EOF
-export -nf getMemtesterStats
+export -nf getMemtesterStats &>/dev/null
 getMemtesterStats() (
-	local tailOffset lineResultsCur
-	local -g memtesterTmpDir
+        local tailOffset lineResultsCur
+        local -g memtesterTmpDir
 
 	until grep -qE '^Loop' "${memtesterTmpDir}"/memtester.log.1; do
 	    sleep 1
@@ -117,7 +117,7 @@ getMemtesterStats() (
 
 	tail -n +\${tailOffset} <"${memtesterTmpDir}"/memtester.log.1 | grep -F ':' | sed -E s/':.*$'// | while read -r nn; do 
 
-	    printf -v lineResultsCur '%s ' \$(for ff in "${memtesterTmpDir}"/memtester.log.*; do tail -n +\${tailOffset} <"\${ff}" | head -n 19 | grep -m 1 "\$nn"; done | sed -E 's/^.*://; s/memtester version.*$//; s/^.*([^[:alnum:]]+)([[:alnum:]]+)$/ \2/; s/^(Loop [0-9]+) .*$/\1/'); 
+	    printf -v lineResultsCur '%s ' \$(for ff in "${memtesterTmpDir}"/memtester.log.*; do tail -n +\${tailOffset} <"\${ff}" | head -n 19 | grep -m 1 "\$nn"; done | sed -E 's/^.*://; s/memtester version.*$//; s/^.*([^[:alnum:]]+)([[:alnum:]]+)$/ \2/; s/^[ \t]*(Loop [0-9]+) .*$/\n\1/'); 
 		
 		((tailOffset++))
 
