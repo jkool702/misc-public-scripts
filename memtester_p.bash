@@ -29,7 +29,7 @@ memtester_p() {
 #
 # NOTE: Any inputs not specified above will be silently dropped. Any invalid options will also be silently dropped and defaults will be used.
 #
-# DEPENDENCIES: memtester, sed, grep, tee, nproc, mktemp, tail, sleep
+# DEPENDENCIES: memtester, sed, grep, tee, nproc, mktemp, mkdir, tail, sleep
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
@@ -39,7 +39,7 @@ local -i memPrct memBytes nProcs nLoops kk
 local quietFlag getStatsFlag newTmpDirFlag nn ff
 local -gx memtesterTmpDir
 
-# figfure out if we are just printing stats
+# figure out if we are just printing stats
 
 { [[ "${*}" == '-s' ]] || [[ "${*}" == '-s '* ]] || [[ "${*}" == *' -s' ]] || [[ "${*}" == *' -s '* ]]; } && getStatsFlag=true
 
@@ -90,6 +90,15 @@ while (( $# > 0 )); do
 	esac
 done
 
+# setup tmpdir
+
+[[ ${memtesterTmpDir} ]] || {
+        memtesterTmpDir="/tmp/$(mktemp -u -d .memtester.XXXXXXXXX)"
+        newTmpDirFlag=true
+}
+memtesterTmpDir="${memtesterTmpDir%/}"
+mkdir -p "${memtesterTmpDir}"
+
 # define function "getMemtesterStats" to check status/progress of all memtester instances
 
 { ${newTmpDirFlag} || ! declare -F getMemtesterStats &>/dev/null; } && {
@@ -128,12 +137,6 @@ ${getStatsFlag} && {
         getMemtesterStats
 	return
 }
-
-# setup tmpdir
-
-[[ ${memtesterTmpDir} ]] || memtesterTmpDir="/tmp/$(mktemp -u -d .memtester.XXXXXXXXX)"
-memtesterTmpDir="${memtesterTmpDir%/}"
-mkdir -p "${memtesterTmpDir}"
 
 # figure out how many instances and how much memory each memtester instance should use
 
