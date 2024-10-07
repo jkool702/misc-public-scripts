@@ -33,9 +33,66 @@ memtester_p() {
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
+# make vars local
+
+local -i memPrct memBytes nProcs nLoops kk
+local quietFlag getStatsFlag newTmpDirFlag nn ff
+local -gx memtesterTmpDir
+
+# figfure out if we are just printing stats
+
+{ [[ "${*}" == '-s' ]] || [[ "${*}" == '-s '* ]] || [[ "${*}" == *' -s' ]] || [[ "${*}" == *' -s '* ]]; } && getStatsFlag=true
+
+# set defaults
+
+memPrct=80
+nLoops=3
+quietFlag=false
+if ${getStatsFlag}; then
+        memtesterTmpDir=''
+	newTmpDirFlag=false
+else
+        newTmpDirFlag=true
+fi
+
+# parse inputs for user-specified options to override defaults
+
+while (( $# > 0 )); do
+	case "${1}" in
+		'-p')  
+			(( ${2} > 0 )) && (( ${2} < 100 )) && memPrct=${2}
+			shift 2
+		;;
+		'-b')
+			(( ${2} > 0 )) && memBytes=${2}
+			shift 2
+		;;
+		'-t')
+			memtesterTmpDir="${2}"
+			newTmpDirFlag=true
+			shift 2
+		;;
+		'-n')
+			(( ${2} > 0 )) && nProcs=${2}
+			shift 2
+		;;
+		'-l')
+			(( ${2} >= 0 )) && nLoops=${2}
+			shift 2
+		;;
+ 		'-q')
+			quietFlag=true
+			shift 1
+		;;
+   		'-s')
+			shift 1
+		;;
+	esac
+done
+
 # define function "getMemtesterStats" to check status/progress of all memtester instances
 
-declare -F getMemtesterStats &>/dev/null || {
+{ ${newTmpDirFlag} || ! declare -F getMemtesterStats &>/dev/null; } && {
 source /proc/self/fd/0 <<EOF
 export -nf getMemtesterStats
 getMemtesterStats() (
@@ -61,65 +118,16 @@ getMemtesterStats() (
 	    fi
 	done
 )
-export memtesterTmpDir
 export -f getMemtesterStats
 EOF
 }
 
-# print stats and exit if '-s' flag is present
+# if printing stats call getMemtesterStats and return
 
-if [[ "${*}" == '-s' ]] || [[ "${*}" == '-s '* ]] || [[ "${*}" == *' -s' ]] || [[ "${*}" == *' -s '* ]]; then
- 	getMemtesterStats
- 	return
-fi
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-
-# make vars local
-
-local -i memPrct memBytes nProcs nLoops kk
-local quietFlag memKB nn ff
-local -gx memtesterTmpDir
-
-# set defaults
-
-memPrct=80
-nLoops=3
-quietFlag=false
-memtesterTmpDir=''
-
-# parse inputs for user-specified options to override defaults
-
-while (( $# > 0 )); do
-	case "${1}" in
-		'-p')  
-			(( ${2} > 0 )) && (( ${2} < 100 )) && memPrct=${2}
-			shift 2
-		;;
-		'-b')
-			(( ${2} > 0 )) && memBytes=${2}
-			shift 2
-		;;
-		'-t')
-			memtesterTmpDir="${2}"
-			shift 2
-		;;
-		'-n')
-			(( ${2} > 0 )) && nProcs=${2}
-			shift 2
-		;;
-		'-l')
-			(( ${2} >= 0 )) && nLoops=${2}
-			shift 2
-		;;
- 		'-q')
-			quietFlag=true
-			shift 1
-		;;
-	esac
-done
-
-[[ ${nProcs} ]] || nProcs=$(nproc)
+${getStatsFlag} && {
+        getMemtesterStats
+	return
+}
 
 # setup tmpdir
 
@@ -127,8 +135,9 @@ done
 memtesterTmpDir="${memtesterTmpDir%/}"
 mkdir -p "${memtesterTmpDir}"
 
-# figure out how much memory each memtester instance should use
+# figure out how many instances and how much memory each memtester instance should use
 
+[[ ${nProcs} ]] || nProcs=$(nproc)
 [[ ${memBytes} ]] || memBytes="$(( ( ( ( ( $(grep 'MemTotal' </proc/meminfo | sed -E s/'^.*\:[ \t]*([0-9]+) .*$'/'\1'/) ) - $(grep 'Unevictable' </proc/meminfo | sed -E s/'^.*\:[ \t]*([0-9]+) .*$'/'\1'/) ) - ( 2 ** 20 ) ) * 10 * ${memPrct} ) / ( $(nproc) ) ))"
 
 # fork ${nProcs} memtester instances
