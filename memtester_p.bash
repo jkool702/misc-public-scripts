@@ -4,8 +4,8 @@ memtester_p() {
 ## runs several instances of "memtester" for you in parallel
 # after calling memtester_p, check on the status/progress of all forked memtester instances by running `memtester_p -s`
 #
-# USAGE: memtester_p ( [-p <% total_mem>] || [-b <# bytes>] ) [-t <path>] [-n <# instances>] [-l <# loops>] [-q] [-s]
-#        memtester_p -s
+# USAGE: memtester_p ( [-p <% total_mem>] || [-b <# bytes>] ) [-t <path>] [-n <# instances>] [-l <# loops>] [-q] 
+#        memtester_p -s [-t <path>]
 #
 # FLAGS: all flags are optional and have fairly reasonable defaults
 #
@@ -26,6 +26,7 @@ memtester_p() {
 #            This supresses this output. Status can still be determined by looking at the log files or by running `getMemtesterStats`.
 #
 #   -s     : Call `getMemtesterStats` and exit. No memtester instances will be forked if a `-s` flag is present, regardless of any other inputs.
+#            Note: you can check of the status of memtester instances forked from another terminal using `memtester_p -s -t <tmpdir_path>`
 #
 # NOTE: Any inputs not specified above will be silently dropped. Any invalid options will also be silently dropped and defaults will be used.
 #
