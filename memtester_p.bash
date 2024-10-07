@@ -35,13 +35,13 @@ memtester_p() {
 
 # make vars local
 
-local -i memPrct memBytes nProcs nLoops kk
+local -i memPrct memBytes memTotal nProcs nLoops kk
 local quietFlag getStatsFlag newTmpDirFlag nn ff
 local -gx memtesterTmpDir
 
 # figure out if we are just printing stats
 
-{ [[ "${*}" == '-s' ]] || [[ "${*}" == '-s '* ]] || [[ "${*}" == *' -s' ]] || [[ "${*}" == *' -s '* ]]; } && getStatsFlag=true
+{ [[ "${*}" == '-s' ]] || [[ "${*}" == '-s '* ]] || [[ "${*}" == *' -s' ]] || [[ "${*}" == *' -s '* ]]; } && getStatsFlag=true || getStatsFlag=false
 
 # set defaults
 
@@ -141,7 +141,16 @@ ${getStatsFlag} && {
 # figure out how many instances and how much memory each memtester instance should use
 
 [[ ${nProcs} ]] || nProcs=$(nproc)
-[[ ${memBytes} ]] || memBytes="$(( ( ( ( ( $(grep 'MemTotal' </proc/meminfo | sed -E s/'^.*\:[ \t]*([0-9]+) .*$'/'\1'/) ) - $(grep 'Unevictable' </proc/meminfo | sed -E s/'^.*\:[ \t]*([0-9]+) .*$'/'\1'/) ) - ( 2 ** 20 ) ) * 10 * ${memPrct} ) / ( $(nproc) ) ))"
+memTotal=$(grep 'MemTotal' </proc/meminfo | sed -E s/'^.*\:[ \t]*([0-9]+) .*$'/'\1'/)
+[[ ${memBytes} ]] || memBytes="$(( ( ( ( ${memTotal} - $(grep 'Unevictable' </proc/meminfo | sed -E s/'^.*\:[ \t]*([0-9]+) .*$'/'\1'/) ) - ( 2 ** 20 ) ) * 10 * ${memPrct} ) / ( ${nProcs} ) ))"
+
+# memory sanity check
+
+if (( ( nProcs * memBytes ) > ( 1000 * memTotal ) )); then
+        printf '\nWARNING: in total, memtester will use %s KB of memory. \nThis is more than the total amount of system RAM!!\n\nType "YES" if you want to continue?    ' "$(( nProcs * memBytes ))" >&2
+	read -r
+        [[ "${REPLY}" == 'YES' ]] || return
+fi
 
 # fork ${nProcs} memtester instances
 
