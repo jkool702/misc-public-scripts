@@ -2,10 +2,10 @@
 
 memtester_p() {
 ## runs several instances of "memtester" for you in parallel
-# after calling memtester_p, check on the status/progress of all forked memtester instances by running `getMemtesterStats`
+# after calling memtester_p, check on the status/progress of all forked memtester instances by running `memtester_p -s`
 #
-# USAGE: memtester_p ( [-p <% total_mem>] || [-b <# bytes>] ) [-t <path>] [-n <# instances>] [-l <# loops>] [-q]
-#        getMemtesterStats
+# USAGE: memtester_p ( [-p <% total_mem>] || [-b <# bytes>] ) [-t <path>] [-n <# instances>] [-l <# loops>] [-q] [-s]
+#        memtester_p -s
 #
 # FLAGS: all flags are optional and have fairly reasonable defaults
 #
@@ -25,10 +25,57 @@ memtester_p() {
 #   -q     : Enables quiet mode. Typically the combined output from all memtester instances is sent to the terminals stderr. 
 #            This supresses this output. Status can still be determined by looking at the log files or by running `getMemtesterStats`.
 #
+#   -s     : Call `getMemtesterStats` and exit. No memtester instances will be forked if a `-s` flag is present, regardless of any other inputs.
+#
 # NOTE: Any inputs not specified above will be silently dropped. Any invalid options will also be silently dropped and defaults will be used.
 #
-# DEPENDENCIES: memtester, sed, grep, tee, nproc, mktemp
-#               tail (getMemtesterStats only)
+# DEPENDENCIES: memtester, sed, grep, tee, nproc, mktemp, tail, sleep
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+# define function "getMemtesterStats" to check status/progress of all memtester instances
+
+declare -F getMemtesterStats &>/dev/null || {
+source /proc/self/fd/0 <<EOF
+export -nf getMemtesterStats
+getMemtesterStats() (
+	local tailOffset lineResultsCur
+	local -g memtesterTmpDir
+
+	until grep -qE '^Loop' "${memtesterTmpDir}"/memtester.log.1; do
+	    sleep 1
+	done
+
+	tailOffset=\$(grep -m 1 -n -E '^Loop' "${memtesterTmpDir}"/memtester.log.1 | sed -E s/':.*$'//)
+
+	tail -n +\${tailOffset} <"${memtesterTmpDir}"/memtester.log.1 | grep -F ':' | sed -E s/':.*$'// | while read -r nn; do 
+
+	    printf -v lineResultsCur '%s ' \$(for ff in "${memtesterTmpDir}"/memtester.log.*; do tail -n +\${tailOffset} <"\${ff}" | head -n 19 | grep -m 1 "\$nn"; done | sed -E 's/^.*://; s/memtester version.*$//; s/^.*([^[:alnum:]]+)([[:alnum:]]+)$/ \2/; s/^(Loop [0-9]+) .*$/\1/'); 
+		
+		((tailOffset++))
+
+	    if grep -qE '^[0-9 ok\-\\\|\/]+$' <<<"\${lineResultsCur}"; then
+	        printf '        %s %s \n' "\${nn}" "\${lineResultsCur}"
+	    else
+	        printf 'ERROR:  %s %s\ <<======= \n' "\${nn}" "\${lineResultsCur}"
+	    fi
+	done
+)
+export memtesterTmpDir
+export -f getMemtesterStats
+EOF
+}
+
+# print stats and exit if '-s' flag is present
+
+if [[ "${*}" == '-s' ]] || [[ "${*}" == '-s '* ]] || [[ "${*}" == *' -s' ]] || [[ "${*}" == *' -s '* ]]; then
+ 	getMemtesterStats
+ 	return
+fi
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+# make vars local
 
 local -i memPrct memBytes nProcs nLoops kk
 local quietFlag memKB nn ff
@@ -100,34 +147,4 @@ else
 	done {fd}>&2
 fi
 
-# define function "getMemtesterStats" to check status/progress of all memtester instances
-
-source /proc/self/fd/0 <<EOF
-export -nf getMemtesterStats
-getMemtesterStats() (
-	local tailOffset lineResultsCur
-	local -g memtesterTmpDir
-
-	until grep -qE '^Loop' "${memtesterTmpDir}"/memtester.log.1; do
-	    sleep 1
-	done
-
-	tailOffset=\$(grep -m 1 -n -E '^Loop' "${memtesterTmpDir}"/memtester.log.1 | sed -E s/':.*$'//)
-
-	tail -n +\${tailOffset} <"${memtesterTmpDir}"/memtester.log.1 | grep -F ':' | sed -E s/':.*$'// | while read -r nn; do 
-
-	    printf -v lineResultsCur '%s ' \$(for ff in "${memtesterTmpDir}"/memtester.log.*; do tail -n +\${tailOffset} <"\${ff}" | head -n 19 | grep -m 1 "\$nn"; done | sed -E 's/^.*://; s/memtester version.*$//; s/^.*([^[:alnum:]]+)([[:alnum:]]+)$/ \2/; s/^(Loop [0-9]+) .*$/\1/'); 
-		
-		((tailOffset++))
-
-	    if grep -qE '^[0-9 ok\-\\\|\/]+$' <<<"\${lineResultsCur}"; then
-	        printf '        %s %s \n' "\${nn}" "\${lineResultsCur}"
-	    else
-	        printf 'ERROR:  %s %s\ <<======= \n' "\${nn}" "\${lineResultsCur}"
-	    fi
-	done
-)
-export memtesterTmpDir
-export -f getMemtesterStats
-EOF
 }
