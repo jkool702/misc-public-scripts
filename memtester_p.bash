@@ -126,7 +126,7 @@ getMemtesterStats() (
 	    else
 	        printf 'ERROR:  %s %s\ <<======= \n' "\${nn}" "\${lineResultsCur}"
 	    fi
-	done
+	done | sed -E 's/^.*Loop/Loop/; s/Stuck Address /Stuck Address        /; s/Random Value /Random Value         /; s/Compare XOR /Compare XOR          /; s/Compare SUB /Compare SUB          /; s/Compare MUL /Compare MUL          /; s/Compare DIV /Compare DIV          /; s/Compare OR /Compare OR           /; s/Compare AND /Compare AND          /; s/Sequential Increment /Sequential Increment /; s/Solid Bits /Solid Bits           /; s/Block Sequential /Block Sequential     /; s/Checkerboard /Checkerboard         /; s/Bit Spread /Bit Spread           /; s/Bit Flip /Bit Flip             /; s/Walking Ones /Walking Ones         /; s/Walking Zeroes /Walking Zeroes       /; s/8-bit Writes /8-bit Writes         /; s/16-bit Writes/16-bit Writes       /'
 )
 export -f getMemtesterStats
 EOF
@@ -135,7 +135,7 @@ EOF
 # if printing stats call getMemtesterStats and return
 
 ${getStatsFlag} && {
-        getMemtesterStats
+        [[ ${memtesterTmpDir} ]] && getMemtesterStats || printf '\nERROR - memtester tmp dir is unknown.\nPlease specify via "memtester_p -s -t $path"\n'
 	return
 }
 
