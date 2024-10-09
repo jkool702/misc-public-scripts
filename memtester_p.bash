@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+declare -x MEMTESTER_TMPDIR
+
 memtester_p() {
 ## runs several instances of "memtester" for you in parallel
 # after calling memtester_p, check on the status/progress of all forked memtester instances by running `memtester_p -s`
@@ -38,7 +40,7 @@ memtester_p() {
 
 local -i memPrct memBytes memTotal nProcs nLoops kk
 local quietFlag getStatsFlag newTmpDirFlag nn ff
-local -gx memtesterTmpDir
+local -gx MEMTESTER_TMPDIR
 
 # figure out if we are just printing stats
 
@@ -50,55 +52,55 @@ memPrct=80
 nLoops=3
 quietFlag=false
 if ${getStatsFlag}; then
-        memtesterTmpDir=''
-	newTmpDirFlag=false
+    newTmpDirFlag=false
 else
-        newTmpDirFlag=true
+    newTmpDirFlag=true
+    MEMTESTER_TMPDIR=''
 fi
 
 # parse inputs for user-specified options to override defaults
 
 while (( $# > 0 )); do
-	case "${1}" in
-		'-p')  
-			(( ${2} > 0 )) && (( ${2} < 100 )) && memPrct=${2}
-			shift 2
-		;;
-		'-b')
-			(( ${2} > 0 )) && memBytes=${2}
-			shift 2
-		;;
-		'-t')
-			memtesterTmpDir="${2}"
-			newTmpDirFlag=true
-			shift 2
-		;;
-		'-n')
-			(( ${2} > 0 )) && nProcs=${2}
-			shift 2
-		;;
-		'-l')
-			(( ${2} >= 0 )) && nLoops=${2}
-			shift 2
-		;;
- 		'-q')
-			quietFlag=true
-			shift 1
-		;;
-   		'-s')
-			shift 1
-		;;
-	esac
+    case "${1}" in
+        '-p')  
+            (( ${2} > 0 )) && (( ${2} < 100 )) && memPrct=${2}
+            shift 2
+        ;;
+        '-b')
+            (( ${2} > 0 )) && memBytes=${2}
+            shift 2
+        ;;
+        '-t')
+            MEMTESTER_TMPDIR="${2}"
+            newTmpDirFlag=true
+            shift 2
+        ;;
+        '-n')
+            (( ${2} > 0 )) && nProcs=${2}
+            shift 2
+        ;;
+        '-l')
+            (( ${2} >= 0 )) && nLoops=${2}
+            shift 2
+        ;;
+         '-q')
+            quietFlag=true
+            shift 1
+        ;;
+           '-s')
+            shift 1
+        ;;
+    esac
 done
 
 # setup tmpdir
 
-[[ ${memtesterTmpDir} ]] || ${getStatsFlag} || {
-        memtesterTmpDir="/tmp/$(mktemp -u -d .memtester.XXXXXXXXX)"
-        newTmpDirFlag=true
+[[ ${MEMTESTER_TMPDIR} ]] || ${getStatsFlag} || {
+    MEMTESTER_TMPDIR="/tmp/$(mktemp -u -d .memtester.XXXXXXXXX)"
+    newTmpDirFlag=true
 }
-memtesterTmpDir="${memtesterTmpDir%/}"
-${newTmpDirFlag} && mkdir -p "${memtesterTmpDir}"
+MEMTESTER_TMPDIR="${MEMTESTER_TMPDIR%/}"
+${newTmpDirFlag} && mkdir -p "${MEMTESTER_TMPDIR}"
 
 # define function "getMemtesterStats" to check status/progress of all memtester instances
 
@@ -106,27 +108,31 @@ ${newTmpDirFlag} && mkdir -p "${memtesterTmpDir}"
 source /proc/self/fd/0 <<EOF
 export -nf getMemtesterStats &>/dev/null
 getMemtesterStats() (
-        local tailOffset lineResultsCur
-        local -g memtesterTmpDir
+    local tailOffset lineResultsCur nn ff
+    local -Igx MEMTESTER_TMPDIR
 
-	until grep -qE '^Loop' "${memtesterTmpDir}"/memtester.log.1; do
-	    sleep 1
-	done
+    until grep -qE '^Loop' "${MEMTESTER_TMPDIR}"/memtester.log.1; do
+        sleep 1
+    done
 
-	tailOffset=\$(grep -m 1 -n -E '^Loop' "${memtesterTmpDir}"/memtester.log.1 | sed -E s/':.*$'//)
+    tailOffset=\$(grep -m 1 -n -E '^Loop' "${MEMTESTER_TMPDIR}"/memtester.log.1 | sed -E s/':.*$'//)
 
-	tail -n +\${tailOffset} <"${memtesterTmpDir}"/memtester.log.1 | grep -F ':' | sed -E s/':.*$'// | while read -r nn; do 
+    for ff in "${MEMTESTER_TMPDIR}"/memtester.log.*; do
+        echo "\$(sed -E s/':.*ok$'/': ok'/ "\${ff}")" > "\${ff}"
+    done
 
-	    printf -v lineResultsCur '%s ' \$(for ff in "${memtesterTmpDir}"/memtester.log.*; do tail -n +\${tailOffset} <"\${ff}" | head -n 19 | grep -m 1 "\$nn"; done | sed -E 's/^.*://; s/memtester version.*$//; s/^.*([^[:alnum:]]+)([[:alnum:]]+)$/ \2/; s/^[ \t]*(Loop [0-9]+) .*$/\n\1/'); 
-		
-		((tailOffset++))
+    tail -n +\${tailOffset} <"${MEMTESTER_TMPDIR}"/memtester.log.1 | grep -F ':' | sed -E s/':.*$'// | while read -r nn; do 
 
-	    if grep -qE '^[0-9 ok\-\\\|\/]+$' <<<"\${lineResultsCur}"; then
-	        printf '        %s %s \n' "\${nn}" "\${lineResultsCur}"
-	    else
-	        printf 'ERROR:  %s %s\ <<======= \n' "\${nn}" "\${lineResultsCur}"
-	    fi
-	done | sed -E 's/^.*Loop/Loop/; s/Stuck Address /Stuck Address        /; s/Random Value /Random Value         /; s/Compare XOR /Compare XOR          /; s/Compare SUB /Compare SUB          /; s/Compare MUL /Compare MUL          /; s/Compare DIV /Compare DIV          /; s/Compare OR /Compare OR           /; s/Compare AND /Compare AND          /; s/Sequential Increment /Sequential Increment /; s/Solid Bits /Solid Bits           /; s/Block Sequential /Block Sequential     /; s/Checkerboard /Checkerboard         /; s/Bit Spread /Bit Spread           /; s/Bit Flip /Bit Flip             /; s/Walking Ones /Walking Ones         /; s/Walking Zeroes /Walking Zeroes       /; s/8-bit Writes /8-bit Writes         /; s/16-bit Writes/16-bit Writes       /'
+    printf -v lineResultsCur '%s ' \$(for ff in "${MEMTESTER_TMPDIR}"/memtester.log.*; do tail -n +\${tailOffset} <"\${ff}" | head -n 19 | grep -m 1 "\$nn"; done | sed -E 's/^.*://; s/memtester version.*$//; s/^.*([^[:alnum:]]+)([[:alnum:]]+)$/ \2/; s/^[ \t]*(Loop [0-9]+) .*$/\n\1/'); 
+    
+    ((tailOffset++))
+
+    if grep -qE '^[0-9 ok\-\\\|\/]+$' <<<"\${lineResultsCur}"; then
+        printf '        %s %s \n' "\${nn}" "\${lineResultsCur}"
+    else
+        printf 'ERROR:  %s %s\ <<======= \n' "\${nn}" "\${lineResultsCur}"
+    fi
+    done | sed -E 's/^.*Loop/Loop/; s/Stuck Address /Stuck Address        /; s/Random Value /Random Value         /; s/Compare XOR /Compare XOR          /; s/Compare SUB /Compare SUB          /; s/Compare MUL /Compare MUL          /; s/Compare DIV /Compare DIV          /; s/Compare OR /Compare OR           /; s/Compare AND /Compare AND          /; s/Sequential Increment /Sequential Increment /; s/Solid Bits /Solid Bits           /; s/Block Sequential /Block Sequential     /; s/Checkerboard /Checkerboard         /; s/Bit Spread /Bit Spread           /; s/Bit Flip /Bit Flip             /; s/Walking Ones /Walking Ones         /; s/Walking Zeroes /Walking Zeroes       /; s/8-bit Writes /8-bit Writes         /; s/16-bit Writes/16-bit Writes       /'
 )
 export -f getMemtesterStats
 EOF
@@ -135,8 +141,8 @@ EOF
 # if printing stats call getMemtesterStats and return
 
 ${getStatsFlag} && {
-        [[ ${memtesterTmpDir} ]] && getMemtesterStats || printf '\nERROR - memtester tmp dir is unknown.\nPlease specify via "memtester_p -s -t $path"\n'
-	return
+    [[ ${MEMTESTER_TMPDIR} ]] && getMemtesterStats || printf '\nERROR - memtester tmp dir is unknown.\nPlease specify via "memtester_p -s -t $path"\n'
+    return
 }
 
 # figure out how many instances and how much memory each memtester instance should use
@@ -148,25 +154,25 @@ memTotal=$(grep 'MemTotal' </proc/meminfo | sed -E s/'^.*\:[ \t]*([0-9]+) .*$'/'
 # memory sanity check
 
 if (( ( nProcs * memBytes ) > ( 1000 * memTotal ) )); then
-        printf '\nWARNING: in total, memtester will use %s KB of memory. \nThis is more than the total amount of system RAM!!\n\nType "YES" if you want to continue?    ' "$(( nProcs * memBytes ))" >&2
-	read -r
-        [[ "${REPLY}" == 'YES' ]] || return
+    printf '\nWARNING: in total, memtester will use %s KB of memory. \nThis is more than the total amount of system RAM!!\n\nType "YES" if you want to continue?    ' "$(( nProcs * memBytes ))" >&2
+    read -r
+    [[ "${REPLY}" == 'YES' ]] || return
 fi
 
 # fork ${nProcs} memtester instances
 
 if ${quietFlag}; then
-	for (( kk=1; kk<=${nProcs}; kk++ )); do           
-		{
-			memtester ${memBytes}B ${nLoops} | tee -a "${memtesterTmpDir}"/memtester.log.$kk >/dev/null
-		} &
-	done 
+    for (( kk=1; kk<=${nProcs}; kk++ )); do           
+        {
+            memtester ${memBytes}B ${nLoops} | tee -a "${MEMTESTER_TMPDIR}"/memtester.log.$kk >/dev/null
+        } &
+    done 
 else
-	for (( kk=1; kk<=${nProcs}; kk++ )); do           
-		{
-			memtester ${memBytes}B ${nLoops} | tee -a "${memtesterTmpDir}"/memtester.log.$kk >&${fd}
-		} &
-	done {fd}>&2
+    for (( kk=1; kk<=${nProcs}; kk++ )); do           
+        {
+            memtester ${memBytes}B ${nLoops} | tee -a "${MEMTESTER_TMPDIR}"/memtester.log.$kk >&${fd}
+        } &
+    done {fd}>&2
 fi
 
 }
