@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 plock() {
 ## Pipe LOCK - extremely efficient process locking by writing/reading a single newline to/from a shared anonymous pipe
 # 
@@ -111,9 +113,9 @@ ${initFlag} && {
 }
 
 ${openFDFlag} && {
-    PLOCK_FD="$(find -L /proc/self/fd -inum ${PLOCK_ID} -print -quit 2>/dev/null)"
-    { [[ ${PLOCK_FD} ]] && [[ -e /proc/self/fd/${PLOCK_FD} ]]; } || {
-        pipeProcPath="$(find -L /proc/*/fd -inum ${PLOCK_ID} -print -quit 2>/dev/null)"
+    PLOCK_FD="$(find -L /proc/self/fd -inum "${PLOCK_ID}" -print -quit 2>/dev/null)"
+    { [[ ${PLOCK_FD} ]] && [[ -e "/proc/self/fd/${PLOCK_FD}" ]]; } || {
+        pipeProcPath="$(find -L /proc/*/fd -inum "${PLOCK_ID}" -print -quit 2>/dev/null)"
         [[ ${pipeProcPath} ]] || {
             printf '\nERROR: could not find pipe with ID %s\n\nABORTING\n' "${PLOCK_ID}" >&2
             return 1
@@ -128,7 +130,7 @@ ${openFDFlag} && {
     return 0    
 }
 
-{ [[ ${PLOCK_FD} ]] && [[ -e /proc/self/fd/${PLOCK_FD} ]]; } || {
+{ [[ ${PLOCK_FD} ]] && [[ -e "/proc/self/fd/${PLOCK_FD}" ]]; } || {
     printf '\nERROR: could not find/access file descriptor %s\n\nABORTING\n' "${PLOCK_FD}" >&2
     return 1
 }
@@ -141,7 +143,7 @@ if ${lockFlag}; then
         printf '\nERROR: the lock has already been aquired by this process and has not been released. \nPlease release the lock before trying to re-aquire it!\n' >&2
         return 1
     }
-    read -r -N 1 -u ${PLOCK_FD} ${timeoutStr} _ || return 1
+    read -r -N 1 -u "${PLOCK_FD}" ${timeoutStr} _ || return 1
     PLOCK_HAVELOCK=true
     ${verboseFlag} && printf 'LOCK AQUIRED\n' >&2
 
@@ -151,7 +153,7 @@ elif ${unlockFlag}; then
         printf '\nERROR: the lock has not yet been aquired by this process. \nPlease aquire the lock before trying to release it!\n' >&2
         return 1
     }
-    printf '\n' >&${PLOCK_FD}
+    printf '\n' >&"${PLOCK_FD}"
     PLOCK_HAVELOCK=false
     ${verboseFlag} && printf 'LOCK RELEASED\n' >&2
 
