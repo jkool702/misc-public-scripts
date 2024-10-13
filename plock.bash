@@ -19,9 +19,21 @@ plock() {
 #     plock -u                 # --|
 #     plock -c
 #
-# NOTE: 2 variables will be added to your current shell that are used by plock:
+# NOTE: 3 variables will be added to your current shell that are used by plock:
 #     PLOCK_ID: contains the inode number identifying the pipe in procfs
 #     PLOCK_FD: contains the open file descriptor number for the pipe
+#     PLOCK_HAVELOCK: identifies if this process is currently holding the lock.
+#
+# # # # # FLAGS # # # # #
+#
+#     -i|--init|--setup: setup a new anonymouys pipe and open a file descriptor to it. The pipe ID and file descriptor number will be saved in PLOCK_ID and PLOCK_FD
+#     -p|--pipe|--inode: open a file descriptor to an existing anonymous pipe defined by its inode number in procfs. The file descriptor number will be saved in PLOCK_FD
+#     -f|--fd|--file-descriptor: set the file descriptor to use for accessing the pipe. Overrides and overwrites PLOCK_FD.
+#     -e|-x|-l|--exclusive|--lock: wait for and aquire the lock by reading from the anonymous pipe. This is the DEFAULT operation if no other flags speciofying an alternate command are given. 
+#     -u|--unlock: release the lonk by writing a newline back into the anonymous pipe. This should ONLY be called after sucessfully aquiring the lock.
+#     -o|-c|--close: closes the file descriptor for accessing the anonymous pipe
+#     -w|-t|--wait|--timeout <#>: sets a timeout of <#> seconds for waiting for the lock. After this timeout has reached plock will return 1 if it has not yet aquired the lock
+#     -v|--verbose: print some additional info to stderr
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -34,6 +46,7 @@ lockFlag=false
 unlockFlag=false
 userFDFlag=false
 verboseFlag=false
+[[ ${PLOCK_HAVELOCK} ]] || PLOCK_HAVELOCK=false
     
 until (( $# == 0 )); do
     case "${1}" in
@@ -121,17 +134,29 @@ ${openFDFlag} && {
 ${unlockFlag} || ${closeFDFlag} || lockFlag=true
 
 if ${lockFlag}; then
-    
+
+    ${PLOCK_HAVELOCK} && {
+        printf '\nERROR: the lock has already been aquired by this process and has not been released. \nPlease release the lock before trying to re-aquire it!\n' >&2
+        return 1
+    }
     read -r -N 1 -u ${PLOCK_FD} ${timeoutStr} _ || return 1
+    PLOCK_HAVELOCK=true
+    ${verboseFlag} && printf 'LOCK AQUIRED\n' >&2
 
 elif ${unlockFlag}; then
 
+    ${PLOCK_HAVELOCK} || {
+        printf '\nERROR: the lock has not yet been aquired by this process. \nPlease aquire the lock before trying to release it!\n' >&2
+        return 1
+    }
     printf '\n' >&${PLOCK_FD}
+    PLOCK_HAVELOCK=false
+    ${verboseFlag} && printf 'LOCK RELEASED\n' >&2
 
 elif ${closeFDFlag}; then
 
     exec {PLOCK_FD}>&-
-    unset PLOCK_FD
+    unset PLOCK_ID PLOCK_FD PLOCK_HAVELOCK
 
 fi
 
