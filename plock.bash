@@ -39,6 +39,8 @@ plock() {
 #
 # NOTE: if the '-t <#>' flag is not given, plock will wait indefinately to aquire a lock. For a non-blocking lock, use '-t <#>' with a small (but non-zero) <#>.
 #
+# DEPENDENCIES: bash, find, procfs
+#
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 local pipeProcPath timeoutStr initFlag openFDFlag closeFDFlag lockFlag unlockFlag userFDFlag
@@ -50,7 +52,7 @@ lockFlag=false
 unlockFlag=false
 userFDFlag=false
 verboseFlag=false
-[[ ${PLOCK_HAVELOCK} ]] || PLOCK_HAVELOCK=false
+: "${PLOCK_HAVELOCK:=false}" "${PLOCK_ID:=}" "${PLOCK_FD:=}"
     
 until (( $# == 0 )); do
     case "${1}" in
@@ -93,7 +95,7 @@ until (( $# == 0 )); do
         ;;
         
         -v|--verbose)
-            verboseFLag=true
+            verboseFlag=true
             shift 1
         ;;
         
@@ -108,12 +110,12 @@ ${initFlag} && {
     exec {PLOCK_FD}<><(:)
     read -r -d '' _ _ _ _ _ _ _ PLOCK_ID </proc/self/fdinfo/${PLOCK_FD}
     printf '\n' >&${PLOCK_FD}
-    ${verboseFLag} && printf '\nPipe ID: %s\nPIPE FD: %s\n' "${PLOCK_ID}" "${PLOCK_FD}" >&2
+    ${verboseFlag} && printf '\nPipe ID: %s\nPipe FD: %s\n' "${PLOCK_ID}" "${PLOCK_FD}" >&2
     return 0
 }
 
 ${openFDFlag} && {
-    PLOCK_FD="$(find -L /proc/self/fd -inum "${PLOCK_ID}" -print -quit 2>/dev/null)"
+    PLOCK_FD="$(find -L /proc/self/fd -inum "${PLOCK_ID}" -printf '%f' -quit 2>/dev/null)"
     { [[ ${PLOCK_FD} ]] && [[ -e "/proc/self/fd/${PLOCK_FD}" ]]; } || {
         pipeProcPath="$(find -L /proc/*/fd -inum "${PLOCK_ID}" -print -quit 2>/dev/null)"
         [[ ${pipeProcPath} ]] || {
@@ -126,7 +128,7 @@ ${openFDFlag} && {
             exec {PLOCK_FD}<>"${pipeProcPath}"
         fi
     }
-    ${verboseFLag} && printf '\nPipe ID: %s\nPIPE FD: %s\n' "${PLOCK_ID}" "${PLOCK_FD}" >&2
+    ${verboseFlag} && printf '\nPipe ID: %s\nPipe FD: %s\n' "${PLOCK_ID}" "${PLOCK_FD}" >&2
     return 0    
 }
 
@@ -160,6 +162,7 @@ elif ${unlockFlag}; then
 elif ${closeFDFlag}; then
 
     exec {PLOCK_FD}>&-
+    ${verboseFlag} && printf 'FILE DESCRIPTOR %s CLOSED\n' "${PLOCK_FD}" >&2
     unset PLOCK_ID PLOCK_FD PLOCK_HAVELOCK
 
 fi
