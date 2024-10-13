@@ -35,6 +35,8 @@ plock() {
 #     -w|-t|--wait|--timeout <#>: sets a timeout of <#> seconds for waiting for the lock. After this timeout has reached plock will return 1 if it has not yet aquired the lock
 #     -v|--verbose: print some additional info to stderr
 #
+# NOTE: if the '-t <#>' flag is not given, plock will wait indefinately to aquire a lock. For a non-blocking lock, use '-t <#>' with a small (but non-zero) <#>.
+#
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 local pipeProcPath timeoutStr initFlag openFDFlag closeFDFlag lockFlag unlockFlag userFDFlag
