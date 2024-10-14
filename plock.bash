@@ -170,3 +170,15 @@ fi
 return 0
 
 }
+
+
+# SPEEDTEST
+#
+# plock -i; time { for nn in {1..1000}; do plock; plock -u; done; }; plock -c
+#
+# real    0m0.139s
+# user    0m0.133s
+# sys     0m0.006s
+#
+# AVERAGE COMBINED TIME TO AQUIRE AND RELEASE A LOCK IS ~140 MICROSECONDS (0.14 ms)
+
