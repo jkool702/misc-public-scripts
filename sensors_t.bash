@@ -11,59 +11,59 @@ sensors_t() {
 #
 # DEPENDENCIES: bash 4+, sensors (from lm_sensors), sed, grep. tail, head
 
-	(
+    (
         # make vars local
-		local -a t_max t_cur
-		local tmpStr t_max_cpu nn nvidiaFlag liquidctlFlag liquidctlName
+        local -a t_max t_cur
+        local tmpStr t_max_cpu nn nvidiaFlag liquidctlFlag liquidctlName
         local -i kk sleepTime
 
         # get how long to sleep between 
-		sleepTime=1
+        sleepTime=1
         (( ${#} > 0 )) && for kk in "${@}"; do
             (( kk > 0 )) && sleepTime=${kk} && break
         done
 
         # reset bash timer
-		SECONDS=0
+        SECONDS=0
 
         # determine if we have nvidia-smi and/or liquidctl
-		type nvidia-smi &>/dev/null && nvidiaFlag=true || nvidiaFlag=false
-		type liquidctl &>/dev/null && liquidctlFlag=true || liquidctlFlag=false
-		${liquidctlFlag} && liquidctlName="$(printf '\nAIO: %s\n' "$(liquidctl list | head -n 1 | sed -E s/'^.*\:'//)";)"
+        type nvidia-smi &>/dev/null && nvidiaFlag=true || nvidiaFlag=false
+        type liquidctl &>/dev/null && liquidctlFlag=true || liquidctlFlag=false
+        ${liquidctlFlag} && liquidctlName="$(printf '\nAIO: %s\n' "$(liquidctl list | head -n 1 | sed -E s/'^.*\:'//)";)"
 
         # start main loop
-		while true; do
+        while true; do
 
             # get CPU (and GPU) temps afrom sensors and tweak the output to display how we want
-			tmpStr="$(${nvidiaFlag} && printf 'GPU TEMP:      +%s  ( GPU MAX = %%s )\n' "$(nvidia-smi | grep -oE '[0-9]+C' | sed -E s/'C'/'°C'/)"; sensors | grep -iE "core|package"  | grep -vF "coretemp-isa-0000" | sed -E 's/\(.*$/\( MAX = %s )/; s/\.0//g')"; 
+            tmpStr="$(${nvidiaFlag} && printf 'GPU TEMP:      +%s  ( GPU MAX = %%s )\n' "$(nvidia-smi | grep -oE '[0-9]+C' | sed -E s/'C'/'°C'/)"; sensors | grep -iE "core|package"  | grep -vF "coretemp-isa-0000" | sed -E 's/\(.*$/\( MAX = %s )/; s/\.0//g')"; 
 
             # extract the actual temps from the full text output
             mapfile -t t_cur < <(sed -E 's/^[^+-]*([+-])/\1/; s/C.*$/C/' <<<"${tmpStr}");
 
             # get current max CPU temp and add it to the output string / array of current temps
-			t_max_cpu="$(IFS=$'\n'; sort -n <<<"${t_cur[*]:$(${nvidiaFlag} && echo '1' || echo '0')}" | tail -n 1)"; 
-			tmpStr+=$'\n''CORE MAX:      '"${t_max_cpu}"'  ( CPU MAX = %s )'$'\n'; 
-			t_cur+=("${t_max_cpu}"); 
+            t_max_cpu="$(IFS=$'\n'; sort -n <<<"${t_cur[*]:$(${nvidiaFlag} && echo '1' || echo '0')}" | tail -n 1)"; 
+            tmpStr+=$'\n''CORE MAX:      '"${t_max_cpu}"'  ( CPU MAX = %s )'$'\n'; 
+            t_cur+=("${t_max_cpu}"); 
 
             # update the maximum recorded temperature for each sensor if current temp is higher than recorded maximum temp
-			[[ ${#t_max[@]} == 0 ]] && t_max=("${t_cur[@]}") || for nn in "${!t_cur[@]}"; do 
-				(( ${t_cur[$nn]//[^0-9]/} > ${t_max[$nn]//[^0-9]/} )) && t_max[$nn]="${t_cur[$nn]}"; 
-			done; 
+            [[ ${#t_max[@]} == 0 ]] && t_max=("${t_cur[@]}") || for nn in "${!t_cur[@]}"; do 
+                (( ${t_cur[$nn]//[^0-9]/} > ${t_max[$nn]//[^0-9]/} )) && t_max[$nn]="${t_cur[$nn]}"; 
+            done; 
 
             # print a seperator
-			printf '||---------------------------------------||\n\nMonitor has been running for:  %s seconds\n\n' "${SECONDS}"
+            printf '||---------------------------------------||\n\nMonitor has been running for:  %s seconds\n\n' "${SECONDS}"
 
             # print CPU (and GPU) temps
-			${nvidiaFlag} && tmpStr="${tmpStr/$'\n'/$'\n\n'}"
-			printf "${tmpStr}" "${t_max[@]}"
+            ${nvidiaFlag} && tmpStr="${tmpStr/$'\n'/$'\n\n'}"
+            printf "${tmpStr}" "${t_max[@]}"
 
             # if we have liquidctl print AIO temps and pump speed
-			${liquidctlFlag} && { printf '%s\n' "${liquidctlName}"; liquidctl status | grep -iE "pump|temp"; }
+            ${liquidctlFlag} && { printf '%s\n' "${liquidctlName}"; liquidctl status | grep -iE "pump|temp"; }
 
-			printf '\n';
+            printf '\n';
 
             # sleep for sleepTime seconds
-			read -r -u ${fd_sleep} -t ${sleepTime}
-		done
-	) {fd_sleep}<><(:)
+            read -r -u ${fd_sleep} -t ${sleepTime}
+        done
+    ) {fd_sleep}<><(:)
 }
