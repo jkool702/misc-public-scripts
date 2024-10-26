@@ -11,6 +11,12 @@ sensors_t() {
 #
 # DEPENDENCIES: bash 4+, sensors (from lm_sensors), sed, grep. tail, head
 
+    # check for sensors support
+    sensors &>/dev/null || sensors-detect || {
+        printf '\nERROR: this system does not currently support "sensors". ABORTING!!!\n\n'
+        return 1
+    }
+
     (
         # make vars local
         local -a t_max t_cur
