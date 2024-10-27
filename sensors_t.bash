@@ -48,13 +48,13 @@ sensors_t() {
 
             # get current max CPU temp and add it to the output string / array of current temps
             t_max_cpu="$(IFS=$'\n'; sort -n <<<"${t_cur_cpu[*]}" | tail -n 1)"; 
-            tmpStr+=$'\n\n''----------------'$'\n''Additional Temps'$'\n''----------------'$'\n\n''CPU HOT TEMP: '"${t_max_cpu}"'  ( CPU HOT MAX = %s )'$'\n'; 
+            tmpStr+=$'\n\n''----------------'$'\n''Additional Temps'$'\n''----------------'$'\n''CPU HOT TEMP: '"${t_max_cpu}"'  ( CPU HOT MAX = %s )'$'\n'; 
             t_cur+=("${t_max_cpu}"); 
 
             # get GPU temp
             ${nvidiaFlag} && {
-                g_cur="$(nvidia-smi | grep -oE '[0-9]+C' | sed -E s/'C'/'°C'/)"
-                tmpStr+=$'\n''GPU TEMP:     +'"${g_cur}"'  ( GPU MAX = %s )'$'\n'
+                g_cur="$(nvidia-smi | grep -oE '[0-9]+C' | sed -E s/'C'/'.0°C'/)"
+                tmpStr+='GPU TEMP:     +'"${g_cur}"'  ( GPU MAX = %s )'$'\n'
                 t_cur+=("${g_cur}");
             } 
 
