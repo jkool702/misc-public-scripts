@@ -37,7 +37,7 @@ sensors_t() {
         while true; do
 
             # get CPU (and GPU) temps afrom sensors and tweak the output to display how we want
-            tmpStr="$(printf '\n----------------\n'; sensors "${@##-*}" | grep -B 1 -E '°C|RPM|Adapter' | grep -E '^[^[:space:]]' | sed -E 's/\-\-/\n----------------/; s/Adapter.*$/----------------/;s/°C[[:space:]]*(\(.*)?$/°C  \( MAX = %s )/')"; 
+            tmpStr="$(printf '\n----------------\n'; sensors ${*##-*} | grep -B 1 -E '°C|RPM|Adapter' | grep -E '^[^[:space:]]' | sed -E 's/\-\-/\n----------------/; s/Adapter.*$/----------------/;s/°C[[:space:]]*(\(.*)?$/°C  \( MAX = %s )/')"; 
 
             # remove sensors without any valid output
             tmpStr="$(sed -E 's/'$'\034''\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-'$'\034''[^'$'\034'']+'$'\034''\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-'$'\034\034''/'$'\034''/g;s/'$'\034''/\n/g' <<<"${tmpStr//$'\n'/$'\034'}")"
