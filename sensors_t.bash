@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
 sensors_t() {
-## uses sensors (from lm_sensors) to display CPU temps and keep track of maximum temps encountered
+## uses "sensors" (from lm_sensors) to display CPU temps and keep track of the maximum temps encountered for each sensor
 # 
 # USAGE: sensors_t [N] [CHIP(S)]
 #            N: (optional) length of time to sleep between updates in seconds. MUST be the 1st input. DEFAULT is N=1
-#     CHIPS(S): (optional) the chip(s) to have sensors display sensors for. example: "coretemp-isa-0000". Default is to omit this, causing all sensors data to display.
-#   USAGE NOTE: "sensors_t" is a bash function. The source file ("sensors_t.bash") must be sourced before sensors_t can be used
+#     CHIPS(S): (optional) the chip(s) to have sensor data display from. Default is to omit this, causing all sensors data to display.
+#               Example: "coretemp-isa-0000". To see possible values for CHIP(S), first run `sensors_t` with the CHIP(S) paramater omitted.
+#   USAGE NOTE: "sensors_t" is a bash function. This source file ("sensors_t.bash") must be sourced before sensors_t can be used.
 #
 # IF AVAILABLE: nvidia-smi will be used to display nvidia GPU temps
 #
