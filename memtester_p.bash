@@ -118,7 +118,7 @@ getMemtesterStats() (
     tailOffset=\$(grep -m 1 -n -E '^Loop' "${MEMTESTER_TMPDIR}"/memtester.log.1 | sed -E s/':.*$'//)
 
     for ff in "${MEMTESTER_TMPDIR}"/memtester.log.*; do
-        echo "\$(sed -E s/':.*ok$'/': ok'/ "\${ff}")" > "\${ff}"
+        printf '%s' "\$(sed -E s/':.*ok$'/': ok'/ "\${ff}")" > "\${ff}"
     done
 
     tail -n +\${tailOffset} <"${MEMTESTER_TMPDIR}"/memtester.log.1 | grep -F ':' | sed -E s/':.*$'// | while read -r nn; do 
