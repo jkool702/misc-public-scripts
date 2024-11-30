@@ -6,7 +6,11 @@ SETLOCAL
 
 @CALL :preRunScript
 
-:: mount drives using :myGUIDmounnt function
+:: DEFINE DRIVE LETTER AND GUID HERE
+:: then mount drives using the :myGUIDmounnt function
+:: You can determine GUID via the following powershell command:
+:: GWMI -namespace root\cimv2 -class win32_volume | FL -property DriveLetter, DeviceID
+:: EXAMPLE:
 @CALL :myGUIDmount "C" "{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}"
 @CALL :myGUIDmount "D" "{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}"
 @CALL :myGUIDmount "E" "{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}"
@@ -18,9 +22,6 @@ SETLOCAL
 @CALL :myGUIDmount "L" "{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}"
 @CALL :myGUIDmount "M" "{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}"
 @CALL :myGUIDmount "N" "{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}"
-
-
-
 
 @CALL :postRunScript
 
@@ -50,7 +51,6 @@ ECHO ---------------------------------------------------------------------------
 @CALL %mountvol% /R
 
 GOTO EOF
-
 
 :postRunScript
 
