@@ -22,7 +22,7 @@ bashCmdTime() (
         export bashCmdTime_TMPDIR="$PWD"
     }
     
-    [[ ${bashCmdTime_logfile} ]] || bashCmdTime_logfile='&2'
+    [[ ${bashCmdTime_LOGFILE} ]] || bashCmdTime_LOGFILE='&2'
 
    
 getTimeDiff () {
@@ -34,9 +34,9 @@ getTimeDiff () {
 
 printTimeDiff() {
     local tStart tEnd
-    tStart="$(<"${4}")"
-    tEnd="$(<"${5}")"
-    printf '[%s] %s (%s): \t%s sec    (%s --> %s)\n' "$1" "$(( $2 - 10 ))" "$3" "$(getTimeDiff "$tStart" "$tEnd")" "$tStart" "$tEnd"
+    tStart="$(<"${5}")"
+    tEnd="$(<"${6}")"
+    printf '[%s] {%s} %s (%s):  %s sec  (%s --> %s)\n' "$1" "$2" "$(( $3 - 10 ))" "$4" "$(getTimeDiff "$tStart" "$tEnd")" "$tStart" "$tEnd"
 }
 export -f getTimeDiff
 export -f printTimeDiff    
@@ -44,33 +44,37 @@ export -f printTimeDiff
    if [[ -t 0 ]]; then
         runCmd="${@}"
     else
-        crunCmd="cat | { ${@}; }"
+        runCmd="cat | { ${@}; }"
     fi
     
 runFuncSrc="runFunc () (    
+printf '\n
+------------------------------------------------------------
+--------------- RUNTIME BREAKDOWN BY COMMAND ---------------
+------------------------------------------------------------
+
+COMMAND:
+%s
+
+START TIME: 
+%s (%s)
+
+FORMAT:
+------------------------------------------------------------
+[PID] {SHELL_DEPTH} LINE (CMD):  RUNTIME  (TSTART --> TSTOP)
+------------------------------------------------------------\n\n' \"$runCmd\" \"\$(date)\" \"\$EPOCHREALTIME\" >&\${fd_bashCmdTime};
     echo \"\$EPOCHREALTIME\" > \"$bashCmdTime_TMPDIR\"/.bash.cmd.time.start.last;
     echo \"\$EPOCHREALTIME\" > \"$bashCmdTime_TMPDIR\"/.bash.cmd.time.start.\$BASHPID;
     set -T;
     trap 'echo \"\$EPOCHREALTIME\" >\"${bashCmdTime_TMPDIR}\"/.bash.cmd.time.end.\$BASHPID;
 [[ -f \"${bashCmdTime_TMPDIR}\"/.bash.cmd.time.start.\$BASHPID ]] || printf '\"'\"'%s\n'\"'\"' \"$(<\"${bashCmdTime_TMPDIR}\"/.bash.cmd.time.start.last)\" >\"${bashCmdTime_TMPDIR}\"/.bash.cmd.time.start.\$BASHPID;
-printTimeDiff \"\$BASHPID\" \"\$LINENO\" \"\$BASH_COMMAND\" \"${bashCmdTime_TMPDIR}/.bash.cmd.time.start.\$BASHPID\" \"${bashCmdTime_TMPDIR}/.bash.cmd.time.end.\$BASHPID\" >&\${fd_bashCmdTime};
+printTimeDiff \"\$BASHPID\" \"\$BASH_SUBSHELL\" \"\$LINENO\" \"\$BASH_COMMAND\" \"${bashCmdTime_TMPDIR}/.bash.cmd.time.start.\$BASHPID\" \"${bashCmdTime_TMPDIR}/.bash.cmd.time.end.\$BASHPID\" >&\${fd_bashCmdTime};
 echo \"\$EPOCHREALTIME\" >\"${bashCmdTime_TMPDIR}\"/.bash.cmd.time.start.last;
 echo \"\$EPOCHREALTIME\" >\"${bashCmdTime_TMPDIR}\"/.bash.cmd.time.start.\$BASHPID;' DEBUG;
-"
 
-   if [[ -t 0 ]]; then
-        runFuncSrc+="
-${@}
+${runCmd}
 
-) {fd_bashCmdTime}>${bashCmdTime_logfile}"
-    else
-        runFuncSrc+="
-cat | {
-${@}
-}
-
-) {fd_bashCmdTime}>${bashCmdTime_logfile}"
-    fi
+) {fd_bashCmdTime}>${bashCmdTime_LOGFILE}"
 	
 eval "${runFuncSrc}"
 	
@@ -82,4 +86,8 @@ export -n bashCmdTime_TMPDIR
 export -nf getTimeDiff
 export -nf printTimeDiff  
 \rm -f "${bashCmdTime_TMPDIR}"/.bash.cmd.time.*
+if ! [[  "${bashCmdTime_TMPDIR}" == "$PWD" ]] && { { shopt nullglob &>/dev/null && [[ -z $(printf '%s' "${bashCmdTime_TMPDIR}"/*) ]]; } || { ! shopt nullglob &>/dev/null && [[ "$(printf '%s' "${bashCmdTime_TMPDIR}"/*)" == "${bashCmdTime_TMPDIR}"'/*' ]]; }; }; then 
+    \rm -r "${bashCmdTime_TMPDIR}"
+fi
+    
 )
