@@ -168,7 +168,7 @@ for p in "${uniq_pids[@]}"; do
     # print a line to the time.combined.<pid> file vcontaining the run count and the combined run time for that command
     # also, keep track of total run time for this PID
     for l in "${uniq_lines_pid[@]}"; do
-        mapfile -t linesCmdCur < <(grep -F "$l" "${ctimep_TMPDIR}"/time.$p)
+        mapfile -t linesCmdCur < <(grep -F "$l" "${ctimep_TMPDIR}"/time.$p | grep -v -F ':  ERROR  (??? --> ')
         timesCmdCur=("${linesCmdCur[@]##*:  }")
         timesCmdCur=("${timesCmdCur[@]%% sec*}")
         timesCmdCur=("${timesCmdCur[@]//./}")
