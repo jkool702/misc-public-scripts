@@ -36,7 +36,7 @@ printTimeDiff() {
     local tStart tEnd
     tStart="$(<"${5}")"
     tEnd="$(<"${6}")"
-    printf '[%s] {%s} %s (%s):  %s sec  (%s --> %s)\n' "$1" "$2" "$(( $3 - 10 ))" "$4" "$(getTimeDiff "$tStart" "$tEnd")" "$tStart" "$tEnd"
+    printf '[%s] {%s} %s (%q):  %s sec  (%s --> %s)\n' "$1" "$2" "$3" "${4" "$(getTimeDiff "$tStart" "$tEnd")" "$tStart" "$tEnd"
 }
 export -f getTimeDiff
 export -f printTimeDiff    
