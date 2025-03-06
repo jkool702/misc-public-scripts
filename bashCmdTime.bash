@@ -1,4 +1,15 @@
+#!/usr/bin/env bash
+
 bashCmdTime() (
+    ## efficiently produces an accurate per-command execution time profile for shell scripts and functions using a DEBUG trap
+    #
+    # USAGE: bashCmdTime _______
+    #        [...] | bashCmdTime _______ | [...]
+    #
+    # REQUIREMENTS:
+    #    1) your bash installation must be new enough to support the $EPOCHREALTIME variable  (bash 4.0+ (???))
+    #    2) the shell script/function you are generating the time profile for can not use a DEBUG trap anywhere
+    
     bashCmdTime_TMPDIR=''
     
     [[ -d /dev/shm ]] && { 
