@@ -9,7 +9,7 @@ bashCmdTime() (
     #        [...] | bashCmdTime _______ | [...]
     #
     # NOTES: it is REQUIRED that the shell script/function you are generating the time profile for does NOT use a DEBUG trap ANYWHERE
-    #        bashCmdTime works by "hijacking" the DEBUG trap, and if the code alters the DEBUG traop then basgCmdTime will stop working
+    #        bashCmdTime works by "hijacking" the DEBUG trap, and if the code alters the DEBUG traop then bashCmdTime will stop working
     #
     # DEPENDENCIES:
     #   1) a recent-ish bash versioin (4.0+ (???) - it needs to support the $EPOCHREALTIME variable)
