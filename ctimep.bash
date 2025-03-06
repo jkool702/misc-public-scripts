@@ -83,11 +83,9 @@ _ctimep_printTimeDiff() {
 # NOTE: start/stop times sare recorded in tmpfiles (not variables) to avoid potential variable name conflicts
     local tStart tEnd
     
-    [[ -f "${5}" ]] && tStart="$(<"${5}")"
-    [[ ${tStart} ]] || { [[ -f "${5%.*}.last" ]] && tStart="$(<"${5%.*}.last")"; }
+    [[ "${5}" ]] && tStart="${5}" || { [[ -f "${ctimep_TMPDIR}/.run.time.start.last" ]] && read -r tStart <"${ctimep_TMPDIR}/.run.time.start.last"; }
     
-    [[ -f "${6}" ]] && tEnd="$(<"${6}")"
-    [[ $tEnd ]] || tEnd="${EPOCHREALTIME}"
+    [[ "${6}" ]] && tEnd="${6}" || tEnd="${EPOCHREALTIME}"
 
     [[ $tStart ]] || {
         printf '[%s] {%s} %s ( %s ):  ERROR  (??? --> %s)\n' "$1" "$2" "$3" "${4//$'\n'/'$'"'"'\n'"'"}" "$tEnd"
@@ -129,12 +127,12 @@ FORMAT:
 [PID] {SUBSHELL_DEPTH} LINE ( CMD ):  RUNTIME  (TSTART --> TSTOP)
 ------------------------------------------------------------\n\n' \"$runCmd\" \"\$(date)\" \"\$EPOCHREALTIME\" >&\${fd_ctimep};
     echo \"\$EPOCHREALTIME\" > \"$ctimep_TMPDIR\"/.run.time.start.last;
-    echo \"\$EPOCHREALTIME\" > \"$ctimep_TMPDIR\"/.run.time.start.\$BASHPID;
+    declare ctimep_STARTTIME ctimep_ENDTIME
     set -T;
-    trap 'echo \"\$EPOCHREALTIME\" >\"${ctimep_TMPDIR}\"/.run.time.end.\$BASHPID;
-_ctimep_printTimeDiff \"\$BASHPID\" \"\$BASH_SUBSHELL\" \"\$LINENO\" \"\$BASH_COMMAND\" \"${ctimep_TMPDIR}/.run.time.start.\$BASHPID\" \"${ctimep_TMPDIR}/.run.time.end.\$BASHPID\" >&\${fd_ctimep};
-echo \"\$EPOCHREALTIME\" >\"${ctimep_TMPDIR}\"/.run.time.start.last;
-echo \"\$EPOCHREALTIME\" >\"${ctimep_TMPDIR}\"/.run.time.start.\$BASHPID;' DEBUG;
+    trap 'ctimep_ENDTIME=\"\$EPOCHREALTIME\";
+_ctimep_printTimeDiff \"\$BASHPID\" \"\$BASH_SUBSHELL\" \"\$LINENO\" \"\$BASH_COMMAND\" \"\$ctimep_STARTTIME\" \"\$ctimep_ENDTIME\" >&\${fd_ctimep};
+ctimep_STARTTIME=\"\$EPOCHREALTIME\";
+echo \"\$ctimep_STARTTIME\" >\"${ctimep_TMPDIR}\"/.run.time.start.last;' DEBUG;
 
 ${runCmd}
 
