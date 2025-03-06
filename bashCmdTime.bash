@@ -6,9 +6,12 @@ bashCmdTime() (
     # USAGE: bashCmdTime _______
     #        [...] | bashCmdTime _______ | [...]
     #
-    # REQUIREMENTS:
-    #    1) your bash installation must be new enough to support the $EPOCHREALTIME variable  (bash 4.0+ (???))
-    #    2) the shell script/function you are generating the time profile for can not use a DEBUG trap anywhere
+    # NOTES: it is REQUIRED that the shell script/function you are generating the time profile for does NOT use a DEBUG trap ANYWHERE
+    #        bashCmdTime works by "hijacking" the DEBUG trap, and if the code alters the DEBUG traop then basgCmdTime will stop working
+    #
+    # DEPENDENCIES:
+    #   1) a recent-ish bash versioin (4.0+ (???) - it needs to support the $EPOCHREALTIME variable)
+    #   2) sed, grep, sort, mkdir
     
     bashCmdTime_TMPDIR=''
     
@@ -33,7 +36,7 @@ bashCmdTime() (
         mkdir -p "$bashCmdTime_TMPDIR" && export bashCmdTime_TMPDIR="$PWD/.bash.cmd.time"
     }
     
-    : "${bashCmdTime_LOGFILE:="${bashCmdTime_TMPDIR}"/time.ALL}"
+    bashCmdTime_LOGFILE:="${bashCmdTime_TMPDIR}"/time.ALL
 
    
 getTimeDiff () {
@@ -100,8 +103,23 @@ runFunc
 mapfile -t uniq_lines < <(grep -E '^\[[0-9]' "${bashCmdTime_LOGFILE}" | sed -E s/'(^\[[0-9]+\] \{[0-9]+\} [0-9]+) .*$'/'\1'/ | sort -k1,3 -u)
 mapfile -t uniq_pids < <(printf '%s\n' "${uniq_lines[@]%% *}" | sort -u | sed -E 's/\[//;s/\]//')
 
+uniq_lines_pid=()
+
 for p in "${uniq_pids[@]}"; do
     grep -E '^\['"$p"  "${bashCmdTime_LOGFILE}" >"${bashCmdTime_TMPDIR}"/time.$p
+    mapfile -t uniq_lines_pid < <(printf '%s\n' "${uniq_lines[@]}" | grep -E'^\['"$p")
+    : >"${bashCmdTime_TMPDIR}"/time.combined.$p
+    for l in "${uniq_lines_pid[@]}"; do
+        linesCmdCur="$(grep -F "$l" "${bashCmdTime_TMPDIR}"/time.$p)"
+	timesCmdCur=("${linesCmdCur[@]##*:  }")
+        timesCmdCur=("${timesCmdCur[@]%% sec*}")
+	IFS0="$IFS"
+	IFS='+'
+        tSum=$(( "${timesCmdCur[*]//./}" ))
+	IFS="$IFS0"
+        t6=$(( ${#tSum} - 6 ))
+	printf '%s:  %s.%s\n' "${linesCmdCur[0]%%:  *}" "${tSum:0:$t6}" "${tSum:$t6}" >>"${bashCmdTime_TMPDIR}"/time.combined.$p
+    done
 done
 
 printf '\nVarious time profiles can be found under %s\n\n' "${bashCmdTime_TMPDIR}"
