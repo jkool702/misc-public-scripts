@@ -177,12 +177,14 @@ for p in "${uniq_pids[@]}"; do
         (( tSumAll0+=tSum0 ))
         printf -v tSum '%.07d' "$tSum0"
         t6=$(( ${#tSum} - 6 ))
-        printf -v outCur[$kk] '%s:  (%sx) %s.%s sec\n' "${linesCmdCur[0]%%:  *}" "${#timesCmdCur[@]}" "${tSum:0:$t6}" "${tSum:$t6}"
+        printf -v outCur0 '%s:\t(%sx) %s.%s sec\n' "${linesCmdCur[0]%%:  *}" "${#timesCmdCur[@]}" "${tSum:0:$t6}" "${tSum:$t6}"
+        outCur+=("${outCur0}")
     done 
     (( tSumAllAll0+=tSumAll0 ))
     printf -v tSumAll '%.07d' "$tSumAll0"
     t6=$(( ${#tSumAll} - 6 ))
-    printf '\n\nTOTAL TIME FOR THIS PID (%s): %s.%s sec\n\n\n' "$p" "${tSumAll:0:$t6}" "${tSumAll:$t6}"
+    printf -v outCur0 '\n\nTOTAL TIME FOR THIS PID (%s): %s.%s sec\n\n\n' "$p" "${tSumAll:0:$t6}" "${tSumAll:$t6}"
+    outCur+=("${outCur0}")
     printf '%s\n' "${outCur[@]}" | sort -g -k3 >"${ctimep_TMPDIR}"/time.combined.$p
 done
 
@@ -190,7 +192,7 @@ printf -v tSumAllAll '%.07d' "$tSumAllAll0"
 t6=$(( ${#tSumAllAll} - 6 ))
 
 
-porintf '
+printf '
 The following time profile is seperated by process ID (pid). 
 For each pid, the time for each line has been combined into a single time.
 For example:    [PID] {S} <#> ( cmd):  (Nx) T seconds     indicates that: 
@@ -199,7 +201,7 @@ in process PID (run at subshell depth S) at line number #, cmd was run N times, 
 TOTAL COMBINED RUN TIME: %s.%s SECONDS
 
 ' "${tSumAllAll:0:$t6}" "${tSumAllAll:$t6}" >"${ctimep_TMPDIR}"/time.combined.ALL
-cat "${ctimep_TMPDIR}"/time.combined.[0-9]* >> "${ctimep_TMPDIR}"/time.combined.ALL
+cat "${ctimep_TMPDIR}"/time.combined.[0-9]* | sed -z -E s/'\n{3,}'/'\n\n\n'/g >> "${ctimep_TMPDIR}"/time.combined.ALL
 printf '\n\nAdditional time profiles, including non-combined ones that show individual command runtimes, can be found under:\n    %s\n\n' "${ctimep_TMPDIR}" >>"${ctimep_TMPDIR}"/time.combined.ALL
 cat "${ctimep_TMPDIR}"/time.combined.ALL >&2
 
