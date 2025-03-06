@@ -132,8 +132,8 @@ for p in "${uniq_pids[@]}"; do
         (( tSumAll0+=tSum0 ))
         printf -v tSum '%.07d' "$tSum0"
         t6=$(( ${#tSum} - 6 ))
-        printf '%s:  (%sx) %s.%s sec\n' "${linesCmdCur[0]%%:  *}" "${#timesCmdCur[@]}" "${tSum:0:$t6}" "${tSum:$t6}" >>"${bashCmdTime_TMPDIR}"/time.combined.$p
-    done
+        printf '%s:  (%sx) %s.%s sec\n' "${linesCmdCur[0]%%:  *}" "${#timesCmdCur[@]}" "${tSum:0:$t6}" "${tSum:$t6}"
+    done | sort -g -k3  >>"${bashCmdTime_TMPDIR}"/time.combined.$p
     printf -v tSumAll '%.07d' "$tSumAll0"
     t6=$(( ${#tSumAll} - 6 ))
     printf '\n\nTOTAL TIME FOR THIS PID (%s): %s.%s sec\n\n\n' "$p" "${tSumAll:0:$t6}" "${tSumAll:$t6}" >>"${bashCmdTime_TMPDIR}"/time.combined.$p
@@ -144,9 +144,12 @@ echo '
 The following time profile is seperated by process ID (pid). 
 For each pid, the time for each line has been combined into a single time.
 For example:    [PID] {S} <#> ( cmd):  (Nx) T seconds     indicates that: 
-in process PID (run at subshell depth S) at line number #, cmd was run N times, which had a combined run time of T seconds\n\n' >&2
-cat "${bashCmdTime_TMPDIR}"/time.combined.* >&2
-printf '\n Additional time profiles, including non-combined ones that show individual command runtimes, can be found under %s\n\n' "${bashCmdTime_TMPDIR}" >&2
+in process PID (run at subshell depth S) at line number #, cmd was run N times, which had a combined run time of T seconds
+
+' >"${bashCmdTime_TMPDIR}"/time.combined.ALL
+cat "${bashCmdTime_TMPDIR}"/time.combined.[0-9]* >> "${bashCmdTime_TMPDIR}"/time.combined.ALL
+printf '\n\nAdditional time profiles, including non-combined ones that show individual command runtimes, can be found under %s\n\n' "${bashCmdTime_TMPDIR}" >>"${bashCmdTime_TMPDIR}"/time.combined.ALL
+cat "${bashCmdTime_TMPDIR}"/time.combined.ALL >&2
 
 export -n bashCmdTime_TMPDIR
 export -nf getTimeDiff
