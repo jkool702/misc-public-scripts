@@ -127,11 +127,12 @@ FORMAT:
 [PID] {SUBSHELL_DEPTH} LINE ( CMD ):  RUNTIME  (TSTART --> TSTOP)
 ------------------------------------------------------------\n\n' \"$runCmd\" \"\$(date)\" \"\$EPOCHREALTIME\" >&\${fd_ctimep};
     echo \"\$EPOCHREALTIME\" > \"$ctimep_TMPDIR\"/.run.time.start.last;
-    local ctimep_STARTTIME ctimep_ENDTIME BASH_COMMAND_PREV
+    local ctimep_STARTTIME ctimep_ENDTIME ctimep_BASH_COMMAND_PREV ctimep_LINENO_PREV
     set -T;
     trap 'ctimep_ENDTIME=\"\$EPOCHREALTIME\";
-_ctimep_printTimeDiff \"\$BASHPID\"  \"\${SHLVL}.\${BASH_SUBSHELL}\" \"\$LINENO\" \"\$BASH_COMMAND_PREV\" \"\$ctimep_STARTTIME\" \"\$ctimep_ENDTIME\" >&\${fd_ctimep};
-BASH_COMMAND_PREV=\"\$BASH_COMMAND\";
+_ctimep_printTimeDiff \"\$BASHPID\"  \"\${SHLVL}.\${BASH_SUBSHELL}\" \"\$ctimep_LINENO_PREV\" \"\$ctimep_BASH_COMMAND_PREV\" \"\$ctimep_STARTTIME\" \"\$ctimep_ENDTIME\" >&\${fd_ctimep};
+ctimep_BASH_COMMAND_PREV=\"\$BASH_COMMAND\";
+ctimep_LINENO_PREV=\"\$LINENO\"
 ctimep_STARTTIME=\"\$EPOCHREALTIME\";
 echo \"\$ctimep_STARTTIME\" >\"${ctimep_TMPDIR}\"/.run.time.start.last;' DEBUG;
 
