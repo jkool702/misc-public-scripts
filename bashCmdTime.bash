@@ -120,7 +120,7 @@ mapfile -t uniq_pids < <(printf '%s\n' "${uniq_lines[@]%% *}" | sort -u | sed -E
 for p in "${uniq_pids[@]}"; do
     grep -E '^\['"$p"  "${bashCmdTime_LOGFILE}" >"${bashCmdTime_TMPDIR}"/time.$p
     mapfile -t uniq_lines_pid < <(printf '%s\n' "${uniq_lines[@]}" | grep -E '^\['"$p")
-    : >"${bashCmdTime_TMPDIR}"/time.combined.$p
+    {
     tSumAll0=0
     for l in "${uniq_lines_pid[@]}"; do
         mapfile -t linesCmdCur < <(grep -F "$l" "${bashCmdTime_TMPDIR}"/time.$p)
@@ -133,10 +133,11 @@ for p in "${uniq_pids[@]}"; do
         printf -v tSum '%.07d' "$tSum0"
         t6=$(( ${#tSum} - 6 ))
         printf '%s:  (%sx) %s.%s sec\n' "${linesCmdCur[0]%%:  *}" "${#timesCmdCur[@]}" "${tSum:0:$t6}" "${tSum:$t6}"
-    done | sort -g -k3  >>"${bashCmdTime_TMPDIR}"/time.combined.$p
+    done 
     printf -v tSumAll '%.07d' "$tSumAll0"
     t6=$(( ${#tSumAll} - 6 ))
-    printf '\n\nTOTAL TIME FOR THIS PID (%s): %s.%s sec\n\n\n' "$p" "${tSumAll:0:$t6}" "${tSumAll:$t6}" >>"${bashCmdTime_TMPDIR}"/time.combined.$p
+    printf '\n\nTOTAL TIME FOR THIS PID (%s): %s.%s sec\n\n\n' "$p" "${tSumAll:0:$t6}" "${tSumAll:$t6}"
+    } | sort -g -k3 >"${bashCmdTime_TMPDIR}"/time.combined.$p
 done
 
 
@@ -148,7 +149,7 @@ in process PID (run at subshell depth S) at line number #, cmd was run N times, 
 
 ' >"${bashCmdTime_TMPDIR}"/time.combined.ALL
 cat "${bashCmdTime_TMPDIR}"/time.combined.[0-9]* >> "${bashCmdTime_TMPDIR}"/time.combined.ALL
-printf '\n\nAdditional time profiles, including non-combined ones that show individual command runtimes, can be found under %s\n\n' "${bashCmdTime_TMPDIR}" >>"${bashCmdTime_TMPDIR}"/time.combined.ALL
+printf '\n\nAdditional time profiles, including non-combined ones that show individual command runtimes, can be found under:\n    %s\n\n' "${bashCmdTime_TMPDIR}" >>"${bashCmdTime_TMPDIR}"/time.combined.ALL
 cat "${bashCmdTime_TMPDIR}"/time.combined.ALL >&2
 
 export -n bashCmdTime_TMPDIR
