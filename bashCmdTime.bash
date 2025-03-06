@@ -69,7 +69,7 @@ printTimeDiff() {
 
     { [[ $tStart ]] && [[ $tEnd ]]; } || return 1
     
-    printf '[%s] {%s} %s (%s):  %s sec  (%s --> %s)\n' "$1" "$2" "$3" "${4//$'\n'/'$'"'"'\n'"'"}" "$(getTimeDiff "$tStart" "$tEnd")" "$tStart" "$tEnd"
+    printf '[%s] {%s} %s ( %s ):  %s sec  (%s --> %s)\n' "$1" "$2" "$3" "${4//$'\n'/'$'"'"'\n'"'"}" "$(getTimeDiff "$tStart" "$tEnd")" "$tStart" "$tEnd"
 }
 export -f getTimeDiff
 export -f printTimeDiff    
@@ -94,7 +94,7 @@ START TIME:
 
 FORMAT:
 ------------------------------------------------------------
-[PID] {SHELL_DEPTH} LINE (CMD):  RUNTIME  (TSTART --> TSTOP)
+[PID] {SUBSHELL_DEPTH} LINE ( CMD ):  RUNTIME  (TSTART --> TSTOP)
 ------------------------------------------------------------\n\n' \"$runCmd\" \"\$(date)\" \"\$EPOCHREALTIME\" >&\${fd_bashCmdTime};
     echo \"\$EPOCHREALTIME\" > \"$bashCmdTime_TMPDIR\"/.bash.cmd.time.start.last;
     echo \"\$EPOCHREALTIME\" > \"$bashCmdTime_TMPDIR\"/.bash.cmd.time.start.\$BASHPID;
@@ -121,18 +121,32 @@ for p in "${uniq_pids[@]}"; do
     grep -E '^\['"$p"  "${bashCmdTime_LOGFILE}" >"${bashCmdTime_TMPDIR}"/time.$p
     mapfile -t uniq_lines_pid < <(printf '%s\n' "${uniq_lines[@]}" | grep -E '^\['"$p")
     : >"${bashCmdTime_TMPDIR}"/time.combined.$p
+    tSumAll0=0
     for l in "${uniq_lines_pid[@]}"; do
         mapfile -t linesCmdCur < <(grep -F "$l" "${bashCmdTime_TMPDIR}"/time.$p)
         timesCmdCur=("${linesCmdCur[@]##*:  }")
         timesCmdCur=("${timesCmdCur[@]%% sec*}")
         timesCmdCur=("${timesCmdCur[@]//./}")
-        tSum="$(IFS='+'; printf '%.07d' "$(( "${timesCmdCur[*]##*(0)}" ))")"
+        timesCmdCur=("${timesCmdCur[@]//-+(0)/-}")
+        printf -v tSum0 '%s' "$(( $(printf '%s + ' "${timesCmdCur[@]##+(0)}") 0 ))"
+        (( tSumAll0+=tSum0 ))
+        printf -v tSum '%.07d' "$tSum0"
         t6=$(( ${#tSum} - 6 ))
-        printf '%s:  %s.%s\n' "${linesCmdCur[0]%%:  *}" "${tSum:0:$t6}" "${tSum:$t6}" >>"${bashCmdTime_TMPDIR}"/time.combined.$p
+        printf '%s:  (%sx) %s.%s sec\n' "${linesCmdCur[0]%%:  *}" "${#timesCmdCur[@]}" "${tSum:0:$t6}" "${tSum:$t6}" >>"${bashCmdTime_TMPDIR}"/time.combined.$p
     done
+    printf -v tSumAll '%.07d' "$tSumAll0"
+    t6=$(( ${#tSumAll} - 6 ))
+    printf '\n\nTOTAL TIME FOR THIS PID (%s): %s.%s sec\n\n\n' "$p" "${tSumAll:0:$t6}" "${tSumAll:$t6}" >>"${bashCmdTime_TMPDIR}"/time.combined.$p
 done
 
-printf '\nVarious time profiles can be found under %s\n\n' "${bashCmdTime_TMPDIR}" >&2
+
+echo '
+The following time profile is seperated by process ID (pid). 
+For each pid, the time for each line has been combined into a single time.
+For example:    [PID] {S} <#> ( cmd):  (Nx) T seconds     indicates that: 
+in process PID (run at subshell depth S) at line number #, cmd was run N times, which had a combined run time of T seconds\n\n' >&2
+cat "${bashCmdTime_TMPDIR}"/time.combined.* >&2
+printf '\n Additional time profiles, including non-combined ones that show individual command runtimes, can be found under %s\n\n' "${bashCmdTime_TMPDIR}" >&2
 
 export -n bashCmdTime_TMPDIR
 export -nf getTimeDiff
