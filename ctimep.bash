@@ -130,7 +130,7 @@ FORMAT:
     declare ctimep_STARTTIME ctimep_ENDTIME
     set -T;
     trap 'ctimep_ENDTIME=\"\$EPOCHREALTIME\";
-_ctimep_printTimeDiff \"\$BASHPID\" \"\$BASH_SUBSHELL\" \"\$LINENO\" \"\$BASH_COMMAND\" \"\$ctimep_STARTTIME\" \"\$ctimep_ENDTIME\" >&\${fd_ctimep};
+_ctimep_printTimeDiff \"\$BASHPID\"  \"\${SHLVL}.\${BASH_SUBSHELL}\" \"\$LINENO\" \"\$BASH_COMMAND\" \"\$ctimep_STARTTIME\" \"\$ctimep_ENDTIME\" >&\${fd_ctimep};
 ctimep_STARTTIME=\"\$EPOCHREALTIME\";
 echo \"\$ctimep_STARTTIME\" >\"${ctimep_TMPDIR}\"/.run.time.start.last;' DEBUG;
 
@@ -150,15 +150,15 @@ runFunc
 printf '\n\nThe code being time profiled has finished running!\nctimep will now process the logged timing data.\n\n' >&2
 
 # get lists of unique commands run (unique combinations of pid + subshell level in the logged data
-mapfile -t uniq_pids < <(grep -E '^\[[0-9]' "${ctimep_LOGFILE}" | sed -E s/'^\[([0-9]+)\] \{([0-9]+)\} .*$'/'\1.\2'/ | sort -k1,3 -u)
+mapfile -t uniq_pids < <(grep -E '^\[[0-9]' "${ctimep_LOGFILE}" | sed -E s/'^\[([0-9]+)\] \{([0-9]+\.[0-9]+)\} .*$'/'\1_\2'/ | sort -k1,3 -u)
 
 tSumAllAll0=0
 for p in "${uniq_pids[@]}"; do
     # seperate out the data for each pid and save it in a file called time.<pid>
-    grep -E '^\['"${p%%.*}"'\] \{'"${p##*.}"'\}'  "${ctimep_LOGFILE}" >"${ctimep_TMPDIR}"/time.$p
+    grep -E '^\['"${p%%_*}"'\] \{'"${p##*_}"'\}'  "${ctimep_LOGFILE}" >"${ctimep_TMPDIR}"/time.$p
 
     # find the unique commands (pid + subshell_lvl + line number + cmd) from just this pid/subshell_lvl
-    mapfile -t uniq_lines_pid < <(sed -E s/'\:  [^\:]*$'// <"${ctimep_TMPDIR}"/time.$p | sort -u)
+    mapfile -t uniq_lines_pid < <(sed -E s/'\:[^\:]*$'// <"${ctimep_TMPDIR}"/time.$p | sort -u)
     outCur=()
     kk=0
     tSumAll0=0
