@@ -5,27 +5,35 @@ shopt -s extglob
 ctimep() (
     ## Command TIME Profile - efficiently produces an accurate per-command execution time profile for shell scripts and functions using a DEBUG trap
     #
-    # USAGE: ctimep _______
-    #        [...] | ctimep _______ | [...]
+    # USAGE:     ctimep _______          --OR--
+    #    [...] | ctimep _______ | [...]
     #
-    # OUTPUT: 4 types of time profiles will be saved to disk in ctimep's tmpdir directory (a new directory under /dev/shm or /tmp or $PWD - printed to stderr at the end):
-    #   time.ALL:                the individual per-command run times for every command reun under any pid. This is generated directly by the DEBUF trap as the code runs
-    #   time.<pid>.<#>:          the individual per-command run times for a specific pid at subshell nesting level <#>
-    #   time.combined.<pid>.<#>: the combined time and run count for each unique command run by that pid. e.g., if a command runs 5 times in a loop, you will get a line that includes "(5x) <total run time>"
-    #   time.combined..ALL:      the time.combined.<pid>.<#> files from all pids combined into a single file.  This is printed to stderr at the end
+    # OUTPUT: 
+    #    4 types of time profiles will be saved to disk in ctimep's tmpdir directory (a new directory under /dev/shm or /tmp or $PWD - printed to stderr at the end):
+    #        time.ALL:                  the individual per-command run times for every command reun under any pid. This is generated directly by the DEBUF trap as the code runs
+    #        time.<pid>_<#.#>:          the individual per-command run times for a specific pid at subshell nesting level <#>
+    #        time.combined.<pid>_<#.#>: the combined time and run count for each unique command run by that pid. e.g., if a command runs 5 times in a loop, you will get a line that includes "(5x) <total run time>"
+    #        time.combined.ALL:         the time.combined.<pid>.<#.#> files from all pids combined into a single file.  This is printed to stderr at the end
     #
     # OUTPUT FORMAT: 
-    #    for individual cmd profiles: [$PID] {$BASH_SUBSHELL} $LINENO ( $BASH_CMD ):  <run_time>  (<start_time --> <end_time>)
-    #    for combined cmd profiles:   [$PID] {$BASH_SUBSHELL} $LINENO ( $BASH_CMD ):  (<run_count>x) <total_run_time> 
+    #    for time.ALL profiles:           [$PID $SHLVL.$BASH_SUBSHELL] $LINENO:  <run_time> sec  ( <start_time --> <end_time> ) <<< { $BASH_CMD }
+    #    for time.<pid>_<#.#> profiles:   $LINENO:  <run_time> sec  ( <start_time --> <end_time> )  <<< { $BASH_CMD }
+    #    for time.combined profiles:      $LINENO:  <total_run_time> sec  <<< (<run_count>x) { $BASH_CMD }
+    #        NOTE: all profiles except time.ALL will list $PID and $SHLVL.$BASH_SUBSHELL at the top of the file
+    #
+    # RUNTIME CONDITIONS/REQUIREMENTS:
+    #    It is REQUIRED that the shell script/function you are generating the time profile for does NOT use a DEBUG trap ANYWHERE.
+    #        ctimep works by "hijacking" the DEBUG trap, and if the code alters the DEBUG traop then ctimep will stop working.
+    #    Additionally, ctimep adds a few variables + functions to the runtime env of whatever is being profiled. The code being profiled must NOT modify these.
+    #        FUNCTIONS:  _ctimep_getTimeDiff  _ctimep_printTimeDiff
+    #        VARIABLES:  ctimep_STARTTIME  ctimep_ENDTIME  ctimep_BASH_COMMAND_PREV  ctimep_LINENO_PREV ctimep_BASHPID_PREV  ctimep_TMPDIR
     #
     # NOTES: 
-    #    It is REQUIRED that the shell script/function you are generating the time profile for does NOT use a DEBUG trap ANYWHERE.
-    #    ctimep works by "hijacking" the DEBUG trap, and if the code alters the DEBUG traop then ctimep will stop working.
     #    Scripts using RETURN traps MAY not work as expected. "set -T" is used to propogate the DEBUG trap into shell functions,
-    #    which also propogates RETURN traps into shell functions.
+    #        which also propogates RETURN traps into shell functions. This may or may not cause unexpected "RETURN trap"-related behavior.
     #
     # DEPENDENCIES:
-    #    1) a recent-ish bash versioin (4.0+ (???) - it needs to support the $EPOCHREALTIME variable)
+    #    1) a recent-ish bash version (4.0+ (???) - it needs to support the $EPOCHREALTIME variable)
     #    2) sed, grep, sort, mkdir
 
     shopt -s extglob
@@ -127,10 +135,10 @@ FORMAT:
 [PID] {SUBSHELL_DEPTH} LINE ( CMD ):  RUNTIME  (TSTART --> TSTOP)
 ------------------------------------------------------------\n\n' \"$runCmd\" \"\$(date)\" \"\$EPOCHREALTIME\" >&\${fd_ctimep};
     echo \"\$EPOCHREALTIME\" > \"$ctimep_TMPDIR\"/.run.time.start.last;
-    local ctimep_STARTTIME ctimep_ENDTIME ctimep_BASH_COMMAND_PREV ctimep_LINENO_PREV CTIMEP_BASHPID_PREV
+    local ctimep_STARTTIME ctimep_ENDTIME ctimep_BASH_COMMAND_PREV ctimep_LINENO_PREV ctimep_BASHPID_PREV
     ctimep_BASHPID_PREV="\$BASHPID"
     set -T;
-    trap '[[ "\$ctimep_BASHPID_PREV" == "\$BASH_PID" ]] || { declare +g -I ctimep_STARTTIME ctimep_ENDTIME ctimep_BASH_COMMAND_PREV ctimep_LINENO_PREV CTIMEP_BASHPID_PREV; ctimep_BASHPID_PREV="\$BASHPID"; };
+    trap '[[ "\$ctimep_BASHPID_PREV" == "\$BASH_PID" ]] || { declare +g -I ctimep_STARTTIME ctimep_ENDTIME ctimep_BASH_COMMAND_PREV ctimep_LINENO_PREV ctimep_BASHPID_PREV; ctimep_BASHPID_PREV="\$BASHPID"; };
 ctimep_ENDTIME=\"\$EPOCHREALTIME\";
 _ctimep_printTimeDiff \"\$BASHPID\"  \"\${SHLVL}.\${BASH_SUBSHELL}\" \"\$ctimep_LINENO_PREV\" \"\$ctimep_BASH_COMMAND_PREV\" \"\$ctimep_STARTTIME\" \"\$ctimep_ENDTIME\" >&\${fd_ctimep};
 ctimep_BASH_COMMAND_PREV=\"\$BASH_COMMAND\";
