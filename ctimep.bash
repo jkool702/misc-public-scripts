@@ -165,17 +165,17 @@ runFunc
 printf '\n\nThe code being time profiled has finished running!\nctimep will now process the logged timing data.\n\n' >&2
 
 # get lists of unique commands run (unique combinations of pid + subshell level in the logged data
-mapfile -t uniq_pids < <(grep -E '^\[[0-9]' "${ctimep_TMPDIR}/time.ALL" | sed -E s/'^\[ ([0-9]+) \{([0-9]+\.[0-9]+)\} \] .*$'/'\1_\2'/ | sort -u)
+mapfile -t uniq_pids < <(grep -E '^\[ [0-9]+ \{[0-9\.]+\} \]' "${ctimep_TMPDIR}/time.ALL" | sed -E s/'^\[ ([0-9]+) \{([0-9]+\.[0-9]+)\} \] .*$'/'\1_\2'/ | sort -u)
 
 tSumAllAll0=0
 for p in "${uniq_pids[@]}"; do
     # print header with PID and shell nesting level
-    printf 'PID:  %s\nNESTING LVL:  %s\n\n' >"${ctimep_TMPDIR}/time.$p"
+    printf 'PID:        \t%s\nNESTING LVL:\t%s\n\n' "${p%%_*}" "${p##*_}" >"${ctimep_TMPDIR}/time.$p"
     # seperate out the data for each pid and save it in a file called time.<pid>
-    grep -E '^\[ '"${p%%_*}"' \{'"${p##*_}"'\} \]' "${ctimep_TMPDIR}/time.ALL" | sed -E s/'^\[[0-9]+ \{[0-9\.]+\} \]  '// >>"${ctimep_TMPDIR}/time.$p"
+    grep -E '^\[ '"${p%%_*}"' \{'"${p##*_}"'\} \]' "${ctimep_TMPDIR}/time.ALL" | sed -E s/'^\[ [0-9]+ \{[0-9\.]+\} \] +'// >>"${ctimep_TMPDIR}/time.$p"
 
     # find the unique commands (pid + subshell_lvl + line number + cmd) from just this pid/subshell_lvl
-    mapfile -t uniq_lines_pid < <(grep -v -E '^((PID)|(NESTING)|([0-9]+\:  ERROR))'  <"${ctimep_TMPDIR}/time.$p" | sed -E 's/\:[^\<]+\<\<\< /\:/' | sort -u)
+    mapfile -t uniq_lines_pid < <(grep -v -E '^((PID)|(NESTING)|([0-9]+\:  ERROR)|$)'  <"${ctimep_TMPDIR}/time.$p" | sed -E 's/\:[^\<]+\<\<\< /\:/' | sort -u)
     outCur=()
     kk=0
     tSumAll0=0
@@ -183,6 +183,7 @@ for p in "${uniq_pids[@]}"; do
     # print a line to the time.combined.<pid> file vcontaining the run count and the combined run time for that command
     # also, keep track of total run time for this PID
     for l in "${uniq_lines_pid[@]}"; do
+        [[ $l ]] || continue
         mapfile -t linesCmdCur < <(grep -F "${l#*:}" "${ctimep_TMPDIR}"/time.$p | grep -E '^'"${l%%:*}")
         timesCmdCur=("${linesCmdCur[@]#*:  }")
         timesCmdCur=("${timesCmdCur[@]%% sec*}")
@@ -198,7 +199,7 @@ for p in "${uniq_pids[@]}"; do
     (( tSumAllAll0+=tSumAll0 ))
     printf -v tSumAll '%.07d' "$tSumAll0"
     t6=$(( ${#tSumAll} - 6 ))
-    printf -v outCur0 '\n\nTOTAL TIME FOR PID %s: %s.%s sec\n\n\n' "$p" "${tSumAll:0:$t6}" "${tSumAll:$t6}"
+    printf -v outCur0 '\n\nTOTAL TIME FOR PID %s {%s}: %s.%s sec\n\n\n' "${p%_*}" "${p#*_}" "${tSumAll:0:$t6}" "${tSumAll:$t6}"
     outCur+=("${outCur0}")
     printf '%s\n' "${outCur[@]}" | sort -g -k3 >"${ctimep_TMPDIR}"/time.combined.$p
 done
