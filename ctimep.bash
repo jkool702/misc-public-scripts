@@ -12,13 +12,13 @@ ctimep() (
     #    4 types of time profiles will be saved to disk in ctimep's tmpdir directory (a new directory under /dev/shm or /tmp or $PWD - printed to stderr at the end):
     #        time.ALL:                  the individual per-command run times for every command reun under any pid. This is generated directly by the DEBUF trap as the code runs
     #        time.<pid>_<#.#>:          the individual per-command run times for a specific pid at shell/subshell nesting level <#.#>
-    #        time.combined.<pid>_<#.#>: the combined time and run count for each unique command run by that pid. e.g., if a command runs 5 times in a loop, you will get a line that includes "... <<< (5x) <total run time>"
+    #        time.combined.<pid>_<#.#>: the combined time and run count for each unique command run by that pid. e.g., if a command runs 5 times in a loop, you will get a line that includes "... <<--- (5x) <total run time>"
     #        time.combined.ALL:         the time.combined.<pid>.<#.#> files from all pids combined into a single file.  This is printed to stderr at the end
     #
     # OUTPUT FORMAT: 
-    #    for time.ALL profiles:           [ $PID {$SHLVL.$BASH_SUSBHELL} ]  $LINENO:  <run_time> sec  ( <start_time --> <end_time> ) <<< { $BASH_CMD }
-    #    for time.<pid>_<#.#> profiles:   $LINENO:  <run_time> sec  ( <start_time --> <end_time> )  <<< { $BASH_CMD }
-    #    for time.combined profiles:      $LINENO:  <total_run_time> sec  <<< (<run_count>x) { $BASH_CMD }
+    #    for time.ALL profiles:           [ $PID {$SHLVL.$BASH_SUSBHELL} ]  $LINENO:  <run_time> sec  ( <start_time --> <end_time> ) <<--- { $BASH_CMD }
+    #    for time.<pid>_<#.#> profiles:   $LINENO:  <run_time> sec  ( <start_time --> <end_time> )  <<--- { $BASH_CMD }
+    #    for time.combined profiles:      $LINENO:  <total_run_time> sec  <<--- (<run_count>x) { $BASH_CMD }
     #        NOTE: all profiles except time.ALL will list $PID and $SHLVL.$BASH_SUBSHELL at the top of the file
     #
     # RUNTIME CONDITIONS/REQUIREMENTS:
@@ -96,11 +96,11 @@ _ctimep_printTimeDiff() {
     [[ "${5}" ]] && tEnd="${5}" || tEnd="${EPOCHREALTIME}"
 
     [[ $tStart ]] || {
-    printf '[ %s {%s} ]  %s:  ERROR ( ??? --> %s ) <<< { %s }\n' "$1" "$2" "$3" "$tEnd" "${6//$'\n'/'$'"'"'\n'"'"}" 
+    printf '[ %s {%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "$2" "$3" "$tEnd" "${6//$'\n'/'$'"'"'\n'"'"}" 
         return 1
     }
     
-    printf '[ %s {%s} ]  %s:  %s sec  ( %s --> %s ) <<< { %s }\n' "$1" "$2" "$3" "$(_ctimep_getTimeDiff "$tStart" "$tEnd")" "$tStart" "$tEnd" "${6//$'\n'/'$'"'"'\n'"'"}" 
+    printf '[ %s {%s} ]  %s:  %s sec  ( %s --> %s ) <<--- { %s }\n' "$1" "$2" "$3" "$(_ctimep_getTimeDiff "$tStart" "$tEnd")" "$tStart" "$tEnd" "${6//$'\n'/'$'"'"'\n'"'"}" 
 }
 
     export -f _ctimep_getTimeDiff
@@ -133,7 +133,7 @@ START TIME:
 
 FORMAT:
 ----------------------------------------------------------------------------
-[ PID {SHELL.NESTING} ]  LINENO:  RUNTIME  (TSTART --> TSTOP) <<< { CMD }
+[ PID {SHELL.NESTING} ]  LINENO:  RUNTIME  (TSTART --> TSTOP) <<--- { CMD }
 ----------------------------------------------------------------------------\n\n' \"$runCmd\" \"\$(date)\" \"\$EPOCHREALTIME\" >&\${fd_ctimep};
     echo \"\$EPOCHREALTIME\" > \"$ctimep_TMPDIR\"/.run.time.start.last;
     local ctimep_STARTTIME ctimep_ENDTIME ctimep_BASH_COMMAND_PREV ctimep_LINENO_PREV ctimep_BASHPID_PREV
@@ -175,7 +175,7 @@ for p in "${uniq_pids[@]}"; do
     grep -E '^\[ '"${p%%_*}"' \{'"${p##*_}"'\} \]' "${ctimep_TMPDIR}/time.ALL" 2>/dev/null | sed -E s/'^\[ [0-9]+ \{[0-9\.]+\} \] +'// >>"${ctimep_TMPDIR}/time.$p"
 
     # find the unique commands (pid + subshell_lvl + line number + cmd) from just this pid/subshell_lvl
-    mapfile -t uniq_lines_pid < <(grep -v -E '^((PID)|(NESTING)|([0-9]+\:  ERROR)|$)' 2>/dev/null <"${ctimep_TMPDIR}/time.$p" | sed -E 's/:[^<]+<<< /:/' | sort -u)
+    mapfile -t uniq_lines_pid < <(grep -v -E '^((PID)|(NESTING)|([0-9]+\:  ERROR)|$)' 2>/dev/null <"${ctimep_TMPDIR}/time.$p" | sed -E 's/:[^<]+<<\-\-\- /:/' | sort -u)
     outCur=()
     kk=0
     tSumAll0=0
@@ -193,7 +193,7 @@ for p in "${uniq_pids[@]}"; do
         (( tSumAll0+=tSum0 ))
         printf -v tSum '%.07d' "$tSum0"
         t6=$(( ${#tSum} - 6 ))
-        printf -v outCur0 '%s:  %s.%s sec <<< (%sx) { %s }\n' "${linesCmdCur[0]%%:*}" "${tSum:0:$t6}" "${tSum:$t6}" "${#timesCmdCur[@]}" "${linesCmdCur[0]#*:}"
+        printf -v outCur0 '%s:  %s.%s sec \t <<--- (%sx) %s\n' "${linesCmdCur[0]%%:*}" "${tSum:0:$t6}" "${tSum:$t6}" "${#timesCmdCur[@]}" "${linesCmdCur[0]#*\<\<\-\-\- }"
         outCur+=("${outCur0}")
     done 
     (( tSumAllAll0+=tSumAll0 ))
@@ -201,7 +201,7 @@ for p in "${uniq_pids[@]}"; do
     t6=$(( ${#tSumAll} - 6 ))
     printf -v outCur0 '\n\nTOTAL TIME FOR PID %s {%s}: %s.%s sec\n\n\n' "${p%_*}" "${p#*_}" "${tSumAll:0:$t6}" "${tSumAll:$t6}"
     outCur+=("${outCur0}")
-    printf '%s\n' "${outCur[@]}" | sort -g -k3 >"${ctimep_TMPDIR}"/time.combined.$p
+    printf '%s\n' "${outCur[@]}" | sort -g -k1 >"${ctimep_TMPDIR}"/time.combined.$p
 done
 
 printf -v tSumAllAll '%.07d' "$tSumAllAll0"
@@ -211,7 +211,7 @@ t6=$(( ${#tSumAllAll} - 6 ))
 printf '
 The following time profile is seperated by process ID (pid). 
 For each pid, the time for each line has been combined into a single time.
-For example:     <#>:  T sec <<< (Nx) { cmd }     indicates that: 
+For example:     <#>:  T sec <<--- (Nx) { cmd }     indicates that: 
 For the PID / [sub]shell nesting listed at the top of this group, at line number <#>, cmd was run N times, which had a combined run time of T seconds
 
 TOTAL COMBINED RUN TIME: %s.%s SECONDS
