@@ -139,7 +139,7 @@ _timep_printTimeDiff() {
             elif type readlink &>/dev/null && [[ $(readlink "${timep_runCmdPath}") ]]; then
                 timep_runCmdPath="$(readlink "${timep_runCmdPath}")"
             fi
-            fi
+
             if type file &>/dev/null && [[ "$(file "${timep_runCmdPath}")" == *shell\ script*executable* ]]; then
                 timep_runType=s
             elif [[ "${timep_runCmdPath}" == *.*sh ]] && read -r <"${1}" && [[ "${REPLY}" == '#!'* ]]; then
@@ -263,7 +263,7 @@ for p in "${uniq_pids[@]}"; do
     t6=$(( ${#tSumAll} - 6 ))
     printf -v outCur0 '\n\nTOTAL TIME FOR PID %s {%s}: %s.%s sec\n\n\n' "${p%_*}" "${p#*_}" "${tSumAll:0:$t6}" "${tSumAll:$t6}"
     outCur+=("${outCur0}")
-    printf '%s\n' "${outCur[@]}" | sort -g -k1 >"${timep_TMPDIR}"/time.combined.$p
+    printf '%s\n' "${outCur[@]}" | sort -g -k1 >"${timep_TMPDIR}/time.combined.$p"
 done
 
 printf -v tSumAllAll '%.07d' "$tSumAllAll0"
