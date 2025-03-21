@@ -158,14 +158,12 @@ _timep_printTimeDiff() {
     case "${timep_runType}" in
         s)
             shift 1
-            timep_runFuncSrc0="timep_runFunc0() {
-$(cat "${timep_runCmdPath}")
-}"
-            eval "${timep_runFuncSrc0}"
-            if [[ -t 0 ]]; then
-                timep_runCmd="timep_runFunc0 ${@}"
+            timep_runCmd="$(<"${timep_runCmdPath}")"
+	    if [[ "${timep_runCmd}" == '#!'* ]]; then
+                timep_runCmd1="${timep_runCmd%%$'\n'*}"
+                timep_runCmd="${timep_runCmd#*$'\n'}"
             else
-                timep_runCmd="cat | { timep_runFunc0 ${@}; }"
+                timep_runCmd1='#!'"$(type -p bash)"
             fi
         ;;
         f)
@@ -181,7 +179,9 @@ $(cat "${timep_runCmdPath}")
 # this will setup a DEBUG trap to measure runtime from every command, then will run the specified code.
 # the source code is generated and then sourced (instead of directly defined) so that things like the tmpdir/logfile path are hardcoded.
 # this allows timep to run without adding any new (and potengtially conflicting) variables to the code being run / time profiled.
-timep_runFuncSrc="timep_runFunc () (    
+[[ "${timep_runType}" == 'f' ]] && timep_runFuncSrc='timep_runFunc () '
+[[ "${timep_runType}" == 's' ]] && timep_runFuncSrc="${timep_runCmd1}"$'\n'
+timep_runFuncSrc+="(
 printf '\n
 ----------------------------------------------------------------------------
 ----------------------- RUNTIME BREAKDOWN BY COMMAND -----------------------
@@ -196,7 +196,7 @@ START TIME:
 FORMAT:
 ----------------------------------------------------------------------------
 [ PID {SHELL.NESTING} ]  LINENO:  RUNTIME  (TSTART --> TSTOP) <<--- { CMD }
-----------------------------------------------------------------------------\n\n' \"$timep_runCmd\" \"\$(date)\" \"\$EPOCHREALTIME\" >&\${fd_timep};
+----------------------------------------------------------------------------\n\n' \"$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")\" \"\$(date)\" \"\$EPOCHREALTIME\" >&\${fd_timep};
     echo \"\$EPOCHREALTIME\" > \"$timep_TMPDIR\"/.run.time.start.last;
     local timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND_PREV timep_LINENO_PREV timep_BASHPID_PREV
     timep_BASHPID_PREV=\"\$BASHPID\"
@@ -215,14 +215,26 @@ trap - DEBUG
 
 ) {fd_timep}>\"${timep_TMPDIR}\"/time.ALL"
 
-# source the wrapper function we just generated
-eval "${timep_runFuncSrc}"
+case "${timep_runType}" in
+    f)  
+        # source the wrapper function we just generated
+        eval "${timep_runFuncSrc}"
 
-# source it again by using declare -f in a command substitution
-# this may seem silly because it IS silly...but, it makes $LINENO give meaningful line numbers in the DEBUG trap
-. <(declare -f timep_runFunc)
+        # source it again by using declare -f in a command substitution
+        # this may seem silly because it IS silly...but, it makes $LINENO give meaningful line numbers in the DEBUG trap
+        . <(declare -f timep_runFunc)
 
-timep_runFunc
+        # now actually run it
+        timep_runFunc
+    ;;
+    s)  
+        echo "${timep_runFuncSrc}" >"${timep_TMPDIR}"/run.script.bash
+        chmod +x "${timep_TMPDIR}"/run.script.bash
+        "${timep_TMPDIR}"/run.script.bash "${@}"
+    ;;
+esac
+
+
 
 printf '\n\nThe code being time profiled has finished running!\ntimep will now process the logged timing data.\n\n' >&2
 
