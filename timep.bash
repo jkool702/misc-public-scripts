@@ -43,8 +43,10 @@ timep() (
     #
     # NOTES: 
     #    1. Scripts using RETURN traps MAY not work as expected. "set -T" is used to propogate the DEBUG trap into shell functions,
-    #        which also propogates RETURN traps into shell functions. This may or may not cause unexpected "RETURN trap"-related behavior.
+    #         which also propogates RETURN traps into shell functions. This may or may not cause unexpected "RETURN trap"-related behavior.
     #    2. The line numbers may not correspond exactly to the line numbers in the original code, but will ensure commamds are ordered correctly.
+    #    3. Any shell scripts called by the top-level script/function being profiled will have their runtimes profiled, since the DEBUG trap doesnt propogate to sripts.
+    #         To profile these, either source them (instead of calling them) or call them via `timep -s <script>`. However, shell functions that are called WILL automatically be profiled.
     #
     ################################################################################################################################################################
 
@@ -64,7 +66,6 @@ timep() (
     done
 
     # figure out where to setup a tmpdir to use (prefferably on a ramdisk/tmpfs)
-
     timep_TMPDIR=''
 
     # try /dev/shm
@@ -85,7 +86,7 @@ timep() (
         mkdir -p "$timep_TMPDIR" || timep_TMPDIR=''
     }
 
-    # try  $PWD
+    # try $PWD
     [[ "$timep_TMPDIR" ]] || {
         timep_TMPDIR="$PWD/.bash.cmd.time.$(printf '%X' ${RANDOM}${RANDOM:1})"
         until ! [[ -d "$timep_TMPDIR" ]]; do
@@ -99,8 +100,6 @@ timep() (
          return 1
     }
     
-    #timep_LOGFILE="${timep_TMPDIR}"/time.ALL
-
 # define helper functions
 _timep_getTimeDiff () {
 ## returns the time difference between 2 $EPOCHREALTIME times
@@ -131,7 +130,7 @@ _timep_printTimeDiff() {
     export -f _timep_printTimeDiff    
     export timep_TMPDIR="${timep_TMPDIR}"
 
-    # determine if command is a shell script or not
+    # determine if command being profiled is a shell script or not
     [[ ${timep_runType} == [sf] ]] || {
         timep_runCmdPath="$(type -p "$1")"
         if [[ ${timep_runCmdPath} ]]; then
@@ -155,6 +154,7 @@ _timep_printTimeDiff() {
 
     # setup a string with the command to run
     # if stdin isnt a terminal then pass it to whatever is being run / time profiled
+    # if the command being profiled is a shell script, wrap the contents of that script in a shell function and run that function instead (so the debug trap propogates into it)
     case "${timep_runType}" in
         s)
             shift 1
