@@ -5,14 +5,14 @@ shopt -s extglob
 timep() (
     ## TIME Profile - efficiently produces an accurate per-command execution time profile for shell scripts and functions using a DEBUG trap
     #
-    # USAGE:     timep _______          --OR--
-    #    [...] | timep _______ | [...]
+    # USAGE:     timep [-s|-f] [--] _______          --OR--
+    #    [...] | timep [-s|-f] [--] _______ | [...]
     #
     # OUTPUT: 
     #    4 types of time profiles will be saved to disk in timep's tmpdir directory (a new directory under /dev/shm or /tmp or $PWD - printed to stderr at the end):
     #        time.ALL:                  the individual per-command run times for every command reun under any pid. This is generated directly by the DEBUF trap as the code runs
     #        time.<pid>_<#.#>:          the individual per-command run times for a specific pid at shell/subshell nesting level <#.#>
-    #        time.combined.<pid>_<#.#>: the combined time and run count for each unique command run by that pid. e.g., if a command runs 5 times in a loop, you will get a line that includes "... <<--- (5x) <total run time>"
+    #        time.combined.<pid>_<#.#>: the combined time and run count for each unique command run by that pid. The <#.#> is $SHLVL.$BASH_SUBSHELL
     #        time.combined.ALL:         the time.combined.<pid>.<#.#> files from all pids combined into a single file.  This is printed to stderr at the end
     #
     # OUTPUT FORMAT: 
@@ -20,6 +20,15 @@ timep() (
     #    for time.<pid>_<#.#> profiles:   $LINENO:  <run_time> sec  ( <start_time --> <end_time> )  <<--- { $BASH_CMD }
     #    for time.combined profiles:      $LINENO:  <total_run_time> sec  <<--- (<run_count>x) { $BASH_CMD }
     #        NOTE: all profiles except time.ALL will list $PID and $SHLVL.$BASH_SUBSHELL at the top of the file
+    #        "combined" example: if CMD runs 5 times in a loop, you will get a line with "<total_run_time> sec  <<--- (5x) { CMD }".
+    #
+    # FLAGS:
+    #    Flags must be given before the command being profiled. if multiple -s/-f are given the last one is used/.
+    #    -s | --shell    : force timep to treat the code being profiled as a shell script
+    #    -f | --function : force timep to treat the code being profiled as a shell function
+    #    --              : stop arg parsing (allows propfiling something with the same name as a flag)
+    #    DEFAULT: Attempt to automatically detect shell scripts (*requires `file` for robust detection). 
+    #             Assume a shell function unless detection explicitly indicates a shell script.
     #
     # RUNTIME CONDITIONS/REQUIREMENTS:
     #    It is REQUIRED that the shell script/function you are generating the time profile for does NOT use a DEBUG trap ANYWHERE.
@@ -28,17 +37,33 @@ timep() (
     #        FUNCTIONS:  _timep_getTimeDiff  _timep_printTimeDiff
     #        VARIABLES:  timep_STARTTIME  timep_ENDTIME  timep_BASH_COMMAND_PREV  timep_LINENO_PREV timep_BASHPID_PREV  timep_TMPDIR
     #
-    # NOTES: 
-    #    Scripts using RETURN traps MAY not work as expected. "set -T" is used to propogate the DEBUG trap into shell functions,
-    #        which also propogates RETURN traps into shell functions. This may or may not cause unexpected "RETURN trap"-related behavior.
-    #
     # DEPENDENCIES:
     #    1) a recent-ish bash version (4.0+ (???) - it needs to support the $EPOCHREALTIME variable)
-    #    2) sed, grep, sort, mkdir
+    #    2) sed, grep, sort, mkdir, file*
+    #
+    # NOTES: 
+    #    1. Scripts using RETURN traps MAY not work as expected. "set -T" is used to propogate the DEBUG trap into shell functions,
+    #        which also propogates RETURN traps into shell functions. This may or may not cause unexpected "RETURN trap"-related behavior.
+    #    2. The line numbers may not correspond exactly to the line numbers in the original code, but will ensure commamds are ordered correctly.
+    #
+    ################################################################################################################################################################
 
     shopt -s extglob
 
-    # figure out where to setupo a tmpdir to use (prefferably on a ramdisk/tmpfs)
+    local timep_runType=''
+
+    # parse flags
+    while true; do
+        case "${1}" in
+            -s|--shell)  timep_runType=s  ;;
+            -f|--function)  timep_runType=f  ;;
+            --)  shift 1 && break  ;;
+            *)  break  ;;
+        esac
+        shift 1
+    done
+
+    # figure out where to setup a tmpdir to use (prefferably on a ramdisk/tmpfs)
 
     timep_TMPDIR=''
 
@@ -86,9 +111,8 @@ _timep_getTimeDiff () {
 };
 
 _timep_printTimeDiff() {
-## prints a time to the log file
-# 6 inputs: $BASHPID $BASH_SUBSHELL $LINENO $BASH_COMMAND pathToStartTimeFile pathToStopTimeFile
-# NOTE: start/stop times sare recorded in tmpfiles (not variables) to avoid potential variable name conflicts
+## prints a line in the format of the time.ALL log file
+# 6 inputs: $BASHPID $BASH_SUBSHELL $LINENO tStart tEnd $BASH_COMMAND
     local tStart tEnd
     
     [[ "${4}" ]] && tStart="${4}" || { [[ -f "${timep_TMPDIR}/.run.time.start.last" ]] && read -r tStart <"${timep_TMPDIR}/.run.time.start.last"; }
@@ -107,13 +131,51 @@ _timep_printTimeDiff() {
     export -f _timep_printTimeDiff    
     export timep_TMPDIR="${timep_TMPDIR}"
 
+    # determine if command is a shell script or not
+    [[ ${timep_runType} == [sf] ]] || {
+        timep_runCmdPath="$(type -p "$1")"
+        if [[ ${timep_runCmdPath} ]]; then
+            if type realpath &>/dev/null; then
+                timep_runCmdPath="$(realpath timep_runCmdPath)"
+            elif type readlink &>/dev/null && [[ $(readlink "${timep_runCmdPath}") ]]; then
+                timep_runCmdPath="$(readlink "${timep_runCmdPath}")"
+            fi
+            fi
+            if type file &>/dev/null && [[ "$(file "${timep_runCmdPath}")" == *shell script*executable* ]]; then
+                timep_runType=s
+            elif [[ "${timep_runCmdPath}" == *.*sh ]] && read -r <"${1}" && 
+                timep_runType=s
+            else
+                timep_runType=f
+            fi
+        else
+            timep_runType=f
+        fi
+    }    
+
     # setup a string with the command to run
     # if stdin isnt a terminal then pass it to whatever is being run / time profiled
-    if [[ -t 0 ]]; then
-        timep_runCmd="${@}"
-    else
-        timep_runCmd="cat | { ${@}; }"
-    fi
+    case "${timep_runType}" in
+        s)
+            shift 1
+            timep_runFuncSrc0="timep_runFunc0() {
+$(cat "${timep_runCmdPath}")
+}"
+            eval "${timep_runFuncSrc0}"
+            if [[ -t 0 ]]; then
+                timep_runCmd="timep_runFunc0 ${@}"
+            else
+                timep_runCmd="cat | { timep_runFunc0 ${@}; }"
+            fi
+        ;;
+        f)
+            if [[ -t 0 ]]; then
+                timep_runCmd="${@}"
+            else
+                timep_runCmd="cat | { ${@}; }"
+            fi
+        ;;
+    esac
 
 # generate the code for a wrapper function (timep_runFunc) that wraps around whatever we are running / time profiling.
 # this will setup a DEBUG trap to measure runtime from every command, then will run the specified code.
