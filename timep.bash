@@ -159,6 +159,12 @@ _timep_printTimeDiff() {
         s)
             shift 1
             timep_runCmd="$(<"${timep_runCmdPath}")"
+	    if [[ "${timep_runCmd}" == '#!'* ]]; then
+                timep_runCmd1="${timep_runCmd%%$'\n'*}"
+                timep_runCmd="${timep_runCmd#*$'\n'}"
+            else
+                timep_runCmd1='#!'"$(type -p bash)"
+            fi
         ;;
         f)
             if [[ -t 0 ]]; then
@@ -173,8 +179,8 @@ _timep_printTimeDiff() {
 # this will setup a DEBUG trap to measure runtime from every command, then will run the specified code.
 # the source code is generated and then sourced (instead of directly defined) so that things like the tmpdir/logfile path are hardcoded.
 # this allows timep to run without adding any new (and potengtially conflicting) variables to the code being run / time profiled.
-timep_runFuncSrc=''
-[[ "${timep_runType}" == 'f' ]] && timep_runFuncSrc+='timep_runFunc () '
+[[ "${timep_runType}" == 'f' ]] && timep_runFuncSrc='timep_runFunc () '
+[[ "${timep_runType}" == 's' ]] && timep_runFuncSrc="${timep_runCmd1}"$'\n'
 timep_runFuncSrc+="(
 printf '\n
 ----------------------------------------------------------------------------
@@ -190,7 +196,7 @@ START TIME:
 FORMAT:
 ----------------------------------------------------------------------------
 [ PID {SHELL.NESTING} ]  LINENO:  RUNTIME  (TSTART --> TSTOP) <<--- { CMD }
-----------------------------------------------------------------------------\n\n' \"$timep_runCmd\" \"\$(date)\" \"\$EPOCHREALTIME\" >&\${fd_timep};
+----------------------------------------------------------------------------\n\n' \"$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")\" \"\$(date)\" \"\$EPOCHREALTIME\" >&\${fd_timep};
     echo \"\$EPOCHREALTIME\" > \"$timep_TMPDIR\"/.run.time.start.last;
     local timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND_PREV timep_LINENO_PREV timep_BASHPID_PREV
     timep_BASHPID_PREV=\"\$BASHPID\"
