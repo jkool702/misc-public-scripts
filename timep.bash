@@ -135,7 +135,7 @@ _timep_printTimeDiff() {
         timep_runCmdPath="$(type -p "$1")"
         if [[ ${timep_runCmdPath} ]]; then
             if type realpath &>/dev/null; then
-                timep_runCmdPath="$(realpath timep_runCmdPath)"
+                timep_runCmdPath="$(realpath "${timep_runCmdPath}")"
             elif type readlink &>/dev/null && [[ $(readlink "${timep_runCmdPath}") ]]; then
                 timep_runCmdPath="$(readlink "${timep_runCmdPath}")"
             fi
