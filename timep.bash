@@ -141,9 +141,9 @@ _timep_printTimeDiff() {
                 timep_runCmdPath="$(readlink "${timep_runCmdPath}")"
             fi
             fi
-            if type file &>/dev/null && [[ "$(file "${timep_runCmdPath}")" == *shell script*executable* ]]; then
+            if type file &>/dev/null && [[ "$(file "${timep_runCmdPath}")" == *shell\ script*executable* ]]; then
                 timep_runType=s
-            elif [[ "${timep_runCmdPath}" == *.*sh ]] && read -r <"${1}" && 
+            elif [[ "${timep_runCmdPath}" == *.*sh ]] && read -r <"${1}" && [[ "${REPLY}" == '#!'* ]]; then
                 timep_runType=s
             else
                 timep_runType=f
