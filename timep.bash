@@ -229,17 +229,22 @@ FORMAT:
 [ PID {NAME.SHLVL.NESTING} ]  LINENO:  RUNTIME  (TSTART --> TSTOP) <<--- { CMD }
 ----------------------------------------------------------------------------\n\n' \"$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")\" \"\$(date)\" \"\$EPOCHREALTIME\" >&\${fd_timep};
     echo \"\$EPOCHREALTIME\" > \"$timep_TMPDIR\"/.run.time.start.last;
-    local timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND_PREV timep_LINENO_PREV timep_BASHPID_PREV
+    declare timep_BASHPID_PREV timep_FUNCNAME_PREV
+    declare -A timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND_PREV timep_LINENO_PREV
     timep_BASHPID_PREV=\"\$BASHPID\"
     set -T;
-    trap ':' RETURN;
-    trap '[[ \"\$timep_BASHPID_PREV\" == \"\$BASH_PID\" ]] || { declare +g -I timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND_PREV timep_LINENO_PREV timep_BASHPID_PREV; timep_BASHPID_PREV="\$BASHPID"; };
-timep_ENDTIME=\"\$EPOCHREALTIME\";
-_timep_printTimeDiff \"\$BASHPID\"  \"\${FUNCNAME:-\"\${BASH_SOURCE:-\"\${0}\"}\"}\" \"\${SHLVL}.\${BASH_SUBSHELL}\" \"\$timep_LINENO_PREV\" \"\$timep_STARTTIME\" \"\$timep_ENDTIME\" \"\$timep_BASH_COMMAND_PREV\" >&\${fd_timep};
-timep_BASH_COMMAND_PREV=\"\$BASH_COMMAND\";
-timep_LINENO_PREV=\"\$LINENO\"
-timep_STARTTIME=\"\$EPOCHREALTIME\";
-echo \"\$timep_STARTTIME\" >\"${timep_TMPDIR}\"/.run.time.start.last;' DEBUG;
+    trap '{ [[ \"\${timep_FUNCNAME_PREV:-0}\" == \"\${FUNCNAME:-0}\" ]] && [[ \"\$timep_BASHPID_PREV\" == \"\$BASH_PID\" ]]; } || { declare +g timep_BASHPID_PREV timep_FUNCNAME_PREV; declare +g -A timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND_PREV timep_LINENO_PREV; timep_BASHPID_PREV="\$BASHPID"; };
+[[ \${timep_FUNCNAME_PREV} ]] && {
+timep_ENDTIME[\${timep_FUNCNAME_PREV:-0}]=\"\$EPOCHREALTIME\";
+[[ \"\$FUNCNAME\" == \"\$BASH_COMMAND\" ]] || { [[ \${timep_LINENO_PREV[\${timep_FUNCNAME_PREV:-0}]} ]] && _timep_printTimeDiff \"\$BASHPID\"  \"\${FUNCNAME:-\"\${BASH_SOURCE:-\"\${0}\"}\"}\" \"\${SHLVL}.\${BASH_SUBSHELL}\" \"\${timep_LINENO_PREV[\${FUNCNAME:-0}]}\" \"\${timep_STARTTIME[\${FUNCNAME:-0}]}\" \"\${timep_ENDTIME[\${timep_FUNCNAME_PREV:-0}]}\" \"\${timep_BASH_COMMAND_PREV[\${timep_FUNCNAME_PREV:-0}]}\" >&\${fd_timep}; };
+timep_BASH_COMMAND_PREV[\${timep_FUNCNAME_PREV:-0}]=\"\$BASH_COMMAND\";
+timep_LINENO_PREV[\${timep_FUNCNAME_PREV:-0}]=\"\$LINENO\"
+};
+timep_STARTTIME[\${FUNCNAME:-0}]=\"\$EPOCHREALTIME\";
+timep_FUNCNAME_PREV=\"\${FUNCNAME}\"
+echo \"\$timep_STARTTIME[\${FUNCNAME:-0}]\" >\"${timep_TMPDIR}\"/.run.time.start.last;' DEBUG;
+trap ':' RETURN;
+
 
 ${timep_runCmd}
 
