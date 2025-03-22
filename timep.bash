@@ -51,10 +51,10 @@ timep() (
     #
     # DIFFERENCES IN HOW SCRIPTS AND FUNCTIONS ARE HANDLED
     #    if the command being profiled is a shell script, timep will create a new script file under
-    #        $timep_TMPDIR that defines our DEGUB trap followed by the contents of the original script. 
+    #        $timep_TMPDIR that defines our DEBUG trap followed by the contents of the original script. 
     #        this new script is called with any arguments passed on the timep commandline (if no flags: ${2}+).
     #    if the command being profiled is a shell function (or, in general, NOT a shell script), timep will create a new
-    #        shell function (runFunc) that defines our DEGUB trap and then calls whatever commandline was passed to timep.
+    #        shell function (runFunc) that defines our DEBUG trap and then calls whatever commandline was passed to timep.
     #        this then gets re-sourced (via `. <(declare -f runFunc)`) to make $LINENO give meaningful line numbers.
     #    the intent is to run scripts as scripts and functions as functions, so that things like $0 and $BASH_SOURCE work as expected.
     #    for both scripts and functions, if stdin is not a terminal then it is passed to the stdin of the code being profiled.
