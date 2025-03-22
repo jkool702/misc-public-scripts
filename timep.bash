@@ -124,20 +124,27 @@ _timep_getTimeDiff () {
 _timep_printTimeDiff() {
 ## prints a line in the format of the time.ALL log file
 # 7 inputs: $BASHPID $NAME $SHLVL.$BASH_SUBSHELL $LINENO tStart tEnd $BASH_COMMAND
-    local tStart tEnd shellName
+    local tStart tEnd shellName timep_LINENO_OFFSET
     
     [[ "${5}" ]] && tStart="${5}" || { [[ -f "${timep_TMPDIR}/.run.time.start.last" ]] && read -r tStart <"${timep_TMPDIR}/.run.time.start.last"; }
     
     [[ "${6}" ]] && tEnd="${6}" || tEnd="${EPOCHREALTIME}"
 
+    if [[ -f "${timep_TMPDIR}/.lineno.offset" ]]; then
+        read -r timep_LINENO_OFFSET <"${timep_TMPDIR}/.lineno.offset"
+    else
+        [[ ${4} ]] && echo "${4}" >"${timep_TMPDIR}/.lineno.offset"
+        timep_LINENO_OFFSET="$4"
+    fi
+
     shellName="${2##*/}"
 
     [[ $tStart ]] || {
-    printf '[ %s {%s_%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$4" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
+    printf '[ %s {%s_%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
         return 1
     }
     
-    printf '[ %s {%s_%s} ]  %s:  %s sec  ( %s --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$4" "$(_timep_getTimeDiff "$tStart" "$tEnd")" "$tStart" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
+    printf '[ %s {%s_%s} ]  %s:  %s sec  ( %s --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "$(_timep_getTimeDiff "$tStart" "$tEnd")" "$tStart" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
 }
 
     export -f _timep_getTimeDiff
