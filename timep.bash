@@ -140,6 +140,7 @@ _timep_printTimeDiff() {
     }
 
     shellName="${2##*/}"
+    shellName="${shellName%;}"
 
     [[ $tStart ]] || {
     printf '[ %s {%s_%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
@@ -229,24 +230,20 @@ FORMAT:
 [ PID {NAME.SHLVL.NESTING} ]  LINENO:  RUNTIME  (TSTART --> TSTOP) <<--- { CMD }
 ----------------------------------------------------------------------------\n\n' \"$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")\" \"\$(date)\" \"\$EPOCHREALTIME\" >&\${fd_timep};
     echo \"\$EPOCHREALTIME\" > \"$timep_TMPDIR\"/.run.time.start.last;
-    declare timep_BASHPID_PREV timep_FUNCNAME_PREV
-    declare -A timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND_PREV timep_LINENO_PREV
-    timep_BASHPID_PREV=\"\$BASHPID\"
+    declare timep_BASHPID_PREV timep_FUNCNAME_PREV;
+    declare -A timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND_PREV timep_LINENO_PREV timep_NESTING_PREV;
+    timep_BASHPID_PREV=\"\$BASHPID\";
     set -T;
-    trap 'if { [[ \"\${timep_FUNCNAME_PREV:-0}\" == \"\${FUNCNAME:-0}\" ]] && [[ \"\${timep_BASHPID_PREV}\" == \"\$BASH_PID\" ]]; }; then 
-timep_ENDTIME[\${timep_FUNCNAME_PREV:-0}]=\"\$EPOCHREALTIME\";
-_timep_printTimeDiff \"\$timep_BASHPID_PREV\"  \"\${FUNCNAME:-\"\${BASH_SOURCE:-\"\${0}\"}\"}\" \"\${SHLVL}.\${BASH_SUBSHELL}\" \"\${timep_LINENO_PREV[\${FUNCNAME:-0}]}\" \"\${timep_STARTTIME[\${FUNCNAME:-0}]}\" \"\${timep_ENDTIME[\${timep_FUNCNAME_PREV:-0}]}\" \"\${timep_BASH_COMMAND_PREV[\${timep_FUNCNAME_PREV:-0}]}\" >&\${fd_timep};
+    trap ':' RETURN;
+    trap 'timep_ENDTIME[\${timep_FUNCNAME_PREV:-0}]=\"\$EPOCHREALTIME\";
+ _timep_printTimeDiff \"\$timep_BASHPID_PREV\"  \"\${timep_FUNCNAME_PREV:-0}\" \"\${timep_NESTING_PREV[\${timep_FUNCNAME_PREV:-0}]}\" \"\${timep_LINENO_PREV[\${timep_FUNCNAME_PREV:-0}]}\" \"\${timep_STARTTIME[\${timep_FUNCNAME_PREV:-0}]}\" \"\${timep_ENDTIME[\${timep_FUNCNAME_PREV:-0}]}\" \"\${timep_BASH_COMMAND_PREV[\${timep_FUNCNAME_PREV:-0}]}\" >&\${fd_timep};
 timep_BASH_COMMAND_PREV[\${timep_FUNCNAME_PREV:-0}]=\"\$BASH_COMMAND\";
-timep_LINENO_PREV[\${timep_FUNCNAME_PREV:-0}]=\"\$LINENO\"
-else
-declare +g timep_BASHPID_PREV timep_FUNCNAME_PREV; 
-declare +g -A timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND_PREV timep_LINENO_PREV;
-fi;
-timep_FUNCNAME_PREV=\"\${FUNCNAME:-0}\";
+timep_LINENO_PREV[\${timep_FUNCNAME_PREV:-0}]=\"\$LINENO\";
+timep_NESTING_PREV[\${timep_FUNCNAME_PREV:-0}]=\"\${SHLVL}.\${BASH_SUBSHELL}.\${#FUNCNAME[@]}\";
+timep_FUNCNAME_PREV=\"\${FUNCNAME:-0}\"\;
 timep_BASHPID_PREV=\"\$BASHPID\";
 timep_STARTTIME[\${FUNCNAME:-0}]=\"\$EPOCHREALTIME\";
-echo \"\$timep_STARTTIME[\${FUNCNAME:-0}]\" >\"${timep_TMPDIR}\"/.run.time.start.last;' DEBUG;
-trap ':' RETURN;
+echo \"\${timep_STARTTIME[\${FUNCNAME:-0}]}\" >\"\${timep_TMPDIR}\"/.run.time.start.last' DEBUG;
 
 
 ${timep_runCmd}
@@ -283,7 +280,7 @@ printf '\n\nThe code being time profiled has finished running!\ntimep will now p
 unset IFS
 
 # get lists of unique commands run (unique combinations of pid + subshell level in the logged data
-mapfile -t uniq_pids < <(grep -E '^\[ [0-9]+ \{[^ ]*_[0-9\.]+\} \]' "${timep_TMPDIR}/time.ALL" 2>/dev/null | sed -E s/'^\[ ([0-9]+) \{([^ ]*_[0-9]+\.[0-9]+)\} \] .*$'/'\1_\2'/ | sort -u)
+mapfile -t uniq_pids < <(grep -E '^\[ [0-9]+ \{[^ ]*_[0-9\.]+\} \]' "${timep_TMPDIR}/time.ALL" 2>/dev/null | sed -E s/'^\[ ([0-9]+) \{([^ ]*_[0-9\.]+)\} \] .*$'/'\1_\2'/ | sort -u)
 
 tSumAllAll0=0
 for p in "${uniq_pids[@]}"; do
