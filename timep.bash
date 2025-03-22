@@ -45,8 +45,9 @@ timep() (
     #    1. Scripts using RETURN traps MAY not work as expected. "set -T" is used to propogate the DEBUG trap into shell functions,
     #         which also propogates RETURN traps into shell functions. This may or may not cause unexpected "RETURN trap"-related behavior.
     #    2. The line numbers may not correspond exactly to the line numbers in the original code, but will ensure commamds are ordered correctly.
-    #    3. Any shell scripts called by the top-level script/function being profiled will have their runtimes profiled, since the DEBUG trap doesnt propogate to sripts.
+    #    3. Any shell scripts called by the top-level script/function being profiled will NOT have their runtimes profiled, since the DEBUG trap doesnt propogate to sripts.
     #         To profile these, either source them (instead of calling them) or call them via `timep -s <script>`. However, shell functions that are called WILL automatically be profiled.
+    #    4. To define a custom TMPDIR, pass `timep_TMPDIR` as an environment variable. e.g., timep_TMPDIR=/path/to/tmpdir timep codeToProfile
     #
     ################################################################################################################################################################
 
@@ -60,13 +61,13 @@ timep() (
             -s|--shell)  timep_runType=s  ;;
             -f|--function)  timep_runType=f  ;;
             --)  shift 1 && break  ;;
-            *)  break  ;;
+             *)  break  ;;
         esac
         shift 1
     done
 
     # figure out where to setup a tmpdir to use (prefferably on a ramdisk/tmpfs)
-    timep_TMPDIR=''
+    : "${timep_TMPDIR:=}"
 
     # try /dev/shm
     [[ -d /dev/shm ]] && { 
@@ -153,8 +154,15 @@ _timep_printTimeDiff() {
     }    
 
     # setup a string with the command to run
-    # if stdin isnt a terminal then pass it to whatever is being run / time profiled
-    # if the command being profiled is a shell script, wrap the contents of that script in a shell function and run that function instead (so the debug trap propogates into it)
+    
+    # if the command being profiled is a shell script, timep will create a new script file under
+    #     $timep_TMPDIR that defines our DEGUB trap followed by the contents of the original script. 
+    #     this new script is called with any arguments passed on the timep commandline (if no flags: ${2}+).
+    # if the command being profiled is a shell function (or, in general, NOT a shell script), timep will create a new
+    #     shell function (runFunc) that defines our DEGUB trap and then calls whatever commandline was passed to timep.
+    #     this then gets re-sourced (via `. <(declare -f runFunc)`) to make line numbers work.
+    # for both scripts and functions, if stdin is not a terminal then it is passed to the stdin of the code being profiled.
+
     case "${timep_runType}" in
         s)
             shift 1
