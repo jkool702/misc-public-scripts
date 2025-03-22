@@ -38,7 +38,7 @@ timep() (
     #        VARIABLES:  timep_STARTTIME  timep_ENDTIME  timep_BASH_COMMAND_PREV  timep_LINENO_PREV timep_BASHPID_PREV  timep_TMPDIR
     #
     # DEPENDENCIES:
-    #    1) a recent-ish bash version (4.0+ (???) - it needs to support the $EPOCHREALTIME variable)
+    #    1) bash 5.0+ (it needs to support the $EPOCHREALTIME variable)
     #    2) sed, grep, sort, mkdir, file*
     #
     # NOTES: 
