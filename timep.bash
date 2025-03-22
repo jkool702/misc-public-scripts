@@ -231,7 +231,7 @@ echo \"\$timep_STARTTIME\" >\"${timep_TMPDIR}\"/.run.time.start.last;' DEBUG;
 
 ${timep_runCmd}
 
-trap - DEBUG
+trap - DEBUG RETURN
 
 ) {fd_timep}>\"${timep_TMPDIR}\"/time.ALL"
 
@@ -260,6 +260,7 @@ esac
 
 
 printf '\n\nThe code being time profiled has finished running!\ntimep will now process the logged timing data.\n\n' >&2
+unset IFS
 
 # get lists of unique commands run (unique combinations of pid + subshell level in the logged data
 mapfile -t uniq_pids < <(grep -E '^\[ [0-9]+ \{[^ ]*_[0-9\.]+\} \]' "${timep_TMPDIR}/time.ALL" 2>/dev/null | sed -E s/'^\[ ([0-9]+) \{([^ ]*_[0-9]+\.[0-9]+)\} \] .*$'/'\1_\2'/ | sort -u)
@@ -270,26 +271,28 @@ for p in "${uniq_pids[@]}"; do
     # seperate out the data for each pid and save it in a file called time.<pid>
     p0="${p%%_*}"
     p1="${p#*_}"
-    grep -E '^\[ '"${p0}"' \{'"${p1}"'\} \]' "${timep_TMPDIR}/time.ALL" 2>/dev/null | sed -E s/'^\[ [0-9]+ \{[0-9\.]+\} \] +'// >>"${timep_TMPDIR}/time.${p}"
+    grep -E '^\[ '"${p0}"' \{'"${p1}"'\} \]' "${timep_TMPDIR}/time.ALL" 2>/dev/null | sed -E s/'^\[ [0-9]+ \{[^ ]*_[0-9\.]+\} \] +'// >>"${timep_TMPDIR}/time.${p}"
 
     # find the unique commands (pid + subshell_lvl + line number + cmd) from just this pid/subshell_lvl
     mapfile -t uniq_lines_pid < <(grep -v -E '^((PID)|(NAME)|(NESTING)|([0-9]+\:[[:space:]]+ERROR)|\:|$)' 2>/dev/null <"${timep_TMPDIR}/time.$p" | sed -E 's/:[^<:]+<<\-\-\- /: /' | sort -u)
     outCur=()
     kk=0
 
-    printf 'PID:        \t%s\nNAME:        \t%s\nNESTING LVL:\t%s\n' "${p0}" "${p1%_*}" "${p1##*_}"
+    printf -v outCur[0] 'PID:        \t%s\nNAME:        \t%s\nNESTING LVL:\t%s\n\n' "${p0}" "${p1%_*}" "${p1##*_}"
     tSumAll0=0
     # for each unique command run by this unique command, pull out the run count and pull out the run times and sum them together
     # print a line to the time.combined.<pid> file vcontaining the run count and the combined run time for that command
     # also, keep track of total run time for this PID
     for l in "${uniq_lines_pid[@]}"; do
         [[ $l ]] || continue
-        mapfile -t linesCmdCur < <(grep -F "${l#*:}" "${timep_TMPDIR}/time.$p" 2>/dev/null | grep -E '^'"${l%%:*}" 2>/dev/null)
+        mapfile -t linesCmdCur < <(grep -F "${l#*:}" "${timep_TMPDIR}/time.$p" 2>/dev/null | grep -F "${l%%:*}" 2>/dev/null)
         timesCmdCur=("${linesCmdCur[@]#*:  }")
         timesCmdCur=("${timesCmdCur[@]%% sec*}")
         timesCmdCur=("${timesCmdCur[@]//./}")
         timesCmdCur=("${timesCmdCur[@]//-+(0)/-}")
-        tSum0="$(( $(printf '%s + ' "${timesCmdCur[@]##+(0)}") 0 ))"
+        IFS='+'
+        tSum0="$(( "${timesCmdCur[*]##+(0)}" ))"
+        unset IFS
         (( tSumAll0+=tSum0 ))
         printf -v tSum '%.07d' "$tSum0"
         t6=$(( ${#tSum} - 6 ))
