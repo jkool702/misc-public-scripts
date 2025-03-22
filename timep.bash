@@ -233,15 +233,18 @@ FORMAT:
     declare -A timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND_PREV timep_LINENO_PREV
     timep_BASHPID_PREV=\"\$BASHPID\"
     set -T;
-    trap '{ [[ \"\${timep_FUNCNAME_PREV:-0}\" == \"\${FUNCNAME:-0}\" ]] && [[ \"\$timep_BASHPID_PREV\" == \"\$BASH_PID\" ]]; } || { declare +g timep_BASHPID_PREV timep_FUNCNAME_PREV; declare +g -A timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND_PREV timep_LINENO_PREV; timep_BASHPID_PREV="\$BASHPID"; };
-[[ \${timep_FUNCNAME_PREV} ]] && {
+    trap 'if { [[ \"\${timep_FUNCNAME_PREV:-0}\" == \"\${FUNCNAME:-0}\" ]] && [[ \"\${timep_BASHPID_PREV}\" == \"\$BASH_PID\" ]]; }; then 
 timep_ENDTIME[\${timep_FUNCNAME_PREV:-0}]=\"\$EPOCHREALTIME\";
-[[ \"\$FUNCNAME\" == \"\$BASH_COMMAND\" ]] || { [[ \${timep_LINENO_PREV[\${timep_FUNCNAME_PREV:-0}]} ]] && _timep_printTimeDiff \"\$BASHPID\"  \"\${FUNCNAME:-\"\${BASH_SOURCE:-\"\${0}\"}\"}\" \"\${SHLVL}.\${BASH_SUBSHELL}\" \"\${timep_LINENO_PREV[\${FUNCNAME:-0}]}\" \"\${timep_STARTTIME[\${FUNCNAME:-0}]}\" \"\${timep_ENDTIME[\${timep_FUNCNAME_PREV:-0}]}\" \"\${timep_BASH_COMMAND_PREV[\${timep_FUNCNAME_PREV:-0}]}\" >&\${fd_timep}; };
+_timep_printTimeDiff \"\$timep_BASHPID_PREV\"  \"\${FUNCNAME:-\"\${BASH_SOURCE:-\"\${0}\"}\"}\" \"\${SHLVL}.\${BASH_SUBSHELL}\" \"\${timep_LINENO_PREV[\${FUNCNAME:-0}]}\" \"\${timep_STARTTIME[\${FUNCNAME:-0}]}\" \"\${timep_ENDTIME[\${timep_FUNCNAME_PREV:-0}]}\" \"\${timep_BASH_COMMAND_PREV[\${timep_FUNCNAME_PREV:-0}]}\" >&\${fd_timep};
 timep_BASH_COMMAND_PREV[\${timep_FUNCNAME_PREV:-0}]=\"\$BASH_COMMAND\";
 timep_LINENO_PREV[\${timep_FUNCNAME_PREV:-0}]=\"\$LINENO\"
-};
+else
+declare +g timep_BASHPID_PREV timep_FUNCNAME_PREV; 
+declare +g -A timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND_PREV timep_LINENO_PREV;
+fi;
+timep_FUNCNAME_PREV=\"\${FUNCNAME:-0}\";
+timep_BASHPID_PREV=\"\$BASHPID\";
 timep_STARTTIME[\${FUNCNAME:-0}]=\"\$EPOCHREALTIME\";
-timep_FUNCNAME_PREV=\"\${FUNCNAME}\"
 echo \"\$timep_STARTTIME[\${FUNCNAME:-0}]\" >\"${timep_TMPDIR}\"/.run.time.start.last;' DEBUG;
 trap ':' RETURN;
 
