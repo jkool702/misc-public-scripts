@@ -130,12 +130,14 @@ _timep_printTimeDiff() {
     
     [[ "${6}" ]] && tEnd="${6}" || tEnd="${EPOCHREALTIME}"
 
+    [[ "${timep_runType}" == 's' ]] && {
     if [[ -f "${timep_TMPDIR}/.lineno.offset" ]]; then
         read -r timep_LINENO_OFFSET <"${timep_TMPDIR}/.lineno.offset"
     else
         [[ ${4} ]] && echo "${4}" >"${timep_TMPDIR}/.lineno.offset"
         timep_LINENO_OFFSET="$4"
     fi
+    }
 
     shellName="${2##*/}"
 
@@ -177,6 +179,9 @@ _timep_printTimeDiff() {
             timep_runType=f
         fi
     }    
+
+    export timep_runType="${timep_runType}"
+
 
     # setup a string with the command to run
     case "${timep_runType}" in
