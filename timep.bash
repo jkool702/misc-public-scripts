@@ -131,16 +131,15 @@ _timep_printTimeDiff() {
     [[ "${6}" ]] && tEnd="${6}" || tEnd="${EPOCHREALTIME}"
 
     [[ "${timep_runType}" == 's' ]] && {
-    if [[ -f "${timep_TMPDIR}/.lineno.offset" ]]; then
-        read -r timep_LINENO_OFFSET <"${timep_TMPDIR}/.lineno.offset"
-    else
-        [[ ${4} ]] && echo "${4}" >"${timep_TMPDIR}/.lineno.offset"
-        timep_LINENO_OFFSET="$4"
-    fi
+        if [[ -f "${timep_TMPDIR}/.lineno.offset" ]]; then
+            read -r timep_LINENO_OFFSET <"${timep_TMPDIR}/.lineno.offset"
+        else
+            [[ ${4} ]] && echo "${4}" >"${timep_TMPDIR}/.lineno.offset"
+            timep_LINENO_OFFSET="$4"
+        fi
     }
 
     shellName="${2##*/}"
-    shellName="${shellName%;}"
 
     [[ $tStart ]] || {
     printf '[ %s {%s_%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
@@ -195,6 +194,8 @@ _timep_printTimeDiff() {
             else
                 timep_runCmd1='#!'"$(type -p bash)"
             fi
+            # start of wrapper code
+            timep_runFuncSrc="${timep_runCmd1}"$'\n'
         ;;
         f)
             if [[ -t 0 ]]; then
@@ -202,6 +203,8 @@ _timep_printTimeDiff() {
             else
                 timep_runCmd="cat | ${@}"
             fi
+            # start of wrapper code
+            timep_runFuncSrc='timep_runFunc () '
         ;;
     esac
 
@@ -209,10 +212,6 @@ _timep_printTimeDiff() {
 # this will setup a DEBUG trap to measure runtime from every command, then will run the specified code.
 # the source code is generated and then sourced (instead of directly defined) so that things like the tmpdir/logfile path are hardcoded.
 # this allows timep to run without adding any new (and potengtially conflicting) variables to the code being run / time profiled.
-case "${timep_runType}" in
-    f)  timep_runFuncSrc='timep_runFunc () '  ;;
-    s)  timep_runFuncSrc="${timep_runCmd1}"$'\n'  ;;
-esac
 timep_runFuncSrc+="(
 printf '\n
 ----------------------------------------------------------------------------
@@ -229,21 +228,30 @@ FORMAT:
 ----------------------------------------------------------------------------
 [ PID {NAME.SHLVL.NESTING} ]  LINENO:  RUNTIME  (TSTART --> TSTOP) <<--- { CMD }
 ----------------------------------------------------------------------------\n\n' \"$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")\" \"\$(date)\" \"\$EPOCHREALTIME\" >&\${fd_timep};
-    echo \"\$EPOCHREALTIME\" > \"$timep_TMPDIR\"/.run.time.start.last;
-    declare timep_BASHPID_PREV timep_FUNCNAME_PREV;
-    declare -A timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND_PREV timep_LINENO_PREV timep_NESTING_PREV;
-    timep_BASHPID_PREV=\"\$BASHPID\";
+    echo \"\$EPOCHREALTIME\" > \"\${timep_TMPDIR}\"/.run.time.start.last;
+    declare timep_FUNCDEPTH_PREV timep_ID timep_BASHPID_PREV 
+    timep_FUNCDEPTH_PREV=\"-1\"
+    declare -A timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND_PREV timep_LINENO_PREV timep_NESTING_PREV timep_BASHPID_PREV timep_FUNCNAME_PREV;
     set -T;
+    trap '(( \${#FUNCNAME[@]} <= timep_FUNCDEPTH_PREV )) && timep_ENDTIME[\${timep_FUNCDEPTH_PREV}]=\"\${EPOCHREALTIME}\";
+timep_ID=\"\${FUNCNAME:-\${BASH_SOURCE:-0}}_\${BASHPID}_\${SHLVL}.\${BASH_SUBSHELL}.\${#FUNCNAME[@]}\";
+timep_ID=\"\${timep_ID##*/}\";
+timep_ID=\"\${timep_ID// /}\";
+[[ -z \${timep_ID_PREV} ]] || { (( \${#FUNCNAME[@]} != \${timep_FUNCDEPTH_PREV:--1} )) && [[ \"\${BASHPID}\" == \"\${timep_BASHPID_PREV[\${timep_ID_PREV}]}\" ]]; } || _timep_printTimeDiff \"\${timep_BASHPID_PREV[\${timep_ID_PREV}]}\" \"\${timep_FUNCNAME_PREV[\${timep_ID_PREV}]}\" \"\${timep_NESTING_PREV[\${timep_ID_PREV}]}\" \"\${timep_LINENO_PREV[\${timep_ID_PREV}]}\" \"\${timep_STARTTIME[\${timep_ID_PREV}]}\" \"\${timep_ENDTIME[\${timep_ID_PREV}]}\" \"\${timep_BASH_COMMAND_PREV[\${timep_ID_PREV}]}\" >&\${fd_timep};
+if (( \${#FUNCNAME[@]} >= \${timep_FUNCDEPTH_PREV:--1} )); then
+    timep_BASH_COMMAND_PREV[\${timep_ID}]=\"\${BASH_COMMAND}\"
+    timep_LINENO_PREV[\${timep_ID}]=\"\${LINENO}\"
+    timep_NESTING_PREV[\${timep_ID}]=\"\${SHLVL}.\${BASH_SUBSHELL}.\${#FUNCNAME[@]}\"
+    timep_BASHPID_PREV[\${timep_ID}]=\"\${BASHPID}\"
+    timep_FUNCNAME_PREV[\${timep_ID}]=\"\${timep_ID%%_\${BASHPID}_*}\"
+    timep_FUNCDEPTH_PREV=\"\${#FUNCNAME[@]}\"
+    timep_ID_PREV=\"\${timep_ID}\"
+else
+    unset \"timep_STARTTIME[\${timep_ID_PREV}]\" \"timep_ENDTIME[\${timep_ID_PREV}]\" \"timep_BASH_COMMAND_PREV[\${timep_ID_PREV}]\" \"timep_LINENO_PREV[\${timep_ID_PREV}]\" \"timep_NESTING_PREV[\${timep_ID_PREV}]\" \"timep_BASHPID_PREV[\${timep_ID_PREV}]\" \"timep_FUNCNAME_PREV[\${timep_ID_PREV}]\"
+fi
+timep_STARTTIME[\${timep_ID}]=\"\${EPOCHREALTIME}\"
+echo \"\${timep_STARTTIME[\${timep_ID}]}\" >\"\${timep_TMPDIR}\"/.run.time.start.last' DEBUG;
     trap ':' RETURN;
-    trap 'timep_ENDTIME[\${timep_FUNCNAME_PREV:-0}]=\"\$EPOCHREALTIME\";
- _timep_printTimeDiff \"\$timep_BASHPID_PREV\"  \"\${timep_FUNCNAME_PREV:-0}\" \"\${timep_NESTING_PREV[\${timep_FUNCNAME_PREV:-0}]}\" \"\${timep_LINENO_PREV[\${timep_FUNCNAME_PREV:-0}]}\" \"\${timep_STARTTIME[\${timep_FUNCNAME_PREV:-0}]}\" \"\${timep_ENDTIME[\${timep_FUNCNAME_PREV:-0}]}\" \"\${timep_BASH_COMMAND_PREV[\${timep_FUNCNAME_PREV:-0}]}\" >&\${fd_timep};
-timep_BASH_COMMAND_PREV[\${timep_FUNCNAME_PREV:-0}]=\"\$BASH_COMMAND\";
-timep_LINENO_PREV[\${timep_FUNCNAME_PREV:-0}]=\"\$LINENO\";
-timep_NESTING_PREV[\${timep_FUNCNAME_PREV:-0}]=\"\${SHLVL}.\${BASH_SUBSHELL}.\${#FUNCNAME[@]}\";
-timep_FUNCNAME_PREV=\"\${FUNCNAME:-0}\"\;
-timep_BASHPID_PREV=\"\$BASHPID\";
-timep_STARTTIME[\${FUNCNAME:-0}]=\"\$EPOCHREALTIME\";
-echo \"\${timep_STARTTIME[\${FUNCNAME:-0}]}\" >\"\${timep_TMPDIR}\"/.run.time.start.last' DEBUG;
 
 
 ${timep_runCmd}
