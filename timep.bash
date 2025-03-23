@@ -198,6 +198,7 @@ _timep_printTimeDiff() {
             timep_runFuncSrc="${timep_runCmd1}"$'\n'
         ;;
         f)
+            export timep_LINENO_OFFSET=1
             if [[ -t 0 ]]; then
                 timep_runCmd="${@}"
             else
