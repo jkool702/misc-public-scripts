@@ -337,7 +337,7 @@ printf '\n\nThe code being time profiled has finished running!\ntimep will now p
 unset IFS
 
 # get lists of unique commands run (unique combinations of pid + subshell level in the logged data
-mapfile -t uniq_pids < <(grep -E '^\[ [0-9->]+ \{[^ ]*_[0-9\.]+\} \]' "${timep_TMPDIR}/time.ALL" 2>/dev/null | sed -E s/'^\[ ([0-9]+) \{([^ ]*_[0-9\.]+)\} \] .*$'/'\1_\2'/ | sort -u)
+mapfile -t uniq_pids < <(grep -E '^\[ [0-9->]+ \{[^ ]*_[0-9\.]+\} \]' "${timep_TMPDIR}/time.ALL" 2>/dev/null | sed -E s/'^\[ ([0-9]+)(\-\>[0-9]+)* \{([^ ]*_[0-9\.]+)\} \] .*$'/'\1_\3'/ | sort -u)
 
 for p in "${uniq_pids[@]}"; do
     # print header with PID and shell nesting level >"${timep_TMPDIR}/time.${p}"
