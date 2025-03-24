@@ -262,7 +262,7 @@ elif (( \${#FUNCNAME[@]} < timep_FUNCDEPTH_PREV )); then
     timep_TRAP_TYPE='\"'\"'n'\"'\"'
 fi
 if [[ \"\${timep_TRAP_TYPE}\" == *'\"'\"'i'\"'\"' ]]; then
-    timep_RUNTIME_SUM[\$\{timep_ID}]=0
+    timep_RUNTIME_SUM[\${timep_ID}]=0
 else
     timep_ENDTIME[\${timep_ID_PREV}]=\"\${timep_ENDTIME_CUR}\"
     _timep_printTimeDiff \"\${timep_BASHPID[\${timep_ID_PREV}]}\" \"\${timep_FUNCNAME[\${timep_ID_PREV}]}\" \"\${timep_NESTING[\${timep_ID_PREV}]}\" \"\${timep_LINENO[\${timep_ID_PREV}]}\" \"\${timep_STARTTIME[\${timep_ID_PREV}]}\" \"\${timep_ENDTIME[\${timep_ID_PREV}]}\" \"\${timep_BASH_COMMAND[\${timep_ID_PREV}]}\" >&\${fd_timep};
