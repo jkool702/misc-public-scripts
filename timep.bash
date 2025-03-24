@@ -248,7 +248,7 @@ if [[ -z \${timep_ID_PREV} ]] || [[ \"\${timep_TRAP_TYPE}\" == '\"'\"'fi'\"'\"' 
     timep_TRAP_TYPE='\"'\"'si'\"'\"'
 elif [[ \"\${timep_BG_PID_PREV}\" != \"\$!\" ]]; then
     timep_TRAP_TYPE='\"'\"'n'\"'\"'
-elif [[ \"\$timep_BASHPID_PREV}\" != \"\${BASHPID}\" ]]; then
+elif [[ \"\${timep_BASHPID_PREV}\" != \"\${BASHPID}\" ]]; then
     if (( BASH_SUBSHELL < timep_BASH_SUBSHELL_PREV )); then
         timep_TRAP_TYPE='\"'\"'se'\"'\"'
     else
