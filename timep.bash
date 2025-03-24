@@ -111,53 +111,6 @@ timep() (
          printf '\nERROR: could not create a tmpdir under /dev/shm nor /tmp nor PWD (%s). \nPlease ensure you have requisite write permissions in one of these directories. ABORTING\n\n' "$PWD"
          return 1
     }
-    
-# define helper functions
-#_timep_getTimeDiff() {
-### returns the time difference between 2 $EPOCHREALTIME times
-#    local d d6;
-#    printf -v d '%.07d' $(( ${2//./} - ${1//./} ));
-#    d6=$(( ${#d} - 6 ));
-#    printf '%s.%s\n' "${d:0:$d6}" "${d:$d6}"
-#}
-
-_timep_printTimeDiff() {
-## prints a line in the format of the time.ALL log file
-# 7 inputs: $BASHPID $NAME $SHLVL.$BASH_SUBSHELL $LINENO tStart tEnd $BASH_COMMAND
-    local tStart tEnd tDiff d d6 shellName timep_LINENO_OFFSET
-    
-    [[ "${5}" ]] && tStart="${5}" #|| { [[ -f "${timep_TMPDIR}/.run.time.start.last" ]] && read -r tStart <"${timep_TMPDIR}/.run.time.start.last"; }
-    
-    [[ "${6}" ]] && tEnd="${6}" || tEnd="${EPOCHREALTIME}"
-
-    shellName="${2##*/}"
-
-    if [[ "${timep_runType}" == 's' ]]; then
-        if [[ -f "${timep_TMPDIR}/.lineno.offset" ]]; then
-            read -r timep_LINENO_OFFSET <"${timep_TMPDIR}/.lineno.offset"
-        else
-            [[ ${4} ]] && echo "${4}" >"${timep_TMPDIR}/.lineno.offset"
-            timep_LINENO_OFFSET="$4"
-        fi
-    else
-        timep_LINENO_OFFSET=1
-    fi
-
-    if [[ $tStart ]]; then
-        printf -v d '%.07d' "${8}"
-        d6=$(( ${#d} - 6 ))
-        printf -v tDiff '%s.%s' "${d:0:$d6}" "${d:$d6}"
-        
-        printf '[ %s {%s_%s} ]  %s:  %s sec  ( %s --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "${tDiff}" "$tStart" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
-    else
-        printf '[ %s {%s_%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
-        return 1
-    fi    
-}
-
-#    export -f _timep_getTimeDiff
-    export -f _timep_printTimeDiff    
-    export timep_TMPDIR="${timep_TMPDIR}"
 
     # determine if command being profiled is a shell script or not
     [[ ${timep_runType} == [sf] ]] || {
@@ -192,6 +145,35 @@ _timep_printTimeDiff() {
     # setup a string with the command to run
     case "${timep_runType}" in
         s)
+_timep_printTimeDiff() {
+## prints a line in the format of the time.ALL log file
+# 7 inputs: $BASHPID $NAME $SHLVL.$BASH_SUBSHELL $LINENO tStart tEnd $BASH_COMMAND
+    local tStart tEnd tDiff d d6 shellName timep_LINENO_OFFSET
+    
+    [[ "${5}" ]] && tStart="${5}" #|| { [[ -f "${timep_TMPDIR}/.run.time.start.last" ]] && read -r tStart <"${timep_TMPDIR}/.run.time.start.last"; }
+    
+    [[ "${6}" ]] && tEnd="${6}" || tEnd="${EPOCHREALTIME}"
+
+    shellName="${2##*/}"
+
+    if [[ -f "${timep_TMPDIR}/.lineno.offset" ]]; then
+        read -r timep_LINENO_OFFSET <"${timep_TMPDIR}/.lineno.offset"
+    else
+        [[ ${4} ]] && echo "${4}" >"${timep_TMPDIR}/.lineno.offset"
+        timep_LINENO_OFFSET="$4"
+    fi
+
+    if [[ $tStart ]]; then
+        printf -v d '%.07d' "${8}"
+        d6=$(( ${#d} - 6 ))
+        printf -v tDiff '%s.%s' "${d:0:$d6}" "${d:$d6}"
+        
+        printf '[ %s {%s_%s} ]  %s:  %s sec  ( %s --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "${tDiff}" "$tStart" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
+    else
+        printf '[ %s {%s_%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
+        return 1
+    fi    
+}
             shift 1
             timep_runCmd="$(<"${timep_runCmdPath}")"
         if [[ "${timep_runCmd}" == '#!'* ]]; then
@@ -204,7 +186,29 @@ _timep_printTimeDiff() {
             timep_runFuncSrc="${timep_runCmd1}"$'\n'
         ;;
         f)
-            export timep_LINENO_OFFSET=1
+_timep_printTimeDiff() {
+## prints a line in the format of the time.ALL log file
+# 7 inputs: $BASHPID $NAME $SHLVL.$BASH_SUBSHELL $LINENO tStart tEnd $BASH_COMMAND
+    local tStart tEnd tDiff d d6 shellName timep_LINENO_OFFSET
+    
+    [[ "${5}" ]] && tStart="${5}" #|| { [[ -f "${timep_TMPDIR}/.run.time.start.last" ]] && read -r tStart <"${timep_TMPDIR}/.run.time.start.last"; }
+    
+    [[ "${6}" ]] && tEnd="${6}" || tEnd="${EPOCHREALTIME}"
+
+    shellName="${2##*/}"
+
+    if [[ $tStart ]]; then
+        printf -v d '%.07d' "${8}"
+        d6=$(( ${#d} - 6 ))
+        printf -v tDiff '%s.%s' "${d:0:$d6}" "${d:$d6}"
+        
+        printf '[ %s {%s_%s} ]  %s:  %s sec  ( %s --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$4" "${tDiff}" "$tStart" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
+    else
+        printf '[ %s {%s_%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$4" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
+        return 1
+    fi    
+}
+            declare -F "$1" &>/dev/null && . <(declare -f "$1")
             if [[ -t 0 ]]; then
                 timep_runCmd="${@}"
             else
@@ -215,6 +219,9 @@ _timep_printTimeDiff() {
         ;;
     esac
 
+    export -f _timep_printTimeDiff    
+    export timep_TMPDIR="${timep_TMPDIR}"
+    
 # generate the code for a wrapper function (timep_runFunc) that wraps around whatever we are running / time profiling.
 # this will setup a DEBUG trap to measure runtime from every command, then will run the specified code.
 # the source code is generated and then sourced (instead of directly defined) so that things like the tmpdir/logfile path are hardcoded.
@@ -325,7 +332,6 @@ unset IFS
 # get lists of unique commands run (unique combinations of pid + subshell level in the logged data
 mapfile -t uniq_pids < <(grep -E '^\[ [0-9]+ \{[^ ]*_[0-9\.]+\} \]' "${timep_TMPDIR}/time.ALL" 2>/dev/null | sed -E s/'^\[ ([0-9]+) \{([^ ]*_[0-9\.]+)\} \] .*$'/'\1_\2'/ | sort -u)
 
-tSumAllAll0=0
 for p in "${uniq_pids[@]}"; do
     # print header with PID and shell nesting level >"${timep_TMPDIR}/time.${p}"
     # seperate out the data for each pid and save it in a file called time.<pid>
@@ -335,19 +341,19 @@ for p in "${uniq_pids[@]}"; do
     printf '\n\0' >>"${timep_TMPDIR}/time.${p}"
 
     # find the unique commands (pid + subshell_lvl + line number + cmd) from just this pid/subshell_lvl
-    mapfile -t uniq_lines_pid < <(grep -v -E '^((PID)|(NAME)|(NESTING)|([0-9]+\:[[:space:]]+ERROR)|\:|\0|$)' 2>/dev/null <"${timep_TMPDIR}/time.$p" | sed -E 's/:[^<:]+<<\-\-\- /: /' | sort -u)
+    mapfile -t uniq_lines_pid < <(grep -a -v -E '^((PID)|(NAME)|(NESTING)|([0-9]+\:[[:space:]]+ERROR)|\:|\0|$)' 2>/dev/null <"${timep_TMPDIR}/time.$p" | sed -E 's/:[^<:]+<<\-\-\- /: /' | sort -u)
    
-    outCur=()
     kk=0
     tSumAll0=0
-    printf -v outCur[0] 'NESTING LVL:\t%s\nPID:        \t%s\nNAME:        \t%s\n' "${p1##*_}" "${p0}" "${p1%_*}"
+    printf -v outCur0 'NESTING LVL:\t%s\nPID:        \t%s\nNAME:        \t%s\n' "${p1##*_}" "${p0}" "${p1%_*}"
+    outCur=("${outCur0}")
     
     # for each unique command run by this unique command, pull out the run count and pull out the run times and sum them together
     # print a line to the time.combined.<pid> file vcontaining the run count and the combined run time for that command
     # also, keep track of total run time for this PID
     for l in "${uniq_lines_pid[@]}"; do
         [[ $l ]] || continue
-        mapfile -t linesCmdCur < <(grep -F "${l#*:}" "${timep_TMPDIR}/time.$p" 2>/dev/null | grep -F "${l%%:*}" 2>/dev/null)
+        mapfile -t linesCmdCur < <(grep -a -F "${l#*:}" "${timep_TMPDIR}/time.$p" 2>/dev/null | grep -F "${l%%:*}" 2>/dev/null)
         timesCmdCur=("${linesCmdCur[@]#*:  }")
         timesCmdCur=("${timesCmdCur[@]%% sec*}")
         timesCmdCur=("${timesCmdCur[@]//./}")
@@ -361,21 +367,15 @@ for p in "${uniq_pids[@]}"; do
         printf -v outCur0 '%s:  %s.%s sec \t <<--- (%sx) %s\n' "${linesCmdCur[0]%%:*}" "${tSum:0:$t6}" "${tSum:$t6}" "${#timesCmdCur[@]}" "${linesCmdCur[0]#*\<\<\-\-\- }"
         outCur+=("${outCur0}")
     done 
-    (( tSumAllAll0+=tSumAll0 ))
     printf -v tSumAll '%.07d' "$tSumAll0"
     t6=$(( ${#tSumAll} - 6 ))
-    printf '%s\n' "${outCur[0]}" >"${timep_TMPDIR}/time.combined.$p"
-    printf '\nTOTAL TIME FOR PID %s {%s}: %s.%s sec\n\n' "${p0}" "${p1}" "${tSumAll:0:$t6}" "${tSumAll:$t6}" >>"${timep_TMPDIR}/time.combined.$p"
+    printf '%s' "${outCur[0]}" >"${timep_TMPDIR}/time.combined.$p"
+    printf 'TIME:        \t%s.%s sec\nID:          \t%s {%s}\n' "${tSumAll:0:$t6}" "${tSumAll:$t6}" "${p0}" "${p1}" >>"${timep_TMPDIR}/time.combined.$p"
     printf '%s\n' "${outCur[@]:1}" | sort -g -k1 >>"${timep_TMPDIR}/time.combined.$p"
-    printf '\n\n\0' >>"${timep_TMPDIR}/time.combined.$p"
+    printf '\n----------------------------------------------------------------\n\n\0' >>"${timep_TMPDIR}/time.combined.$p"
 done
 
-printf -v tSumAllAll '%.07d' "$tSumAllAll0"
-t6=$(( ${#tSumAllAll} - 6 ))
-
-
-printf '
-The following time profile is seperated by context level (process ID (pid) + subshell and function nesting level + FUNCNAME)
+printf 'The following time profile is seperated by context level (process ID (pid) + subshell and function nesting level + FUNCNAME)
 For each line/command run in each pid, the total combined time from all evaluations (as well as the number of evaluations) is shown
 
 FORMAT:
@@ -383,15 +383,12 @@ FORMAT:
 LINENO:  TOTAL_RUNTIME <<--- (COUNTx) { CMD }
 ----------------------------------------------------------------------------
 
-TOTAL COMBINED RUN TIME: %s.%s SECONDS
-
-' "${tSumAllAll:0:$t6}" "${tSumAllAll:$t6}" >"${timep_TMPDIR}"/time.combined.ALL
+' >"${timep_TMPDIR}"/time.combined.ALL
 cat "${timep_TMPDIR}"/time.combined.[0-9]* | sort -z -k 2 | sed -z -E s/'\n{3,}'/'\n\n\n'/g >> "${timep_TMPDIR}"/time.combined.ALL
 printf '\n\nAdditional time profiles, including non-combined ones that show individual command runtimes, can be found under:\n    %s\n\n' "${timep_TMPDIR}" >>"${timep_TMPDIR}"/time.combined.ALL
 cat "${timep_TMPDIR}"/time.combined.ALL >&2
 
 export -n timep_TMPDIR
-#export -nf _timep_getTimeDiff
 export -nf _timep_printTimeDiff  
 #\rm -f "${timep_TMPDIR}"/.timep.*
 #if ! [[  "${timep_TMPDIR}" == "$PWD" ]] && { { shopt nullglob &>/dev/null && [[ -z $(printf '%s' "${timep_TMPDIR}"/*) ]]; } || { ! shopt nullglob &>/dev/null && [[ "$(printf '%s' "${timep_TMPDIR}"/*)" == "${timep_TMPDIR}"'/*' ]]; }; }; then 
