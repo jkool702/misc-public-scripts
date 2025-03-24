@@ -244,37 +244,37 @@ FORMAT:
 timep_ID=\"\${FUNCNAME:-\${BASH_SOURCE:-0}}_\${BASHPID}_\${SHLVL}.\${BASH_SUBSHELL}.\${#FUNCNAME[@]}\";
 timep_ID=\"\${timep_ID##*/}\";
 timep_ID=\"\${timep_ID// /}\";
-if [[ -z \${timep_ID_PREV} ]] || [[ \"\${timep_TRAP_TYPE}\" == 'fi' ]]; then
-    timep_TRAP_TYPE='si'
+if [[ -z \${timep_ID_PREV} ]] || [[ \"\${timep_TRAP_TYPE}\" == '\"'\"'fi'\"'\"' ]]; then
+    timep_TRAP_TYPE='\"'\"'si'\"'\"'
 elif [[ \"\${timep_BG_PID_PREV}\" != \"\$!\" ]]; then
-    timep_TRAP_TYPE='n'
+    timep_TRAP_TYPE='\"'\"'n'\"'\"'
 elif [[ \"\$timep_BASHPID_PREV}\" != \"\${BASHPID}\" ]]; then
     if (( BASH_SUBSHELL < timep_BASH_SUBSHELL_PREV )); then
-        timep_TRAP_TYPE='se'
+        timep_TRAP_TYPE='\"'\"'se'\"'\"'
     else
-        timep_TRAP_TYPE='si'
+        timep_TRAP_TYPE='\"'\"'si'\"'\"'
     fi
 elif (( \${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
-    timep_TRAP_TYPE='fi'
+    timep_TRAP_TYPE='\"'\"'fi'\"'\"'
 elif (( \${#FUNCNAME[@]} < timep_FUNCDEPTH_PREV )); then
-    timep_TRAP_TYPE='fe'
+    timep_TRAP_TYPE='\"'\"'fe'\"'\"'
  else
-    timep_TRAP_TYPE='n'
+    timep_TRAP_TYPE='\"'\"'n'\"'\"'
 fi
-if [[ \"\${timep_TRAP_TYPE}\" == *'i' ]]; then
+if [[ \"\${timep_TRAP_TYPE}\" == *'\"'\"'i'\"'\"' ]]; then
     timep_RUNTIME_SUM[\$\{timep_ID}]=0
 else
     timep_ENDTIME[\${timep_ID_PREV}]=\"\${timep_ENDTIME_CUR}\"
     _timep_printTimeDiff \"\${timep_BASHPID[\${timep_ID_PREV}]}\" \"\${timep_FUNCNAME[\${timep_ID_PREV}]}\" \"\${timep_NESTING[\${timep_ID_PREV}]}\" \"\${timep_LINENO[\${timep_ID_PREV}]}\" \"\${timep_STARTTIME[\${timep_ID_PREV}]}\" \"\${timep_ENDTIME[\${timep_ID_PREV}]}\" \"\${timep_BASH_COMMAND[\${timep_ID_PREV}]}\" >&\${fd_timep};
     timep_RUNTIME_SUM[\${timep_ID_PREV}]=\"\$(( timep_RUNTIME_SUM[\${timep_ID_PREV}] + ( \${timep_ENDTIME[\${timep_ID_PREV}]//./} - \${timep_STARTTIME[\${timep_ID_PREV}]//./} ) ))\"
 fi
-if [[ \"\${timep_TRAP_TYPE}\" == *'e' ]]; then
+if [[ \"\${timep_TRAP_TYPE}\" == *'\"'\"'e'\"'\"' ]]; then
     timep_ENDTIME[\${timep_ID}]=\"\${timep_ENDTIME_CUR}\"
     _timep_printTimeDiff \"\${timep_BASHPID[\${timep_ID}]}\" \"\${timep_FUNCNAME[\${timep_ID}]}\" \"\${timep_NESTING[\${timep_ID}]}\" \"\${timep_LINENO[\${timep_ID}]}\" \"\${timep_STARTTIME[\${timep_ID}]}\" \"\${timep_ENDTIME[\${timep_ID}]}\" \"\${timep_BASH_COMMAND[\${timep_ID}]}\" \"\${timep_RUNTIME_SUM[\${timep_ID_PREV}]}\" >&\${fd_timep};
     timep_RUNTIME_SUM[\${timep_ID}]=\"\$(( timep_RUNTIME_SUM[\${timep_ID}] + timep_RUNTIME_SUM[\${timep_ID_PREV}] ))\"
     unset \"timep_STARTTIME[\${timep_ID_PREV}]\" \"timep_ENDTIME[\${timep_ID_PREV}]\" \"timep_BASH_COMMAND[\${timep_ID_PREV}]\" \"timep_LINENO[\${timep_ID}]\" \"timep_NESTING[\${timep_ID_PREV}]\" \"timep_BASHPID[\${timep_ID}]\" \"timep_FUNCNAME[\${timep_ID_PREV}]\" \"timep_RUNTIME_SUM[\${timep_ID_PREV}]\"
 else
-    if [[ \"\${timep_TRAP_TYPE}\" != 'fi' ]]; then
+    if [[ \"\${timep_TRAP_TYPE}\" != '\"'\"'fi'\"'\"' ]]; then
         timep_BASH_COMMAND[\${timep_ID}]=\"\${BASH_COMMAND}\"
         timep_LINENO[\${timep_ID}]=\"\${LINENO}\"
         timep_NESTING[\${timep_ID}]=\"\${SHLVL}.\${BASH_SUBSHELL}.\${#FUNCNAME[@]}\"
