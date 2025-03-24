@@ -269,8 +269,9 @@ else
     timep_RUNTIME_SUM[\${timep_ID_PREV}]=\"\$(( timep_RUNTIME_SUM[\${timep_ID_PREV}] + ( \${timep_ENDTIME[\${timep_ID_PREV}]//./} - \${timep_STARTTIME[\${timep_ID_PREV}]//./} ) ))\"
 fi
 if [[ \"\${timep_TRAP_TYPE}\" == *'e' ]]; then
-    timep_ENDTIME[\${timep_ID_PREV}]=\"\${timep_ENDTIME_CUR}\"
+    timep_ENDTIME[\${timep_ID}]=\"\${timep_ENDTIME_CUR}\"
     _timep_printTimeDiff \"\${timep_BASHPID[\${timep_ID}]}\" \"\${timep_FUNCNAME[\${timep_ID}]}\" \"\${timep_NESTING[\${timep_ID}]}\" \"\${timep_LINENO[\${timep_ID}]}\" \"\${timep_STARTTIME[\${timep_ID}]}\" \"\${timep_ENDTIME[\${timep_ID}]}\" \"\${timep_BASH_COMMAND[\${timep_ID}]}\" \"\${timep_RUNTIME_SUM[\${timep_ID_PREV}]}\" >&\${fd_timep};
+    timep_RUNTIME_SUM[\${timep_ID}]=\"\$(( timep_RUNTIME_SUM[\${timep_ID}] + timep_RUNTIME_SUM[\${timep_ID_PREV}] ))\"
     unset \"timep_STARTTIME[\${timep_ID_PREV}]\" \"timep_ENDTIME[\${timep_ID_PREV}]\" \"timep_BASH_COMMAND[\${timep_ID_PREV}]\" \"timep_LINENO[\${timep_ID}]\" \"timep_NESTING[\${timep_ID_PREV}]\" \"timep_BASHPID[\${timep_ID}]\" \"timep_FUNCNAME[\${timep_ID_PREV}]\" \"timep_RUNTIME_SUM[\${timep_ID_PREV}]\"
 else
     if [[ \"\${timep_TRAP_TYPE}\" != 'fi' ]]; then
