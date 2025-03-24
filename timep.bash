@@ -130,6 +130,8 @@ _timep_printTimeDiff() {
     
     [[ "${6}" ]] && tEnd="${6}" || tEnd="${EPOCHREALTIME}"
 
+    shellName="${2##*/}"
+
     if [[ "${timep_runType}" == 's' ]]; then
         if [[ -f "${timep_TMPDIR}/.lineno.offset" ]]; then
             read -r timep_LINENO_OFFSET <"${timep_TMPDIR}/.lineno.offset"
@@ -141,10 +143,8 @@ _timep_printTimeDiff() {
         timep_LINENO_OFFSET=1
     fi
 
-    shellName="${2##*/}"
-
     if [[ $tStart ]]; then
-        printf -v d '%.07d' "${7}"
+        printf -v d '%.07d' "${8}"
         d6=$(( ${#d} - 6 ))
         printf -v tDiff '%s.%s' "${d:0:$d6}" "${d:$d6}"
         
@@ -155,7 +155,7 @@ _timep_printTimeDiff() {
     fi    
 }
 
-    export -f _timep_getTimeDiff
+#    export -f _timep_getTimeDiff
     export -f _timep_printTimeDiff    
     export timep_TMPDIR="${timep_TMPDIR}"
 
@@ -270,27 +270,24 @@ else
 fi
 if [[ \"\${timep_TRAP_TYPE}\" == *'\"'\"'e'\"'\"' ]]; then
     timep_ENDTIME[\${timep_ID}]=\"\${timep_ENDTIME_CUR}\"
-    timep_RUNTIME_CUR=\"\$(( \${timep_ENDTIME_CUR//./} - \${timep_STARTTIME[\${timep_ID}]//./} ))\"
-    _timep_printTimeDiff \"\${timep_BASHPID[\${timep_ID}]}\" \"\${timep_FUNCNAME[\${timep_ID}]}\" \"\${timep_NESTING[\${timep_ID}]}\" \"\${timep_LINENO[\${timep_ID}]}\" \"\${timep_STARTTIME[\${timep_ID}]}\" \"\${timep_ENDTIME[\${timep_ID}]}\" \"\${timep_BASH_COMMAND[\${timep_ID}]}\" \"\${timep_RUNTIME_SUM[\${timep_ID_PREV}]}\" \"\${timep_RUNTIME_CUR}\"  >&\${fd_timep};
-    (( timep_RUNTIME_SUM[\${timep_ID}]+=\${timep_RUNTIME_CUR} ))
+    _timep_printTimeDiff \"\${timep_BASHPID[\${timep_ID}]}\" \"\${timep_FUNCNAME[\${timep_ID}]}\" \"\${timep_NESTING[\${timep_ID}]}\" \"\${timep_LINENO[\${timep_ID}]}\" \"\${timep_STARTTIME[\${timep_ID}]}\" \"\${timep_ENDTIME[\${timep_ID}]}\" \"\${timep_BASH_COMMAND[\${timep_ID}]}\" \"\${timep_RUNTIME_SUM[\${timep_ID_PREV}]}\" >&\${fd_timep};
+    (( timep_RUNTIME_SUM[\${timep_ID}]+=\"\${timep_RUNTIME_SUM[\${timep_ID_PREV}]}\"))
     unset \"timep_STARTTIME[\${timep_ID_PREV}]\" \"timep_ENDTIME[\${timep_ID_PREV}]\" \"timep_BASH_COMMAND[\${timep_ID_PREV}]\" \"timep_LINENO[\${timep_ID}]\" \"timep_NESTING[\${timep_ID_PREV}]\" \"timep_BASHPID[\${timep_ID}]\" \"timep_FUNCNAME[\${timep_ID_PREV}]\" \"timep_RUNTIME_SUM[\${timep_ID_PREV}]\"
 else
-    if [[ \"\${timep_TRAP_TYPE}\" != '\"'\"'fi'\"'\"' ]]; then
-        timep_BASH_COMMAND[\${timep_ID}]=\"\${BASH_COMMAND}\"
-        timep_LINENO[\${timep_ID}]=\"\${LINENO}\"
-        timep_NESTING[\${timep_ID}]=\"\${SHLVL}.\${BASH_SUBSHELL}.\${#FUNCNAME[@]}\"
-        timep_BASHPID[\${timep_ID}]=\"\${BASHPID}\"
-        timep_FUNCNAME[\${timep_ID}]=\"\${timep_ID%%_\${BASHPID}_*}\"
-        timep_FUNCDEPTH_PREV=\"\${#FUNCNAME[@]}\"
-        timep_BASHPID_PREV=\"\${BASHPID}\"
-        timep_BASH_SUBSHELL_PREV=\"\${BASH_SUBSHELL}\"
-        timep_BG_PID_PREV=\"\$!\"
-    fi
     timep_ID_PREV=\"\${timep_ID}\"
 fi
-timep_STARTTIME[\${timep_ID}]=\"\${EPOCHREALTIME}\"' DEBUG
-
-:
+if [[ \"\${timep_TRAP_TYPE}\" != '\"'\"'fi'\"'\"' ]]; then
+    timep_BASH_COMMAND[\${timep_ID}]=\"\${BASH_COMMAND}\"
+    timep_LINENO[\${timep_ID}]=\"\${LINENO}\"
+    timep_NESTING[\${timep_ID}]=\"\${SHLVL}.\${BASH_SUBSHELL}.\${#FUNCNAME[@]}\"
+    timep_BASHPID[\${timep_ID}]=\"\${BASHPID}\"
+    timep_FUNCNAME[\${timep_ID}]=\"\${timep_ID%%_\${BASHPID}_*}\"
+    timep_FUNCDEPTH_PREV=\"\${#FUNCNAME[@]}\"
+    timep_BASHPID_PREV=\"\${BASHPID}\"
+    timep_BASH_SUBSHELL_PREV=\"\${BASH_SUBSHELL}\"
+    timep_BG_PID_PREV=\"\$!\"
+    timep_STARTTIME[\${timep_ID}]=\"\${EPOCHREALTIME}\"
+fi' DEBUG
 
 ${timep_runCmd}
 
@@ -394,7 +391,7 @@ printf '\n\nAdditional time profiles, including non-combined ones that show indi
 cat "${timep_TMPDIR}"/time.combined.ALL >&2
 
 export -n timep_TMPDIR
-export -nf _timep_getTimeDiff
+#export -nf _timep_getTimeDiff
 export -nf _timep_printTimeDiff  
 #\rm -f "${timep_TMPDIR}"/.timep.*
 #if ! [[  "${timep_TMPDIR}" == "$PWD" ]] && { { shopt nullglob &>/dev/null && [[ -z $(printf '%s' "${timep_TMPDIR}"/*) ]]; } || { ! shopt nullglob &>/dev/null && [[ "$(printf '%s' "${timep_TMPDIR}"/*)" == "${timep_TMPDIR}"'/*' ]]; }; }; then 
