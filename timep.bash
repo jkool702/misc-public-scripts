@@ -334,14 +334,16 @@ for p in "${uniq_pids[@]}"; do
     p0="${p%%_*}"
     p1="${p#*_}"
     grep -E '^\[ '"${p0}"' \{'"${p1}"'\} \]' "${timep_TMPDIR}/time.ALL" 2>/dev/null | sed -E s/'^\[ [0-9]+ \{[^ ]*_[0-9\.]+\} \] +'// >>"${timep_TMPDIR}/time.${p}"
+    printf '\n\0' >>"${timep_TMPDIR}/time.${p}"
 
     # find the unique commands (pid + subshell_lvl + line number + cmd) from just this pid/subshell_lvl
-    mapfile -t uniq_lines_pid < <(grep -v -E '^((PID)|(NAME)|(NESTING)|([0-9]+\:[[:space:]]+ERROR)|\:|$)' 2>/dev/null <"${timep_TMPDIR}/time.$p" | sed -E 's/:[^<:]+<<\-\-\- /: /' | sort -u)
+    mapfile -t uniq_lines_pid < <(grep -v -E '^((PID)|(NAME)|(NESTING)|([0-9]+\:[[:space:]]+ERROR)|\:|\0|$)' 2>/dev/null <"${timep_TMPDIR}/time.$p" | sed -E 's/:[^<:]+<<\-\-\- /: /' | sort -u)
+   
     outCur=()
     kk=0
-
-    printf -v outCur[0] 'PID:        \t%s\nNAME:        \t%s\nNESTING LVL:\t%s\n\n' "${p0}" "${p1%_*}" "${p1##*_}"
     tSumAll0=0
+    printf -v outCur[0] 'NESTING LVL:\t%s\nPID:        \t%s\nNAME:        \t%s\n' "${p1##*_}" "${p0}" "${p1%_*}"
+    
     # for each unique command run by this unique command, pull out the run count and pull out the run times and sum them together
     # print a line to the time.combined.<pid> file vcontaining the run count and the combined run time for that command
     # also, keep track of total run time for this PID
@@ -364,9 +366,10 @@ for p in "${uniq_pids[@]}"; do
     (( tSumAllAll0+=tSumAll0 ))
     printf -v tSumAll '%.07d' "$tSumAll0"
     t6=$(( ${#tSumAll} - 6 ))
-    printf -v outCur0 '\n\nTOTAL TIME FOR PID %s {%s}: %s.%s sec\n\n\n' "${p0}" "${p1}" "${tSumAll:0:$t6}" "${tSumAll:$t6}"
-    outCur+=("${outCur0}")
-    printf '%s\n' "${outCur[@]}" | sort -g -k1 >"${timep_TMPDIR}/time.combined.$p"
+    printf '%s\n' "${outCur[0]}" >"${timep_TMPDIR}/time.combined.$p"
+    printf '\nTOTAL TIME FOR PID %s {%s}: %s.%s sec\n\n' "${p0}" "${p1}" "${tSumAll:0:$t6}" "${tSumAll:$t6}" >>"${timep_TMPDIR}/time.combined.$p"
+    printf '%s\n' "${outCur[@]:1}" | sort -g -k1 >>"${timep_TMPDIR}/time.combined.$p"
+    printf '\n\n\0' >>"${timep_TMPDIR}/time.combined.$p"
 done
 
 printf -v tSumAllAll '%.07d' "$tSumAllAll0"
@@ -374,7 +377,7 @@ t6=$(( ${#tSumAllAll} - 6 ))
 
 
 printf '
-The following time profile is seperated by process ID (pid). 
+The following time profile is seperated by context level (process ID (pid) + subshell and function nesting level + FUNCNAME)
 For each line/command run in each pid, the total combined time from all evaluations (as well as the number of evaluations) is shown
 
 FORMAT:
@@ -385,7 +388,7 @@ LINENO:  TOTAL_RUNTIME <<--- (COUNTx) { CMD }
 TOTAL COMBINED RUN TIME: %s.%s SECONDS
 
 ' "${tSumAllAll:0:$t6}" "${tSumAllAll:$t6}" >"${timep_TMPDIR}"/time.combined.ALL
-cat "${timep_TMPDIR}"/time.combined.[0-9]* | sed -z -E s/'\n{3,}'/'\n\n\n'/g >> "${timep_TMPDIR}"/time.combined.ALL
+cat "${timep_TMPDIR}"/time.combined.[0-9]* | sort -z -k 2 | sed -z -E s/'\n{3,}'/'\n\n\n'/g >> "${timep_TMPDIR}"/time.combined.ALL
 printf '\n\nAdditional time profiles, including non-combined ones that show individual command runtimes, can be found under:\n    %s\n\n' "${timep_TMPDIR}" >>"${timep_TMPDIR}"/time.combined.ALL
 cat "${timep_TMPDIR}"/time.combined.ALL >&2
 
