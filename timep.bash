@@ -253,7 +253,7 @@ FORMAT:
     timep_RUNTIME[\${#FUNCNAME[@]}]=0
     trap 'timep_ENDTIME_CUR=\"\${EPOCHREALTIME}\";
 (( \${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )) && timep_STARTTIME='\"''\"';
-if { [[ -z \${timep_PPID} ]] && [[ \${timep_STARTTIME} ]]; } || { [[ \"\${timep_BASHPID_PREV##*->}\" != \"\${BASHPID}\" ]] && [[ \"\${timep_BG_PID_PREV}\" != \"\$!\" ]]; }; then
+if [[ -z \${timep_PPID} ]] || { [[ \"\${timep_BASHPID_PREV##*->}\" != \"\${BASHPID}\" ]] && [[ \"\${timep_BG_PID_PREV}\" != \"\$!\" ]]; }; then
     timep_PPID=\"\${BASHPID}\";
     timep_BASHPID=(\"\${BASHPID}\");
 elif [[ \"\${timep_BASHPID_PREV##*->}\" != \"\${BASHPID}\" ]]; then
