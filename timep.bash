@@ -241,7 +241,7 @@ START TIME:
 FORMAT:
 ----------------------------------------------------------------------------
 [ PID {NAME.SHLVL.NESTING} ]  LINENO:  RUNTIME  (TSTART --> TSTOP) <<--- { CMD }
-----------------------------------------------------------------------------\n\n' \"$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")\" \"\$(date)\" \"\$EPOCHREALTIME\" >&\${fd_timep};
+----------------------------------------------------------------------------\n\n' \"$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")\" \"\$(date)\" \"\$EPOCHREALTIME\" >\"\${timep_TMPDIR}\"/time.ALL
     declare timep_ID timep_ID_PREV timep_FUNCDEPTH_PREV timep_BASH_SUBSHELL_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_TRAP_TYPE timep_ENDTIME_CUR timep_RUNTIME_CUR timep_LINE_OUT
     declare -a timep_PPID
     declare -A timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND timep_LINENO timep_NESTING timep_BASHPID timep_FUNCNAME timep_RUNTIME_SUM;
@@ -275,25 +275,26 @@ if [[ \"\${timep_TRAP_TYPE}\" == *'\"'\"'i'\"'\"' ]]; then
 else
     timep_ENDTIME[\${timep_ID_PREV}]=\"\${timep_ENDTIME_CUR}\"
     timep_RUNTIME_CUR=\"\$(( \${timep_ENDTIME_CUR//./} - \${timep_STARTTIME[\${timep_ID_PREV}]//./} ))\"
-    _timep_printTimeDiff \"\$(printf '\"'\"'%s->'\"'\"' \"\${timep_PPID[@]}\")\${timep_BASHPID[\${timep_ID_PREV}]}\" \"\${timep_FUNCNAME[\${timep_ID_PREV}]}\" \"\${timep_NESTING[\${timep_ID_PREV}]}\" \"\${timep_LINENO[\${timep_ID_PREV}]}\" \"\${timep_STARTTIME[\${timep_ID_PREV}]}\" \"\${timep_ENDTIME[\${timep_ID_PREV}]}\" \"\${timep_BASH_COMMAND[\${timep_ID_PREV}]}\" \"\${timep_RUNTIME_CUR}\" 
-    echo \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}\"/time.ALL
-    echo \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}/time.\${timep_PPID[0]:-\${timep_BASHPID[\${timep_ID_PREV}]}}_\${timep_FUNCNAME[\${timep_ID_PREV}]}_\${timep_NESTING[\${timep_ID_PREV}]}\"
+    _timep_printTimeDiff \"\$( (( \${#timep_PPID[@]} > 0 )) && printf '\"'\"'%s->'\"'\"' \"\${timep_PPID[@]}\")\${timep_BASHPID[\${timep_ID_PREV}]}\" \"\${timep_FUNCNAME[\${timep_ID_PREV}]}\" \"\${timep_NESTING[\${timep_ID_PREV}]}\" \"\${timep_LINENO[\${timep_ID_PREV}]}\" \"\${timep_STARTTIME[\${timep_ID_PREV}]}\" \"\${timep_ENDTIME[\${timep_ID_PREV}]}\" \"\${timep_BASH_COMMAND[\${timep_ID_PREV}]}\" \"\${timep_RUNTIME_CUR}\" 
+    printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}\"/time.ALL
+    printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}/time.\${timep_PPID[0]:-\${timep_BASHPID[\${timep_ID_PREV}]}}_\${timep_FUNCNAME[\${timep_ID_PREV}]}_\${timep_NESTING[\${timep_ID_PREV}]}\"
     (( timep_RUNTIME_SUM[\${timep_ID_PREV}]+=\${timep_RUNTIME_CUR} ))
 fi
 if [[ \"\${timep_TRAP_TYPE}\" == *'\"'\"'e'\"'\"' ]]; then
     timep_ENDTIME[\${timep_ID}]=\"\${timep_ENDTIME_CUR}\"
-    _timep_printTimeDiff  \"\$(printf '\"'\"'%s->'\"'\"' \"\${timep_PPID[@]}\")\${timep_BASHPID[\${timep_ID}]}\" \"\${timep_FUNCNAME[\${timep_ID}]}\" \"\${timep_NESTING[\${timep_ID}]}\" \"\${timep_LINENO[\${timep_ID}]}\" \"\${timep_STARTTIME[\${timep_ID}]}\" \"\${timep_ENDTIME[\${timep_ID}]}\" \"\${timep_BASH_COMMAND[\${timep_ID}]}\" \"\${timep_RUNTIME_SUM[\${timep_ID_PREV}]}\"
-    echo \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}\"/time.ALL
-    echo \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}/time.\${timep_PPID[0]:-\${timep_BASHPID[\${timep_ID}]}}_\${timep_FUNCNAME[\${timep_ID}]}_\${timep_NESTING[\${timep_ID}]}\"
+    _timep_printTimeDiff  \"\$( (( \${#timep_PPID[@]} > 0 )) && printf '\"'\"'%s->'\"'\"' \"\${timep_PPID[@]}\")\${timep_BASHPID[\${timep_ID}]}\" \"\${timep_FUNCNAME[\${timep_ID}]}\" \"\${timep_NESTING[\${timep_ID}]}\" \"\${timep_LINENO[\${timep_ID}]}\" \"\${timep_STARTTIME[\${timep_ID}]}\" \"\${timep_ENDTIME[\${timep_ID}]}\" \"\${timep_BASH_COMMAND[\${timep_ID}]}\" \"\${timep_RUNTIME_SUM[\${timep_ID_PREV}]}\"
+    printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}\"/time.ALL
+    printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}/time.\${timep_PPID[0]:-\${timep_BASHPID[\${timep_ID}]}}_\${timep_FUNCNAME[\${timep_ID}]}_\${timep_NESTING[\${timep_ID}]}\"
     (( timep_RUNTIME_SUM[\${timep_ID}]+=\"\${timep_RUNTIME_SUM[\${timep_ID_PREV}]}\"))
-    unset \"timep_STARTTIME[\${timep_ID_PREV}]\" \"timep_ENDTIME[\${timep_ID_PREV}]\" \"timep_BASH_COMMAND[\${timep_ID_PREV}]\" \"timep_LINENO[\${timep_ID}]\" \"timep_NESTING[\${timep_ID_PREV}]\" \"timep_BASHPID[\${timep_ID}]\" \"timep_FUNCNAME[\${timep_ID_PREV}]\" \"timep_RUNTIME_SUM[\${timep_ID_PREV}]\" \"timep_PPID[-1]\"
+    unset \"timep_STARTTIME[\${timep_ID_PREV}]\" \"timep_ENDTIME[\${timep_ID_PREV}]\" \"timep_BASH_COMMAND[\${timep_ID_PREV}]\" \"timep_LINENO[\${timep_ID_PREV}]\" \"timep_NESTING[\${timep_ID_PREV}]\" \"timep_BASHPID[\${timep_ID_PREV}]\" \"timep_FUNCNAME[\${timep_ID_PREV}]\" \"timep_RUNTIME_SUM[\${timep_ID_PREV}]\" 
+    (( \${#timep_PPID[@]} > 0 )) && unset\"timep_PPID[-1]\"
 else
     timep_ID_PREV=\"\${timep_ID}\"
 fi
 if [[ \"\${timep_TRAP_TYPE}\" != '\"'\"'fi'\"'\"' ]]; then
     timep_BASH_COMMAND[\${timep_ID}]=\"\${BASH_COMMAND}\"
     timep_LINENO[\${timep_ID}]=\"\${LINENO}\"
-    timep_NESTING[\${timep_ID}]=\"\${SHLVL}.\${BASH_SUBSHELL}.\${#FUNCNAME[@]}\"
+    timep_NESTING[\${timep_ID}]=\"\${SHLVL}.\${#FUNCNAME[@]}\"
     timep_BASHPID[\${timep_ID}]=\"\${BASHPID}\"
     timep_FUNCNAME[\${timep_ID}]=\"\${timep_ID%%_\${BASHPID}_*}\"
     timep_FUNCDEPTH_PREV=\"\${#FUNCNAME[@]}\"
@@ -337,7 +338,10 @@ printf '\n\nThe code being time profiled has finished running!\ntimep will now p
 unset IFS
 
 # get lists of unique commands run (unique combinations of pid + subshell level in the logged data
-mapfile -t uniq_pids < <(grep -E '^\[ [0-9->]+ \{[^ ]*_[0-9\.]+\} \]' "${timep_TMPDIR}/time.ALL" 2>/dev/null | sed -E s/'^\[ ([0-9]+)(\-\>[0-9]+)* \{([^ ]*_[0-9\.]+)\} \] .*$'/'\1_\3'/ | sort -u)
+mapfile -t -d '' uniq_pids < <(printf '%s\0' "${timep_TMPDIR}"/time.[0-9]*)
+uniq_pids=("${uniq_pids[@]##*/time.}")
+
+#mapfile -t uniq_pids < <(grep -E '^\[ [0-9->]+ \{[^ ]*_[0-9\.]+\} \]' "${timep_TMPDIR}/time.ALL" 2>/dev/null | sed -E s/'^\[ ([0-9]+)(\-\>[0-9]+)* \{([^ ]*_[0-9\.]+)\} \] .*$'/'\1_\3'/ | sort -u)
 
 for p in "${uniq_pids[@]}"; do
     # print header with PID and shell nesting level >"${timep_TMPDIR}/time.${p}"
