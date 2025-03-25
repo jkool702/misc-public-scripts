@@ -168,9 +168,9 @@ _timep_printTimeDiff() {
         d6=$(( ${#d} - 6 ))
         printf -v tDiff '%s.%s' "${d:0:$d6}" "${d:$d6}"
         
-        printf -v timep_LINE_OUT '[ %s {%s_%s} ]  %s:  %s sec  ( %s --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "${tDiff}" "$tStart" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
+        printf -v timep_LINE_OUT '[ %s.%s {%s} ]  %s:  %s sec  ( %s --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "${tDiff}" "$tStart" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
     else
-        printf -v timep_LINE_OUT '[ %s {%s_%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
+        printf -v timep_LINE_OUT '[ %s.%s {%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
         return 1
     fi    
 }
@@ -202,9 +202,9 @@ _timep_printTimeDiff() {
         d6=$(( ${#d} - 6 ))
         printf -v tDiff '%s.%s' "${d:0:$d6}" "${d:$d6}"
         
-        printf -v timep_LINE_OUT '[ %s {%s_%s} ]  %s:  %s sec  ( %s --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$4" "${tDiff}" "$tStart" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
+        printf -v timep_LINE_OUT '[ %s.%s {%s} ]  %s:  %s sec  ( %s --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$4" "${tDiff}" "$tStart" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
     else
-        printf -v timep_LINE_OUT '[ %s {%s_%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$4" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
+        printf -v timep_LINE_OUT '[ %s.%s {%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$4" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
         return 1
     fi    
 }
@@ -263,7 +263,7 @@ elif [[ \"\${timep_BASHPID_PREV##*->}\" != \"\${BASHPID}\" ]]; then
         timep_BASHPID+=(\"\${BASHPID}\");
     fi
 fi
-if [[ \${timep_STARTTIME} ]]; then
+if [[ \${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]} ]]; then
     timep_RUNTIME_CUR=\"\$(( \${timep_ENDTIME_CUR//./} - \${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]//./} ))\";
     (( timep_RUNTIME[\${timep_FUNCDEPTH_PREV}]+=\"\${timep_RUNTIME_CUR}\" ));
     _timep_printTimeDiff \${timep_BASHPID_PREV}\" \"\${timep_FUNCNAME[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_LINENO[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_ENDTIME_CUR}\" \"\${timep_BASH_COMMAND[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_RUNTIME_CUR}\" ;
@@ -292,7 +292,7 @@ timep_FUNCDEPTH_PREV=\"\${#FUNCNAME[@]}\";
 timep_BASH_SUBSHELL_PREV=\"\${BASH_SUBSHELL}\";
 timep_BG_PID_PREV=\"\$!\";
 timep_BASH_COMMAND[\${timep_FUNCDEPTH_PREV}]=\"\${BASH_COMMAND}\";
-timep_FUNCNAME[\${timep_FUNCDEPTH_PREV}]=\"\${FUNCNAME}\";
+timep_FUNCNAME[\${timep_FUNCDEPTH_PREV}]=\"\${FUNCNAME:-main}\";
 timep_LINENO[\${timep_FUNCDEPTH_PREV}]=\"\${LINENO}\";
 timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]=\"\${EPOCHREALTIME}\"' DEBUG;
 
@@ -350,7 +350,7 @@ for p in "${uniq_pids[@]}"; do
    
     kk=0
     tSumAll0=0
-    printf -v outCur0 'NESTING LVL:\t%s\nPID:        \t%s\nNAME:        \t%s\n' "${p1##*_}" "${p0}" "${p1%_*}"
+    printf -v outCur0 'NESTING LVL:\t%s\nPID:        \t%s\nNAME:        \t%s\n' "${p0##*.}" "${p0%%.*}" "${p1}"
     outCur=("${outCur0}")
     
     # for each unique command run by this unique command, pull out the run count and pull out the run times and sum them together
