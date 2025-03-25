@@ -266,19 +266,19 @@ fi
 if [[ \${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]} ]]; then
     timep_RUNTIME_CUR=\"\$(( \${timep_ENDTIME_CUR//./} - \${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]//./} ))\";
     (( timep_RUNTIME[\${timep_FUNCDEPTH_PREV}]+=\"\${timep_RUNTIME_CUR}\" ));
-    _timep_printTimeDiff \${timep_BASHPID_PREV}\" \"\${timep_FUNCNAME[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_LINENO[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_ENDTIME_CUR}\" \"\${timep_BASH_COMMAND[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_RUNTIME_CUR}\" ;
+    _timep_printTimeDiff \"\${timep_BASHPID_PREV}\" \"\${timep_FUNCNAME[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_FUNCDEPTH_PREV}\" \"\${timep_LINENO[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_ENDTIME_CUR}\" \"\${timep_BASH_COMMAND[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_RUNTIME_CUR}\" ;
     printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}\"/time.ALL;
     printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}/time.\${timep_PPID}.\${timep_FUNCDEPTH_PREV}_\${timep_FUNCNAME[\${timep_FUNCDEPTH_PREV}]}\";
 else
     timep_RUNTIME[\${#FUNCNAME[@]}]=0;
 fi
 if (( \${#FUNCNAME[@]} < timep_FUNCDEPTH_PREV )); then
-    timep_KK=timep_FUNCDEPTH_PREV;;
-    while ((  timep_KK>\${#FUNCNAME[@]} )); do
-        timep_RUNTIME_CUR=\"\${timep_RUNTIME[\${timep_KK}]}\"
+    timep_KK=\"\{timep_FUNCDEPTH_PREV}\";
+    while ((  timep_KK > \${#FUNCNAME[@]} )); do
+        timep_RUNTIME_CUR=\"\${timep_RUNTIME[\${timep_KK}]}\";
         ((timep_KK--));
         (( timep_RUNTIME[\${timep_KK}]+=\"\${timep_RUNTIME_CUR}\" ));
-        _timep_printTimeDiff \${timep_BASHPID_PREV}\" \"\${timep_FUNCNAME[\${timep_KK}]}\" \"\${timep_KK}\" \"\${timep_LINENO[\${timep_KK}]}\" \"\${timep_STARTTIME[\${timep_KK}]}\" \"\${timep_ENDTIME_CUR}\" \"\${timep_BASH_COMMAND[\${timep_KK}]}\" \"\${timep_RUNTIME_CUR}\";
+        _timep_printTimeDiff \"\${timep_BASHPID_PREV}\" \"\${timep_FUNCNAME[\${timep_KK}]}\" \"\${timep_KK}\" \"\${timep_LINENO[\${timep_KK}]}\" \"\${timep_STARTTIME[\${timep_KK}]}\" \"\${timep_ENDTIME_CUR}\" \"\${timep_BASH_COMMAND[\${timep_KK}]}\" \"\${timep_RUNTIME_CUR}\";
         printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}\"/time.ALL;
         printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}/time.\${timep_PPID}.\${timep_KK}_\${timep_FUNCNAME[\${timep_KK}]}\";
         ((timep_KK++));
