@@ -16,7 +16,7 @@ timep() (
     #        time.combined.ALL:           the time.combined.<pid>.<#>.<#> files from all pids combined into a single file.  This is printed to stderr at the end
     #
     # OUTPUT FORMAT: 
-    #    for time.ALL profiles:                    [ $PID {$NAME_$SHLVL.$BASH_SUSBHELL} ]  $LINENO:  <run_time> sec  ( <start_time --> <end_time> ) <<--- { $BASH_CMD }
+    #    for time.ALL profiles:                    [ $PID {$NAME_$SHLVL.$BASH_SUBSHELL} ]  $LINENO:  <run_time> sec  ( <start_time --> <end_time> ) <<--- { $BASH_CMD }
     #    for time.<pid>_<name>_<#>.<#> profiles:   $LINENO:  <run_time> sec  ( <start_time --> <end_time> )  <<--- { $BASH_CMD }
     #    for time.combined profiles:               $LINENO:  <total_run_time> sec  <<--- (<run_count>x) { $BASH_CMD }
     #        NOTE: All profiles except time.ALL will list $PID and $NAME and $SHLVL.$BASH_SUBSHELL at the top of the file
@@ -270,7 +270,7 @@ if [[ \${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]} ]]; then
     printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}\"/time.ALL;
     printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}/time.\${timep_PPID}.\${timep_FUNCDEPTH_PREV}_\${timep_FUNCNAME[\${timep_FUNCDEPTH_PREV}]}\";
 else
-    timep_RUNTIME[\${#FUNCNAME[@]}=0;
+    timep_RUNTIME[\${#FUNCNAME[@]}]=0;
 fi
 if (( \${#FUNCNAME[@]} < timep_FUNCDEPTH_PREV )); then
     timep_KK=timep_FUNCDEPTH_PREV;;
@@ -278,7 +278,7 @@ if (( \${#FUNCNAME[@]} < timep_FUNCDEPTH_PREV )); then
         timep_RUNTIME_CUR=\"\${timep_RUNTIME[\${timep_KK}]}\"
         ((timep_KK--));
         (( timep_RUNTIME[\${timep_KK}]+=\"\${timep_RUNTIME_CUR}\" ));
-        _timep_printTimeDiff \${timep_BASHPID_PREV}\" \"\${timep_FUNCNAME[\${timep_KK}]}\" \"\${timep_KK}]}\" \"\${timep_LINENO[\${timep_KK}]}\" \"\${timep_STARTTIME[\${timep_KK}]}\" \"\${timep_ENDTIME_CUR}\" \"\${timep_BASH_COMMAND[\${timep_KK}]}\" \"\${timep_RUNTIME_CUR}\";
+        _timep_printTimeDiff \${timep_BASHPID_PREV}\" \"\${timep_FUNCNAME[\${timep_KK}]}\" \"\${timep_KK}\" \"\${timep_LINENO[\${timep_KK}]}\" \"\${timep_STARTTIME[\${timep_KK}]}\" \"\${timep_ENDTIME_CUR}\" \"\${timep_BASH_COMMAND[\${timep_KK}]}\" \"\${timep_RUNTIME_CUR}\";
         printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}\"/time.ALL;
         printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}/time.\${timep_PPID}.\${timep_KK}_\${timep_FUNCNAME[\${timep_KK}]}\";
         ((timep_KK++));
@@ -348,7 +348,6 @@ for p in "${uniq_pids[@]}"; do
     # find the unique commands (pid + subshell_lvl + line number + cmd) from just this pid/subshell_lvl
     mapfile -t uniq_lines_pid < <(grep -a -v -E '^((PID)|(NAME)|(NESTING)|([0-9]+\:[[:space:]]+ERROR)|\:|\0|$)' 2>/dev/null <"${timep_TMPDIR}/time.$p" | sed -E 's/:[^<:]+<<\-\-\- /: /' | sort -u)
    
-    kk=0
     tSumAll0=0
     printf -v outCur0 'NESTING LVL:\t%s\nPID:        \t%s\nNAME:        \t%s\n' "${p0##*.}" "${p0%%.*}" "${p1}"
     outCur=("${outCur0}")
