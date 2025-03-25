@@ -19,8 +19,8 @@ timep() (
     #    for time.ALL profiles:                    [ $PID {$NAME_$SHLVL.$BASH_SUSBHELL} ]  $LINENO:  <run_time> sec  ( <start_time --> <end_time> ) <<--- { $BASH_CMD }
     #    for time.<pid>_<name>_<#>.<#> profiles:   $LINENO:  <run_time> sec  ( <start_time --> <end_time> )  <<--- { $BASH_CMD }
     #    for time.combined profiles:               $LINENO:  <total_run_time> sec  <<--- (<run_count>x) { $BASH_CMD }
-    #        NOTE: all profiles except time.ALL will list $PID and $NAME and $SHLVL.$BASH_SUBSHELL at the top of the file
-    #        "combined" example: if CMD runs 5 times in a loop, you will get a line with "<total_run_time> sec  <<--- (5x) { CMD }".
+    #        NOTE: All profiles except time.ALL will list $PID and $NAME and $SHLVL.$BASH_SUBSHELL at the top of the file
+    #              and will end the file with + seperate data from different PIDs with a NULL.
     #
     # FLAGS:
     #    Flags must be given before the command being profiled. if multiple -s/-f are given the last one is used/.
@@ -33,9 +33,9 @@ timep() (
     # RUNTIME CONDITIONS/REQUIREMENTS:
     #    It is REQUIRED that the shell script/function you are generating the time profile for does NOT use a DEBUG trap ANYWHERE.
     #        timep works by "hijacking" the DEBUG trap, and if the code alters the DEBUG traop then timep will stop working.
-    #    Additionally, timep adds a few variables + functions to the runtime env of whatever is being profiled. The code being profiled must NOT modify these.
-    #        FUNCTIONS:  _timep_getTimeDiff  _timep_printTimeDiff
-    #        VARIABLES:  timep_STARTTIME  timep_ENDTIME  timep_BASH_COMMAND_PREV  timep_LINENO_PREV timep_BASHPID_PREV  timep_TMPDIR
+    #    Additionally, timep adds a several variables (all which start with "timep_") + function(s) to the runtime env of whatever is being profiled. The code being profiled must NOT modify these.
+    #        FUNCTIONS:  _timep_printTimeDiff
+    #        VARIABLES:  timep_ID timep_ID_PREV timep_FUNCDEPTH_PREV timep_BASH_SUBSHELL_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_TRAP_TYPE timep_ENDTIME_CUR timep_RUNTIME_CUR timep_LINE_OUT timep_PPID timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND timep_LINENO timep_NESTING timep_BASHPID timep_FUNCNAME timep_RUNTIME_SUM;
     #
     # DEPENDENCIES:
     #    1) bash 5.0+ (it needs to support the $EPOCHREALTIME variable)
@@ -212,7 +212,7 @@ _timep_printTimeDiff() {
             if [[ -t 0 ]]; then
                 timep_runCmd="${@}"
             else
-                timep_runCmd="cat | ${@}"
+                timep_runCmd="{ \"\${@}\"; } <&0"
             fi
             # start of wrapper code
             timep_runFuncSrc='timep_runFunc () '
@@ -327,13 +327,15 @@ case "${timep_runType}" in
         chmod +x "${timep_TMPDIR}"/main.bash
 
         # run the script (with added debug trap)
-        "${timep_TMPDIR}"/main.bash "${@}"
+        if [[ -t 0 ]]; then
+            "${timep_TMPDIR}"/main.bash "${@}"
+        else
+            { "${timep_TMPDIR}"/main.bash "${@}"; } <&0
+        fi        
     ;;
 esac
 
-
-
-printf '\n\nThe code being time profiled has finished running!\ntimep will now process the logged timing data.\n\n' >&2
+printf '\n\nThe %s being time profiled has finished running!\ntimep will now process the logged timing data.\ntimep will save the time profiles it generates in "%s"\n\n' "$([[ "${timep_runType}" == 's' ]] && echo 'script' || echo 'function')" "${timep_TMPDIR}" >&2
 unset IFS
 
 # get lists of unique commands run (unique combinations of pid + subshell level in the logged data
