@@ -252,7 +252,7 @@ FORMAT:
     printf '\\n%s\\n' \"\$!\" >\"\${timep_TMPDIR}\"/.bg.pid
     trap 'timep_ENDTIME_CUR=\"\${EPOCHREALTIME}\";
 (( \${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )) && timep_STARTTIME='\"''\"';
-[[ \"\${timep_BG_PID_PREV}\" != \"\$!\" ]] && printf '%s\\n' \"\${BASHPID}\" >>\"\${timep_TMPDIR}\"/.bg.pid
+[[ \"\${timep_BG_PID_PREV}\" != \"\$!\" ]] && printf '\"'\"'%s\\n'\"'\"' \"\${BASHPID}\" >>\"\${timep_TMPDIR}\"/.bg.pid
 if [[ -z \${timep_PPID} ]] || {  [[ \"\${timep_BASHPID_PREV##*->}\" != \"\${BASHPID}\" ]] && grep -F -q \"\${BASHPID}\" \"\${timep_TMPDIR}\"/.bg.pid; }; then
     timep_PPID=\"\${BASHPID}\";
     timep_BASHPID=(\"\${BASHPID}\");
