@@ -252,7 +252,7 @@ FORMAT:
     printf '\\n%s\\n' \"\$!\" >\"\${timep_TMPDIR}\"/.bg.pid
     trap 'timep_ENDTIME_CUR=\"\${EPOCHREALTIME}\";
 (( \${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )) && timep_STARTTIME='\"''\"';
-[[ \"\${timep_BG_PID_PREV}\" != \"\$!\" ]] && printf '\"'\"'%s\\n'\"'\"' \"\${BASHPID}\" >>\"\${timep_TMPDIR}\"/.bg.pid
+[[ \"\${timep_BG_PID_PREV}\" != \"\$!\" ]] && printf '\"'\"'%s\\n'\"'\"' \"\$!\" >>\"\${timep_TMPDIR}\"/.bg.pid
 if [[ -z \${timep_PPID} ]] || {  [[ \"\${timep_BASHPID_PREV##*->}\" != \"\${BASHPID}\" ]] && grep -F -q \"\${BASHPID}\" \"\${timep_TMPDIR}\"/.bg.pid; }; then
     timep_PPID=\"\${BASHPID}\";
     timep_BASHPID=(\"\${BASHPID}\");
@@ -380,7 +380,7 @@ for p in "${uniq_pids[@]}"; do
     t6=$(( ${#tSumAll} - 6 ))
     printf '%s' "${outCur[0]}" >"${timep_TMPDIR}/time.combined.$p"
     printf 'TIME:        \t%s.%s sec\nID:          \t%s {%s}\n' "${tSumAll:0:$t6}" "${tSumAll:$t6}" "${p0}" "${p1}" >>"${timep_TMPDIR}/time.combined.$p"
-    printf '%s\n' "${outCur[@]:1}" | sort -g -k1 >>"${timep_TMPDIR}/time.combined.$p"
+    printf '%s\n' "${outCur[@]:1}" | sort -g -k5 >>"${timep_TMPDIR}/time.combined.$p"
     printf '\n----------------------------------------------------------------\n\n\0' >>"${timep_TMPDIR}/time.combined.$p"
 done
 
