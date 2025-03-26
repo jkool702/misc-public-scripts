@@ -225,7 +225,7 @@ _timep_printTimeDiff() {
 # the source code is generated and then sourced (instead of directly defined) so that things like the tmpdir/logfile path are hardcoded.
 # this allows timep to run without adding any new (and potengtially conflicting) variables to the code being run / time profiled.
 timep_runFuncSrc+="(
-printf '\n
+printf '\\n
 ----------------------------------------------------------------------------
 ----------------------- RUNTIME BREAKDOWN BY COMMAND -----------------------
 ----------------------------------------------------------------------------
@@ -239,7 +239,7 @@ START TIME:
 FORMAT:
 ----------------------------------------------------------------------------
 [ PID {NAME.SHLVL.NESTING} ]  LINENO:  RUNTIME  (TSTART --> TSTOP) <<--- { CMD }
-----------------------------------------------------------------------------\n\n' \"$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")\" \"\$(date)\" \"\${EPOCHREALTIME}\" >\"\${timep_TMPDIR}\"/time.ALL;
+----------------------------------------------------------------------------\\n\\n' \"$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")\" \"\$(date)\" \"\${EPOCHREALTIME}\" >\"\${timep_TMPDIR}\"/time.ALL;
     declare timep_FUNCDEPTH_PREV timep_BASH_SUBSHELL_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_ENDTIME_cur timep_RUNTIME_CUR timep_LINE_OUT timep_PPID timep_KK;
     declare -a timep_STARTTIME timep_RUNTIME timep_BASH_COMMAND timep_LINENO timep_BASHPID;
     set -T;
