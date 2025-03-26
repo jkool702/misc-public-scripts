@@ -10,17 +10,17 @@ timep() (
     #
     # OUTPUT: 
     #    4 types of time profiles will be saved to disk in timep's tmpdir directory (a new directory under /dev/shm or /tmp or $PWD - printed to stderr at the end):
-    #        time.ALL:                    the individual per-command run times for every command reun under any pid. This is generated directly by the DEBUF trap as the code runs
-    #        time.<pid>_<name>__<#>.<#>:  the individual per-command run times for a specific pid at shell/subshell nesting level <#>.<#>
-    #        time.combined.<pid>_<#>.<#>: the combined time and run count for each unique command run by that pid. The <#>.<#> is $SHLVL.$BASH_SUBSHELL
-    #        time.combined.ALL:           the time.combined.<pid>.<#>.<#> files from all pids combined into a single file.  This is printed to stderr at the end
+    #        time.ALL :                       the individual per-command run times for every command run under any pid. This is generated directly by the DEBUF trap as the code runs
+    #        time.<pid>.<#>_<name> :          the individual per-command run times for a specific pid at some function nesting level <#>
+    #        time.combined.<pid>.<#>_<name> : the combined time and run count for each unique command run by that pid. The <#>.<#> is $SHLVL.$BASH_SUBSHELL
+    #        time.combined.ALL :              the time.combined.<pid>.<#>.<#> files from all pids combined into a single file.  This is printed to stderr at the end
     #
     # OUTPUT FORMAT: 
-    #    for time.ALL profiles:                    [ $PID {$NAME_$SHLVL.$BASH_SUBSHELL} ]  $LINENO:  <run_time> sec  ( <start_time --> <end_time> ) <<--- { $BASH_CMD }
-    #    for time.<pid>_<name>_<#>.<#> profiles:   $LINENO:  <run_time> sec  ( <start_time --> <end_time> )  <<--- { $BASH_CMD }
-    #    for time.combined profiles:               $LINENO:  <total_run_time> sec  <<--- (<run_count>x) { $BASH_CMD }
+    #    for time.ALL profiles:                [ $PID.${#FUNCNAME[@]} {$NAME} ]  $LINENO:  <run_time> sec  ( <start_time --> <end_time> ) <<--- { $BASH_CMD }
+    #    for time.<pid>.<#>_<name> profiles:   $LINENO:  <run_time> sec  ( <start_time --> <end_time> )  <<--- { $BASH_CMD }
+    #    for time.combined profiles:           $LINENO:  <total_run_time> sec  <<--- (<run_count>x) { $BASH_CMD }
     #        NOTE: All profiles except time.ALL will list $PID and $NAME and $SHLVL.$BASH_SUBSHELL at the top of the file
-    #              and will end the file with + seperate data from different PIDs with a NULL.
+    #              and will end the file with + separate data from different PIDs with a NULL.
     #
     # FLAGS:
     #    Flags must be given before the command being profiled. if multiple -s/-f are given the last one is used/.
@@ -247,7 +247,7 @@ FORMAT:
     timep_BASHPID_PREV=\"\${BASHPID}\";
     timep_FUNCDEPTH_PREV=\"\${#FUNCNAME[@]}\";
     timep_BASH_SUBSHELL_PREV=\"\${BASH_SUBSHELL}\";
-    timep_BG_PID_PREV=\"\$!\"
+    timep_BG_PID_PREV=\"\$!\";
     timep_RUNTIME[\${#FUNCNAME[@]}]=0
     printf '\\n%s\\n' \"\$!\" >\"\${timep_TMPDIR}\"/.bg.pid
     trap 'timep_ENDTIME_CUR=\"\${EPOCHREALTIME}\";
@@ -344,7 +344,7 @@ uniq_pids=("${uniq_pids[@]##*/time.}")
 
 for p in "${uniq_pids[@]}"; do
     # print header with PID and shell nesting level >"${timep_TMPDIR}/time.${p}"
-    # seperate out the data for each pid and save it in a file called time.<pid>
+    # separate out the data for each pid and save it in a file called time.<pid>
     p0="${p%%_*}"
     p1="${p#*_}"
     #grep -E '^\[ '"${p0}"' \{'"${p1}"'\} \]' "${timep_TMPDIR}/time.ALL" 2>/dev/null | sed -E s/'^\[ [0-9]+ \{[^ ]*_[0-9\.]+\} \] +'// >>"${timep_TMPDIR}/time.${p}"
@@ -384,7 +384,7 @@ for p in "${uniq_pids[@]}"; do
     printf '\n----------------------------------------------------------------\n\n\0' >>"${timep_TMPDIR}/time.combined.$p"
 done
 
-printf 'The following time profile is seperated by context level (process ID (pid) + subshell and function nesting level + FUNCNAME)
+printf 'The following time profile is separated by context level (process ID (pid) + subshell and function nesting level + FUNCNAME)
 For each line/command run in each pid, the total combined time from all evaluations (as well as the number of evaluations) is shown
 
 FORMAT:
