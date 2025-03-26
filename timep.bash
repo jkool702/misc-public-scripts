@@ -209,11 +209,9 @@ _timep_printTimeDiff() {
     fi    
 }
             declare -F "$1" &>/dev/null && . <(declare -f "$1")
-            if [[ -t 0 ]]; then
-                timep_runCmd="${@}"
-            else
-                timep_runCmd="{ \"\${@}\"; } <&0"
-            fi
+            printf -v timep_runCmd '%q ' "${@}"
+            [[ -t 0 ]] || timep_runCmd+=" <&0"
+            
             # start of wrapper code
             timep_runFuncSrc='timep_runFunc () '
         ;;
@@ -249,13 +247,16 @@ FORMAT:
     timep_BASHPID_PREV=\"\${BASHPID}\";
     timep_FUNCDEPTH_PREV=\"\${#FUNCNAME[@]}\";
     timep_BASH_SUBSHELL_PREV=\"\${BASH_SUBSHELL}\";
-    timep_BG_PID_PREV=\"\$!\";
+    timep_BG_PID_PREV=\"\$!\"
     timep_RUNTIME[\${#FUNCNAME[@]}]=0
+    printf '\\n%s\\n' \"\$!\" >\"\${timep_TMPDIR}\"/.bg.pid
     trap 'timep_ENDTIME_CUR=\"\${EPOCHREALTIME}\";
 (( \${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )) && timep_STARTTIME='\"''\"';
-if [[ -z \${timep_PPID} ]] || { [[ \"\${timep_BASHPID_PREV##*->}\" != \"\${BASHPID}\" ]] && [[ \"\${timep_BG_PID_PREV}\" != \"\$!\" ]]; }; then
+[[ \"\${timep_BG_PID_PREV}\" != \"\$!\" ]] && printf '%s\\n' \"\${BASHPID}\" >>\"\${timep_TMPDIR}\"/.bg.pid
+if [[ -z \${timep_PPID} ]] || {  [[ \"\${timep_BASHPID_PREV##*->}\" != \"\${BASHPID}\" ]] && grep -F -q \"\${BASHPID}\" \"\${timep_TMPDIR}\"/.bg.pid; }; then
     timep_PPID=\"\${BASHPID}\";
     timep_BASHPID=(\"\${BASHPID}\");
+    echo \"\$(grep -F -v \"\${BASHPID}\" \"\${timep_TMPDIR}\"/.bg.pid)\" >\"\${timep_TMPDIR}\"/.bg.pid
 elif [[ \"\${timep_BASHPID_PREV##*->}\" != \"\${BASHPID}\" ]]; then
     if (( \"\${BASH_SUBSHELL}\" < timep_BASH_SUBSHELL_PREV )); then
         unset \"timep_BASHPID[-1]\";
@@ -266,19 +267,19 @@ fi
 if [[ \${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]} ]]; then
     timep_RUNTIME_CUR=\"\$(( \${timep_ENDTIME_CUR//./} - \${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]//./} ))\";
     (( timep_RUNTIME[\${timep_FUNCDEPTH_PREV}]+=\"\${timep_RUNTIME_CUR}\" ));
-    _timep_printTimeDiff \"\${timep_BASHPID_PREV}\" \"\${timep_FUNCNAME[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_FUNCDEPTH_PREV}\" \"\${timep_LINENO[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_ENDTIME_CUR}\" \"\${timep_BASH_COMMAND[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_RUNTIME_CUR}\" ;
+    _timep_printTimeDiff \"\${timep_BASHPID_PREV}\" \"\${timep_FUNCDEPTH_PREV}\" \"\${timep_FUNCNAME[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_LINENO[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_ENDTIME_CUR}\" \"\${timep_BASH_COMMAND[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_RUNTIME_CUR}\" ;
     printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}\"/time.ALL;
     printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}/time.\${timep_PPID}.\${timep_FUNCDEPTH_PREV}_\${timep_FUNCNAME[\${timep_FUNCDEPTH_PREV}]}\";
 else
     timep_RUNTIME[\${#FUNCNAME[@]}]=0;
 fi
 if (( \${#FUNCNAME[@]} < timep_FUNCDEPTH_PREV )); then
-    timep_KK=\"\{timep_FUNCDEPTH_PREV}\";
+    timep_KK=\"\${timep_FUNCDEPTH_PREV}\";
     while ((  timep_KK > \${#FUNCNAME[@]} )); do
         timep_RUNTIME_CUR=\"\${timep_RUNTIME[\${timep_KK}]}\";
         ((timep_KK--));
         (( timep_RUNTIME[\${timep_KK}]+=\"\${timep_RUNTIME_CUR}\" ));
-        _timep_printTimeDiff \"\${timep_BASHPID_PREV}\" \"\${timep_FUNCNAME[\${timep_KK}]}\" \"\${timep_KK}\" \"\${timep_LINENO[\${timep_KK}]}\" \"\${timep_STARTTIME[\${timep_KK}]}\" \"\${timep_ENDTIME_CUR}\" \"\${timep_BASH_COMMAND[\${timep_KK}]}\" \"\${timep_RUNTIME_CUR}\";
+        _timep_printTimeDiff \"\${timep_BASHPID_PREV}\" \"\${timep_KK}\" \"\${timep_FUNCNAME[\${timep_KK}]}\" \"\${timep_LINENO[\${timep_KK}]}\" \"\${timep_STARTTIME[\${timep_KK}]}\" \"\${timep_ENDTIME_CUR}\" \"\${timep_BASH_COMMAND[\${timep_KK}]}\" \"\${timep_RUNTIME_CUR}\";
         printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}\"/time.ALL;
         printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}/time.\${timep_PPID}.\${timep_KK}_\${timep_FUNCNAME[\${timep_KK}]}\";
         ((timep_KK++));
@@ -312,7 +313,11 @@ case "${timep_runType}" in
         . <(declare -f timep_runFunc)
 
         # now actually run it
-        timep_runFunc
+        if [[ -t 0 ]]; then
+            timep_runFunc
+        else
+            timep_runFunc <&0
+        fi
     ;;
     s)  
         # save script (with added debug trap) in new script file and make it executable
