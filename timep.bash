@@ -142,9 +142,6 @@ timep() (
     export timep_runType="${timep_runType}"
 
 
-    # setup a string with the command to run
-    case "${timep_runType}" in
-        s)
 _timep_printTimeDiff() {
 ## prints a line in the format of the time.ALL log file
 # 7 inputs: $BASHPID $NAME $SHLVL.$BASH_SUBSHELL $LINENO tStart tEnd $BASH_COMMAND
@@ -156,27 +153,78 @@ _timep_printTimeDiff() {
 
     shellName="${2##*/}"
 
-    if [[ -f "${timep_TMPDIR}/.lineno.offset" ]]; then
-        read -r timep_LINENO_OFFSET <"${timep_TMPDIR}/.lineno.offset"
-    else
-        [[ ${4} ]] && echo "${4}" >"${timep_TMPDIR}/.lineno.offset"
-        timep_LINENO_OFFSET="$4"
-    fi
-
     if [[ $tStart ]]; then
         printf -v d '%.07d' "${8}"
         d6=$(( ${#d} - 6 ))
         printf -v tDiff '%s.%s' "${d:0:$d6}" "${d:$d6}"
-        
-        printf -v timep_LINE_OUT '[ %s.%s {%s} ]  %s:  %s sec  ( %s --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "${tDiff}" "$tStart" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
+    fi
+
+    if [[ -z ${FUNCNAME} ]]; then
+        if [[ -f "${timep_TMPDIR}/.lineno.offset" ]]; then
+            read -r timep_LINENO_OFFSET <"${timep_TMPDIR}/.lineno.offset"
+        else
+            [[ ${4} ]] && echo "${4}" >"${timep_TMPDIR}/.lineno.offset"
+            timep_LINENO_OFFSET="$4"
+        fi
+
+        if [[ $tStart ]]; then
+            printf -v timep_LINE_OUT '[ %s.%s {%s} ]  %s:  %s sec  ( %s --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "${tDiff}" "$tStart" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
+        else
+            printf -v timep_LINE_OUT '[ %s.%s {%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
+            return 1
+        fi    
     else
-        printf -v timep_LINE_OUT '[ %s.%s {%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
-        return 1
-    fi    
+        if [[ $tStart ]]; then
+            printf -v timep_LINE_OUT '[ %s.%s {%s} ]  %s:  %s sec  ( %s --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$4" "${tDiff}" "$tStart" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
+        else
+            printf -v timep_LINE_OUT '[ %s.%s {%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$4" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
+            return 1
+        fi    
+    fi
 }
+
+_timep_check_traps() {
+    local existing_exit existing_return
+    if [[ "$timep_BASH_COMMAND_PREV" == *trap*EXIT* ]]; then
+        existing_exit="$(trap -p EXIT 2>/dev/null)"
+        existing_exit="${existing_exit% EXIT}"         # remove trailing " EXIT"
+        existing_exit="${existing_exit#trap -- }"      # remove leading "trap -- "
+        
+        if [[ "${existing_exit}" != *'timep_EXIT_FLAG=true'* ]]; then
+            if [[ -n "$existing_exit" ]]; then
+                # Append our code to the existing EXIT trap command.
+                trap 'timep_EXIT_FLAG=true; '"${existing_exit}" EXIT
+            else
+                trap 'timep_EXIT_FLAG=true' EXIT
+            fi
+        fi
+    fi
+    if [[ "$timep_BASH_COMMAND_PREV" == *trap*RETURN* ]]; then
+        existing_return="$(trap -p RETURN 2>/dev/null)"
+        existing_return="${existing_return% RETURN}"         # remove trailing " RETURN"
+        existing_return="${existing_return#trap -- }"      # remove leading "trap -- "
+        
+        if [[ "${existing_return}" != *'timep_RETURN_FLAG=true'* ]]; then
+            if [[ -n "$existing_return" ]]; then
+                # Append our code to the existing RETURN trap command.
+                trap '[[ "${funcname}" == '"'"'_timep_check_traps'"'"' ]] || timep_RETURN_FLAG=true; '"${existing_return}" RETURN
+            else
+                trap '[[ "${funcname}" == '"'"'_timep_check_traps'"'"' ]] || timep_RETURN_FLAG=true' RETURN
+            fi
+        fi
+    fi
+}
+
+    export -f _timep_printTimeDiff    
+    export -f _timep_check_traps    
+    export timep_TMPDIR="${timep_TMPDIR}"
+
+    # setup a string with the command to run
+    case "${timep_runType}" in
+        s)
             shift 1
             timep_runCmd="$(<"${timep_runCmdPath}")"
-        if [[ "${timep_runCmd}" == '#!'* ]]; then
+            if [[ "${timep_runCmd}" == '#!'* ]]; then
                 timep_runCmd1="${timep_runCmd%%$'\n'*}"
                 timep_runCmd="${timep_runCmd#*$'\n'}"
             else
@@ -186,28 +234,7 @@ _timep_printTimeDiff() {
             timep_runFuncSrc="${timep_runCmd1}"$'\n'
         ;;
         f)
-_timep_printTimeDiff() {
-## prints a line in the format of the time.ALL log file
-# 7 inputs: $BASHPID $NAME $SHLVL.$BASH_SUBSHELL $LINENO tStart tEnd $BASH_COMMAND
-    local tStart tEnd tDiff d d6 shellName timep_LINENO_OFFSET
-    
-    [[ "${5}" ]] && tStart="${5}" #|| { [[ -f "${timep_TMPDIR}/.run.time.start.last" ]] && read -r tStart <"${timep_TMPDIR}/.run.time.start.last"; }
-    
-    [[ "${6}" ]] && tEnd="${6}" || tEnd="${EPOCHREALTIME}"
 
-    shellName="${2##*/}"
-
-    if [[ $tStart ]]; then
-        printf -v d '%.07d' "${8}"
-        d6=$(( ${#d} - 6 ))
-        printf -v tDiff '%s.%s' "${d:0:$d6}" "${d:$d6}"
-        
-        printf -v timep_LINE_OUT '[ %s.%s {%s} ]  %s:  %s sec  ( %s --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$4" "${tDiff}" "$tStart" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
-    else
-        printf -v timep_LINE_OUT '[ %s.%s {%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$4" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
-        return 1
-    fi    
-}
             declare -F "$1" &>/dev/null && . <(declare -f "$1")
             printf -v timep_runCmd '%q ' "${@}"
             [[ -t 0 ]] || timep_runCmd+=" <&0"
@@ -216,9 +243,6 @@ _timep_printTimeDiff() {
             timep_runFuncSrc='timep_runFunc () '
         ;;
     esac
-
-    export -f _timep_printTimeDiff    
-    export timep_TMPDIR="${timep_TMPDIR}"
     
 # generate the code for a wrapper function (timep_runFunc) that wraps around whatever we are running / time profiling.
 # this will setup a DEBUG trap to measure runtime from every command, then will run the specified code.
@@ -399,6 +423,8 @@ cat "${timep_TMPDIR}"/time.combined.ALL >&2
 
 export -n timep_TMPDIR
 export -nf _timep_printTimeDiff  
+export -nf _timep_check_traps
+
 #\rm -f "${timep_TMPDIR}"/.timep.*
 #if ! [[  "${timep_TMPDIR}" == "$PWD" ]] && { { shopt nullglob &>/dev/null && [[ -z $(printf '%s' "${timep_TMPDIR}"/*) ]]; } || { ! shopt nullglob &>/dev/null && [[ "$(printf '%s' "${timep_TMPDIR}"/*)" == "${timep_TMPDIR}"'/*' ]]; }; }; then 
 #    \rm -r "${timep_TMPDIR}"
