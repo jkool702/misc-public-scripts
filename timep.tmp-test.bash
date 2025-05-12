@@ -4,23 +4,57 @@
 set -T; 
 exN=(1)
 BASH_COMMAND_PREV="$BASH_COMMAND"
-FUNCNAME_PREV=(${FUNCNAME[@]}); 
+FUNCNAME_PREV="${FUNCNAME[0]:-main}.${#FUNCNAME[@]}"
+BASHPID_A=("${BASHPID}")
+TMPDIR=/dev/shm/.timep
+LOGPATH="${TMPDIR}/.log/${BASHPID}/log"
+mkdir -p "${LOGPATH}"
+echo "${BASH_SUBSHELL}" >"${TMPDIR}/.log/${BASHPID}"/.subshell.prev
 
-BASH_NESTING=("${BASHPID}.${BASH_SUBSHELL}_${FUNCNAME[0]:-main}.${#FUNCNAME[@]}")
+printf_A() {
+	local IFS nn
+	if (( $# == 0 )); then
+	    (( ${#A[@]} > 0 )) || printf "\nERROR - please specify variable to print...default variable A not found\n\n" >&2
+		return 1
+	else
+	    [[ "$1" == 'A' ]] || [[ -z "$1"]] || declare -n A="$1"
+		shift 1
+	fi
+	if (( $# == 0 )); then
+	    IFS='.'
+	else
+	    IFS="${1:0:1}"
+		shift 1
+	fi
+	if (( $# == 0 )); then
+	    printf '%s' "${A[*]}"
+	else
+	    for nn in "$@"; do
+		    printf -v "$nn" '%s' "${A[*]}"
+		done
+	fi
+}
 
 trap ':' EXIT RETURN
+declare -a -i LINENO_RUN_COUNT
 
-trap 'if [[ "${BASH_NESTING[-1]}" == "${BASHPID}.${BASH_SUBSHELL}_${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" ]]; then
-	printf '"'"'\nNESTING (%s):  %s'"'"' "${#BASH_NESTING[@]}" "${BASH_NESTING[-1]}"
+TSTART=${EPOCHREALTIME}
+
+#BASH_NESTING=("${BASHPID}.${BASH_SUBSHELL}_${FUNCNAME[0]:-main}.${#FUNCNAME[@]}")
+
+trap 'TSTOP="${EPOCHREALTIME}"
+if [[ "${FUNCNAME_PREV}" == "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" ]]; then
+	printf '"'"'\nFUNC (%s):  %s'"'"' "${#FUNCNAME[@]}" "${FUNCNAME[0]:-main}"
 else
-	if (( ${BASH_NESTING[-1]##*.} > ${#FUNCNAME[@]} )); then
+	if (( ${FUNCNAME_PREV##*.} > ${#FUNCNAME[@]} )); then
 	    unset "exN[-1]"
-	    printf '"'"'\nNESTING (-):  %s -> %s'"'"' "${BASH_NESTING[-1]}" "${BASH_NESTING[-2]}" 
-	    unset "BASH_NESTING[-1]"
+	    printf '"'"'\nFUNC (-):  %s -> %s'"'"' "${FUNCNAME_PREV}" "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" 
 	else
+        printf_A 'exN' '.' 'LOGPATH'
+		LOGPATH="${TMPDIR}/.log/${BASHPID}/${LOGPATH}/log"
+		mkdir -p "${LOGPATH%/log}"
 	    exN+=(1); 
-	    BASH_NESTING+=("${BASHPID}.${BASH_SUBSHELL}_${FUNCNAME[0]:-main}.${#FUNCNAME[@]}");
-	    printf '"'"'\nNESTING (+):  %s -> %s'"'"' "${BASH_NESTING[-2]}"  "${BASH_NESTING[-1]}"
+	    printf '"'"'\nFUNC (+):  %s -> %s'"'"' "${FUNCNAME_PREV}" "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" 
 	fi
 fi
 printf '"'"'\nCOMMAND:  %s --> %s\nexec/line number: %s, %s\n\n'"'"' "$BASH_COMMAND_PREV" "$BASH_COMMAND" "$(IFS='"'"'.'"'"'; printf '"'"'%s'"'"' "${exN[*]}")" $LINENO; 
