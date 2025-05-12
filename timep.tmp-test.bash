@@ -1,15 +1,18 @@
 #!/bin/bash
 
-(                                        
+(                  
+declare -a BASHPID_A FUNCNAME_A exN 
 set -T; 
 exN=(1)
 BASH_COMMAND_PREV="$BASH_COMMAND"
-FUNCNAME_PREV="${FUNCNAME[0]:-main}.${#FUNCNAME[@]}"
-BASHPID_A=("${BASHPID}")
+FUNCNAME_A[${#FUNCNAME[@]}]="${FUNCNAME[0]:-main}"
+BASHPID_A[${BASH_SUBSHELL}]="${BASHPID}"
+BASH_SUBSHELL_PREV="${BASH_SUBSHELL}"
 TMPDIR=/dev/shm/.timep
 LOGPATH="${TMPDIR}/.log/${BASHPID}/log"
 mkdir -p "${LOGPATH}"
 echo "${BASH_SUBSHELL}" >"${TMPDIR}/.log/${BASHPID}"/.subshell.prev
+read -r _ _ _ _ PGRP_PREV _ _ TGPID_PREV _ </proc/${BASHPID}/stat
 
 printf_A() {
 	local IFS nn
@@ -57,6 +60,24 @@ else
 	    printf '"'"'\nFUNC (+):  %s -> %s'"'"' "${FUNCNAME_PREV}" "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" 
 	fi
 fi
+if [[ "${BASHPID_A[${BASH_SUBSHELL_PREV}]}" != "${BASHPID}" ]] || (( BASH_SUBSHELL > BASH_SUBSHELL_PREV )); then
+    read -r _ _ _ _ PGRP _ _ TGPID _ </proc/${BASHPID}/stat
+    if [[ "${PGRP:-${TGPID}]}" != "${PGRP_PREV:-${TGPID_PREV}]}" ]]; then
+        BASHPID_A=()
+	FUNCNAME_A=()
+        exN=(1)
+        FUNCNAME_A[${#FUNCNAME[@]}]="${FUNCNAME[0]:-main}"
+        LOGPATH="${TMPDIR}/.log/${BASHPID}/log"
+        mkdir -p "${LOGPATH}"
+        echo "${BASH_SUBSHELL}" >"${TMPDIR}/.log/${BASHPID}"/.subshell.prev
+    fi
+    BASHPID_A[${BASH_SUBSHELL}]="${BASHPID}"
+fi
+[[ -f >"${LOGPATH}".exN ]] && {
+    read -r -d '"''"' <"${LOGPATH}".exN
+    \rm -f "${LOGPATH}".exN
+}
+(( ${#BASHPID_A[@]} > 1 )) && printf '"'"'%s\0'"'"' "${exN[@]}" . >"${LOGPATH}".exN
 printf '"'"'\nCOMMAND:  %s --> %s\nexec/line number: %s, %s\n\n'"'"' "$BASH_COMMAND_PREV" "$BASH_COMMAND" "$(IFS='"'"'.'"'"'; printf '"'"'%s'"'"' "${exN[*]}")" $LINENO; 
 BASH_COMMAND_PREV="$BASH_COMMAND"; 
 (( exN[-1] = exN[-1] + 1 ))' DEBUG; 
