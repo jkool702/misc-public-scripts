@@ -3,14 +3,16 @@
 (                  
 declare -a BASHPID_A FUNCNAME_A exN 
 set -T; 
-exN=(1)
+exN=(0)
 BASH_COMMAND_PREV="$BASH_COMMAND"
-FUNCNAME_A[${#FUNCNAME[@]}]="${FUNCNAME[0]:-main}"
+FUNCNAME_A[0]="${FUNCNAME[0]:-main}"
+FUNCDEPTH_PREV=${#FUNCNAME[@]}
 BASHPID_A[${BASH_SUBSHELL}]="${BASHPID}"
 BASH_SUBSHELL_PREV="${BASH_SUBSHELL}"
 TMPDIR=/dev/shm/.timep
+[[ -d "$TMPDIR" ]] && \rm -rf "$TMPDIR"
 LOGPATH="${TMPDIR}/.log/${BASHPID}/log"
-mkdir -p "${LOGPATH}"
+mkdir -p "${LOGPATH%/log}"
 echo "${BASH_SUBSHELL}" >"${TMPDIR}/.log/${BASHPID}"/.subshell.prev
 read -r _ _ _ _ PGRP_PREV _ _ TGPID_PREV _ </proc/${BASHPID}/stat
 
@@ -20,7 +22,7 @@ printf_A() {
 	    (( ${#A[@]} > 0 )) || printf "\nERROR - please specify variable to print...default variable A not found\n\n" >&2
 		return 1
 	else
-	    [[ "$1" == 'A' ]] || [[ -z "$1"]] || declare -n A="$1"
+	    [[ "$1" == 'A' ]] || [[ -z "$1" ]] || declare -n A="$1"
 		shift 1
 	fi
 	if (( $# == 0 )); then
@@ -46,19 +48,21 @@ TSTART=${EPOCHREALTIME}
 #BASH_NESTING=("${BASHPID}.${BASH_SUBSHELL}_${FUNCNAME[0]:-main}.${#FUNCNAME[@]}")
 
 trap 'TSTOP="${EPOCHREALTIME}"
-if [[ "${FUNCNAME_PREV}" == "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" ]]; then
+if [[ "${FUNCNAME_A[-1]}.${FUNCDEPTH_PREV:-0}" == "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" ]]; then
 	printf '"'"'\nFUNC (%s):  %s'"'"' "${#FUNCNAME[@]}" "${FUNCNAME[0]:-main}"
 else
-	if (( ${FUNCNAME_PREV##*.} > ${#FUNCNAME[@]} )); then
-	    unset "exN[-1]"
-	    printf '"'"'\nFUNC (-):  %s -> %s'"'"' "${FUNCNAME_PREV}" "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" 
+	if (( ${FUNCDEPTH_PREV:-0} > ${#FUNCNAME[@]} )); then
+	    unset "exN[-1]" "FUNCNAME_A[-1]"
+	    printf '"'"'\nFUNC (-):  %s -> %s'"'"' "${FUNCNAME_A[-1]}.${FUNCDEPTH_PREV:-0}" "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" 
 	else
-        printf_A 'exN' '.' 'LOGPATH'
-		LOGPATH="${TMPDIR}/.log/${BASHPID}/${LOGPATH}/log"
-		mkdir -p "${LOGPATH%/log}"
-	    exN+=(1); 
-	    printf '"'"'\nFUNC (+):  %s -> %s'"'"' "${FUNCNAME_PREV}" "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" 
+	    LOGPATH="${TMPDIR}/.log/${BASHPID}/"$(IFS='"'"'.'"'"'; printf '"'"'%s'"'"' "${exN[*]}")"/log"
+	    mkdir -p "${LOGPATH%/log}"
+            (( exN[-1] = exN[-1]  + 1 ))
+	    exN+=(0); 
+	    printf '"'"'\nFUNC (+):  %s -> %s'"'"' "${FUNCNAME_A[-1]}.${FUNCDEPTH_PREV:-0}" "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" 
+	    FUNCNAME_A+=("${FUNCNAME[0]:-main}")
 	fi
+	FUNCDEPTH_PREV="${#FUNCNAME[@]}"
 fi
 if [[ "${BASHPID_A[${BASH_SUBSHELL_PREV}]}" != "${BASHPID}" ]] || (( BASH_SUBSHELL > BASH_SUBSHELL_PREV )); then
     read -r _ _ _ _ PGRP _ _ TGPID _ </proc/${BASHPID}/stat
@@ -69,18 +73,18 @@ if [[ "${BASHPID_A[${BASH_SUBSHELL_PREV}]}" != "${BASHPID}" ]] || (( BASH_SUBSHE
         FUNCNAME_A[${#FUNCNAME[@]}]="${FUNCNAME[0]:-main}"
         LOGPATH="${TMPDIR}/.log/${BASHPID}/log"
         mkdir -p "${LOGPATH}"
-        echo "${BASH_SUBSHELL}" >"${TMPDIR}/.log/${BASHPID}"/.subshell.prev
+        echo "${BASH_SUBSHELL}" >"${LOGPATH}".subshell.prev
     fi
     BASHPID_A[${BASH_SUBSHELL}]="${BASHPID}"
 fi
-[[ -f >"${LOGPATH}".exN ]] && {
-    read -r -d '"''"' <"${LOGPATH}".exN
+[[ -f "${LOGPATH}".exN ]] && {
+    mapfile -t -d '"''"' exN <"${LOGPATH}".exN 
     \rm -f "${LOGPATH}".exN
 }
-(( ${#BASHPID_A[@]} > 1 )) && printf '"'"'%s\0'"'"' "${exN[@]}" . >"${LOGPATH}".exN
-printf '"'"'\nCOMMAND:  %s --> %s\nexec/line number: %s, %s\n\n'"'"' "$BASH_COMMAND_PREV" "$BASH_COMMAND" "$(IFS='"'"'.'"'"'; printf '"'"'%s'"'"' "${exN[*]}")" $LINENO; 
-BASH_COMMAND_PREV="$BASH_COMMAND"; 
-(( exN[-1] = exN[-1] + 1 ))' DEBUG; 
+(( exN[-1] = exN[-1]  + 1 ))
+(( ${#BASHPID_A[@]} > 1 )) && printf '"'"'%s\0'"'"' "${exN[@]}" >"${LOGPATH}".exN
+printf '"'"'\nCOMMAND:  %s --> %s\nPID:  %s\nexec/line number: %s, %s\n\n'"'"' "$BASH_COMMAND_PREV" "$BASH_COMMAND" "$(IFS='"'"'>'"'"'; printf '"'"'%s'"'"' "${BASHPID_A[*]}")"   "$(IFS='"'"'.'"'"'; printf '"'"'%s'"'"' "${exN[*]}")" $LINENO; 
+BASH_COMMAND_PREV="$BASH_COMMAND"; ' DEBUG; 
 
 echo hi
 echo hi0 | cat | { sleep 1;  cat; } |  tee
