@@ -523,3 +523,17 @@ COMMAND:  tee --> tee
 exec/line number: 7.6, 1
 
 EOF
+
+
+
+# new mini test
+(
+set -T
+trap 'printf '"'"'(EXIT): (%s.%s): %s\n'"'"' "$BASHPID" "$BASH_SUBSHELL" "$BASH_COMMAND_PREV"; :' EXIT
+trap_exit='printf '"'"'(EXIT): (%s.%s): %s\n'"'"' "$BASHPID" "$BASH_SUBSHELL" "$BASH_COMMAND_PREV"; :'
+BASH_COMMAND_PREV='none'
+echo "parent PID is ${BASHPID}.${BASH_SUBSHELL}"
+trap 'trap -- KILL; trap '"'${trap_exit//"'"/"'"'"'"'"'"'"'"}'"' EXIT; printf '"'"'(DEBUG): (%s.%s): %s\n'"'"' "$BASHPID" "$BASH_SUBSHELL" "$BASH_COMMAND"; BASH_COMMAND_PREV="$BASH_COMMAND"' DEBUG
+printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1 >&${fd} | printf '(%s.%s): %s\n' "$BASH_SUBSHELL" "$BASHPID" 2 >&${fd} | printf '(%s.%s): %s\n' "$BASH_SUBSHELL" "$BASHPID" 3 >&${fd} | printf '(%s.%s): %s\n' "$BASH_SUBSHELL" "$BASHPID" 4 >&${fd} | printf '(%s.%s): %s\n' "$BASH_SUBSHELL" "$BASHPID" 5  >&${fd}
+) {fd}>&2
+
