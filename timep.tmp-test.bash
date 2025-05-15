@@ -527,7 +527,6 @@ EOF
 
 
 # new mini test
-
 (
 set -T; trap 'echo "child died ($REPLY)" >&$fd' CHLD
 trap 'printf '"'"'(EXIT): (%s.%s): %s\n'"'"' "$BASHPID" "$BASH_SUBSHELL" "$BASH_COMMAND_PREV"; :' EXIT
@@ -535,56 +534,108 @@ trap_exit='printf '"'"'(EXIT): (%s.%s): %s\n'"'"' "$BASHPID" "$BASH_SUBSHELL" "$
 BASH_COMMAND_PREV='none'
 printf '\n\nparent PID is %s\n\n\n' "${BASHPID}.${BASH_SUBSHELL}"
 trap 'trap -- KILL; trap '"'${trap_exit//"'"/"'"'"'"'"'"'"'"}'"' EXIT; printf '"'"'(DEBUG): (%s.%s): %s\n'"'"' "$BASHPID" "$BASH_SUBSHELL" "$BASH_COMMAND"; BASH_COMMAND_PREV="$BASH_COMMAND"' DEBUG
+shopt -u lastpipe
 printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1 | cat | { tee; printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 2 >&${fd}; sleep 5; }
 printf '\n\n\n' >&2
 { printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1; } | cat | { tee; printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 2 >&${fd}; sleep 5; }
+printf '\n\n\n' >&2
+shopt -s lastpipe
+printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1 | cat | { tee; printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 2 >&${fd}; sleep 5; }
+printf '\n\n\n' >&2
+{ printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1; } | cat | { tee; printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 2 >&${fd}; sleep 5; }
+printf '\n\n\n' >&2
 ) {fd}>&2
 
-
 : <<'EOF'
-parent PID is 107330.1
+parent PID is 107747.1
 
 
-(DEBUG): (107330.1): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1
-(DEBUG): (107330.1): cat
-(DEBUG): (107333.2): tee
-(107331.1): 1
-(DEBUG): (107333.2): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 2 >&${fd}
-(107333.2): 2
-(DEBUG): (107333.2): sleep 5
-(DEBUG): (107333.2): sleep 5
-(EXIT): (107333.2): sleep 5
-(DEBUG): (107333.2): sleep 5
-(DEBUG): (107330.1): cat
+(DEBUG): (107747.1): shopt -u lastpipe
+(DEBUG): (107747.1): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1
+(DEBUG): (107747.1): cat
+(DEBUG): (107750.2): tee
+(107748.1): 1
+(DEBUG): (107750.2): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 2 >&${fd}
+(107750.2): 2
+(DEBUG): (107750.2): sleep 5
+(DEBUG): (107750.2): sleep 5
+(EXIT): (107750.2): sleep 5
+(DEBUG): (107750.2): sleep 5
+(DEBUG): (107747.1): cat
 child died ()
-(DEBUG): (107330.1): cat
+(DEBUG): (107747.1): cat
 child died ()
-(DEBUG): (107330.1): cat
+(DEBUG): (107747.1): cat
 child died ()
-(DEBUG): (107330.1): printf '\n\n\n' 1>&2
+(DEBUG): (107747.1): printf '\n\n\n' 1>&2
 
 
 
-(DEBUG): (107330.1): cat
-(DEBUG): (107338.2): tee
-(DEBUG): (107336.2): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1
-(107336.2): 1
-(DEBUG): (107336.2): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1
-(EXIT): (107336.2): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1
-(DEBUG): (107336.2): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1
-(DEBUG): (107338.2): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 2 >&${fd}
-(107338.2): 2
-(DEBUG): (107338.2): sleep 5
-(DEBUG): (107338.2): sleep 5
-(EXIT): (107338.2): sleep 5
-(DEBUG): (107338.2): sleep 5
-(DEBUG): (107330.1): cat
+(DEBUG): (107747.1): cat
+(DEBUG): (107759.2): tee
+(DEBUG): (107757.2): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1
+(107757.2): 1
+(DEBUG): (107757.2): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1
+(EXIT): (107757.2): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1
+(DEBUG): (107757.2): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1
+(DEBUG): (107759.2): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 2 >&${fd}
+(107759.2): 2
+(DEBUG): (107759.2): sleep 5
+(DEBUG): (107759.2): sleep 5
+(EXIT): (107759.2): sleep 5
+(DEBUG): (107759.2): sleep 5
+(DEBUG): (107747.1): cat
 child died ()
-(DEBUG): (107330.1): cat
+(DEBUG): (107747.1): cat
 child died ()
-(DEBUG): (107330.1): cat
+(DEBUG): (107747.1): cat
 child died ()
-(DEBUG): (107330.1): cat
-(EXIT): (107330.1): cat
-(DEBUG): (107330.1): cat
+(DEBUG): (107747.1): printf '\n\n\n' 1>&2
+
+
+
+(DEBUG): (107747.1): shopt -s lastpipe
+(DEBUG): (107747.1): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1
+(DEBUG): (107747.1): cat
+(DEBUG): (107747.1): cat
+child died ()
+(DEBUG): (107747.1): tee
+(107771.1): 1
+(DEBUG): (107747.1): tee
+child died ()
+(DEBUG): (107747.1): tee
+child died ()
+(DEBUG): (107747.1): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 2 >&${fd}
+(107747.1): 2
+(DEBUG): (107747.1): sleep 5
+(DEBUG): (107747.1): sleep 5
+child died ()
+(DEBUG): (107747.1): printf '\n\n\n' 1>&2
+
+
+
+(DEBUG): (107747.1): cat
+(DEBUG): (107747.1): tee
+child died ()
+(DEBUG): (107784.2): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1
+(107784.2): 1
+(DEBUG): (107784.2): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1
+(EXIT): (107784.2): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1
+(DEBUG): (107784.2): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1
+(DEBUG): (107747.1): tee
+child died ()
+(DEBUG): (107747.1): tee
+child died ()
+(DEBUG): (107747.1): printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 2 >&${fd}
+(107747.1): 2
+(DEBUG): (107747.1): sleep 5
+(DEBUG): (107747.1): sleep 5
+child died ()
+(DEBUG): (107747.1): printf '\n\n\n' 1>&2
+
+
+
+(DEBUG): (107747.1): printf '\n\n\n' 1>&2
+(EXIT): (107747.1): printf '\n\n\n' 1>&2
+(DEBUG): (107747.1): printf '\n\n\n' 1>&2
 EOF
