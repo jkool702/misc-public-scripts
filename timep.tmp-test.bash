@@ -1,13 +1,13 @@
 #!/bin/bash
 
 (                  
-declare -a BASHPID_A FUNCNAME_A exN 
+declare -a timep_BASHPID_A timep_FUNCNAME_A timep_EXEC_N 
 set -T; 
-exN=(0)
+timep_EXEC_N=(0)
 BASH_COMMAND_PREV="$BASH_COMMAND"
-FUNCNAME_A[0]="${FUNCNAME[0]:-main}"
-FUNCDEPTH_PREV=${#FUNCNAME[@]}
-BASHPID_A[${BASH_SUBSHELL}]="${BASHPID}"
+timep_FUNCNAME_A[0]="${FUNCNAME[0]:-main}"
+timep_FUNCDEPTH_PREV=${#FUNCNAME[@]}
+timep_BASHPID_A[${BASH_SUBSHELL}]="${BASHPID}"
 BASH_SUBSHELL_PREV="${BASH_SUBSHELL}"
 TMPDIR=/dev/shm/.timep
 [[ -d "$TMPDIR" ]] && \rm -rf "$TMPDIR"
@@ -47,43 +47,43 @@ TSTART=${EPOCHREALTIME}
 
 #BASH_NESTING=("${BASHPID}.${BASH_SUBSHELL}_${FUNCNAME[0]:-main}.${#FUNCNAME[@]}")
 
-trap 'TSTOP="${EPOCHREALTIME}"
-if [[ "${FUNCNAME_A[-1]}.${FUNCDEPTH_PREV:-0}" == "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" ]]; then
+trap 'timep_ENDTIME_CUR="${EPOCHREALTIME}"
+if [[ "${timep_FUNCNAME_A[-1]}.${timep_FUNCDEPTH_PREV:-0}" == "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" ]]; then
 	printf '"'"'\nFUNC (%s):  %s'"'"' "${#FUNCNAME[@]}" "${FUNCNAME[0]:-main}"
 else
-	if (( ${FUNCDEPTH_PREV:-0} > ${#FUNCNAME[@]} )); then
-	    unset "exN[-1]" "FUNCNAME_A[-1]"
-	    printf '"'"'\nFUNC (-):  %s -> %s'"'"' "${FUNCNAME_A[-1]}.${FUNCDEPTH_PREV:-0}" "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" 
+	if (( ${timep_FUNCDEPTH_PREV:-0} > ${#FUNCNAME[@]} )); then
+	    unset "timep_EXEC_N[-1]" "timep_FUNCNAME_A[-1]"
+	    printf '"'"'\nFUNC (-):  %s -> %s'"'"' "${timep_FUNCNAME_A[-1]}.${timep_FUNCDEPTH_PREV:-0}" "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" 
 	else
-	    LOGPATH="${TMPDIR}/.log/${BASHPID}/"$(IFS='"'"'.'"'"'; printf '"'"'%s'"'"' "${exN[*]}")"/log"
+	    LOGPATH="${TMPDIR}/.log/${BASHPID}/"$(IFS='"'"'.'"'"'; printf '"'"'%s'"'"' "${timep_EXEC_N[*]}")"/log"
 	    mkdir -p "${LOGPATH%/log}"
-            (( exN[-1] = exN[-1]  + 1 ))
-	    exN+=(0); 
-	    printf '"'"'\nFUNC (+):  %s -> %s'"'"' "${FUNCNAME_A[-1]}.${FUNCDEPTH_PREV:-0}" "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" 
-	    FUNCNAME_A+=("${FUNCNAME[0]:-main}")
+            (( timep_EXEC_N[-1] = timep_EXEC_N[-1]  + 1 ))
+	    timep_EXEC_N+=(0); 
+	    printf '"'"'\nFUNC (+):  %s -> %s'"'"' "${timep_FUNCNAME_A[-1]}.${timep_FUNCDEPTH_PREV:-0}" "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" 
+	    timep_FUNCNAME_A+=("${FUNCNAME[0]:-main}")
 	fi
-	FUNCDEPTH_PREV="${#FUNCNAME[@]}"
+	timep_FUNCDEPTH_PREV="${#FUNCNAME[@]}"
 fi
-if [[ "${BASHPID_A[${BASH_SUBSHELL_PREV}]}" != "${BASHPID}" ]] || (( BASH_SUBSHELL > BASH_SUBSHELL_PREV )); then
+if [[ "${timep_BASHPID_A[${BASH_SUBSHELL_PREV}]}" != "${BASHPID}" ]] || (( BASH_SUBSHELL > BASH_SUBSHELL_PREV )); then
     read -r _ _ _ _ PGRP _ _ TGPID _ </proc/${BASHPID}/stat
     if [[ "${PGRP:-${TGPID}]}" != "${PGRP_PREV:-${TGPID_PREV}]}" ]]; then
-        BASHPID_A=()
-	FUNCNAME_A=()
-        exN=(1)
-        FUNCNAME_A[${#FUNCNAME[@]}]="${FUNCNAME[0]:-main}"
+        timep_BASHPID_A=()
+	timep_FUNCNAME_A=()
+        timep_EXEC_N=(1)
+        timep_FUNCNAME_A[${#FUNCNAME[@]}]="${FUNCNAME[0]:-main}"
         LOGPATH="${TMPDIR}/.log/${BASHPID}/log"
         mkdir -p "${LOGPATH}"
         echo "${BASH_SUBSHELL}" >"${LOGPATH}".subshell.prev
     fi
-    BASHPID_A[${BASH_SUBSHELL}]="${BASHPID}"
+    timep_BASHPID_A[${BASH_SUBSHELL}]="${BASHPID}"
 fi
-[[ -f "${LOGPATH}".exN ]] && {
-    mapfile -t -d '"''"' exN <"${LOGPATH}".exN 
-    \rm -f "${LOGPATH}".exN
+[[ -f "${LOGPATH}".timep_EXEC_N ]] && {
+    mapfile -t -d '"''"' timep_EXEC_N <"${LOGPATH}".timep_EXEC_N 
+    \rm -f "${LOGPATH}".timep_EXEC_N
 }
-(( exN[-1] = exN[-1]  + 1 ))
-(( ${#BASHPID_A[@]} > 1 )) && printf '"'"'%s\0'"'"' "${exN[@]}" >"${LOGPATH}".exN
-printf '"'"'\nCOMMAND:  %s --> %s\nPID:  %s\nexec/line number: %s, %s\n\n'"'"' "$BASH_COMMAND_PREV" "$BASH_COMMAND" "$(IFS='"'"'>'"'"'; printf '"'"'%s'"'"' "${BASHPID_A[*]}")"   "$(IFS='"'"'.'"'"'; printf '"'"'%s'"'"' "${exN[*]}")" $LINENO; 
+(( timep_EXEC_N[-1] = timep_EXEC_N[-1]  + 1 ))
+(( ${#timep_BASHPID_A[@]} > 1 )) && printf '"'"'%s\0'"'"' "${timep_EXEC_N[@]}" >"${LOGPATH}".timep_EXEC_N
+printf '"'"'\nCOMMAND:  %s --> %s\nPID:  %s\nexec/line number: %s, %s\n\n'"'"' "$BASH_COMMAND_PREV" "$BASH_COMMAND" "$(IFS='"'"'>'"'"'; printf '"'"'%s'"'"' "${timep_BASHPID_A[*]}")"   "$(IFS='"'"'.'"'"'; printf '"'"'%s'"'"' "${timep_EXEC_N[*]}")" $LINENO; 
 BASH_COMMAND_PREV="$BASH_COMMAND"; ' DEBUG; 
 
 echo hi

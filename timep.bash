@@ -183,6 +183,25 @@ _timep_printTimeDiff() {
     fi
 }
 
+trap() {
+    local trapStr trapType
+    local -a otherTrapTypes
+
+    trapStr="${1%\;}; "$'\n'
+    shift 1
+
+    for trapType in "${@}"; do
+        case "${trapType}" in
+            EXIT)    trap "${trapStr}"'timep_EXIT_flag=true' EXIT ;;
+            RETURN)  trap "${trapStr}"'timep_RETURN_flag=true' RETURN ;;
+            DEBUG)   trap "${timep_DEBUG_trap_str[0]}""${trapStr}""${timep_DEBUG_trap_str[1]}" ;;
+            *)       trap "${trapStr}" "${trapType}" ;;
+        esac
+    done
+}
+
+export -f trap
+
 _timep_check_traps() {
     local existing_exit existing_return
     if [[ "$timep_BASH_COMMAND_PREV" == *trap*EXIT* ]]; then
