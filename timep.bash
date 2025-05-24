@@ -64,6 +64,7 @@ timep() (
     shopt -s extglob
 
     local timep_runType=''
+    local -a timep_DEBUG_trap_str
 
     # parse flags
     while true; do
@@ -185,57 +186,28 @@ _timep_printTimeDiff() {
 
 trap() {
     local trapStr trapType
-    local -a otherTrapTypes
 
-    trapStr="${1%\;}; "$'\n'
-    shift 1
+    if [[ "${1}" == -[lp] ]]; then
+        builtin trap "${@}"
+        return
+    else
+        [[ "${1}" == '--' ]] && shift 1
+        trapStr="${1%\;}; "$'\n'
+        shift 1
+    fi
 
     for trapType in "${@}"; do
         case "${trapType}" in
-            EXIT)    trap "${trapStr}"'timep_EXIT_flag=true' EXIT ;;
-            RETURN)  trap "${trapStr}"'timep_RETURN_flag=true' RETURN ;;
-            DEBUG)   trap "${timep_DEBUG_trap_str[0]}""${trapStr}""${timep_DEBUG_trap_str[1]}" ;;
-            *)       trap "${trapStr}" "${trapType}" ;;
+            EXIT)    builtin trap "${trapStr}"'timep_EXIT_flag=true' EXIT ;;
+            RETURN)  builtin trap "${trapStr}"'timep_RETURN_flag=true' RETURN ;;
+            DEBUG)   builtin trap "${timep_DEBUG_trap_str[0]}""${trapStr}""${timep_DEBUG_trap_str[1]}" ;;
+            *)       builtin trap "${trapStr}" "${trapType}" ;;
         esac
     done
 }
 
-export -f trap
-
-_timep_check_traps() {
-    local existing_exit existing_return
-    if [[ "$timep_BASH_COMMAND_PREV" == *trap*EXIT* ]]; then
-        existing_exit="$(trap -p EXIT 2>/dev/null)"
-        existing_exit="${existing_exit% EXIT}"         # remove trailing " EXIT"
-        existing_exit="${existing_exit#trap -- }"      # remove leading "trap -- "
-        
-        if [[ "${existing_exit}" != *'timep_EXIT_FLAG=true'* ]]; then
-            if [[ -n "$existing_exit" ]]; then
-                # Append our code to the existing EXIT trap command.
-                trap 'timep_EXIT_FLAG=true; '"${existing_exit}" EXIT
-            else
-                trap 'timep_EXIT_FLAG=true' EXIT
-            fi
-        fi
-    fi
-    if [[ "$timep_BASH_COMMAND_PREV" == *trap*RETURN* ]]; then
-        existing_return="$(trap -p RETURN 2>/dev/null)"
-        existing_return="${existing_return% RETURN}"         # remove trailing " RETURN"
-        existing_return="${existing_return#trap -- }"      # remove leading "trap -- "
-        
-        if [[ "${existing_return}" != *'timep_RETURN_FLAG=true'* ]]; then
-            if [[ -n "$existing_return" ]]; then
-                # Append our code to the existing RETURN trap command.
-                trap '[[ "${funcname}" == '"'"'_timep_check_traps'"'"' ]] || timep_RETURN_FLAG=true; '"${existing_return}" RETURN
-            else
-                trap '[[ "${funcname}" == '"'"'_timep_check_traps'"'"' ]] || timep_RETURN_FLAG=true' RETURN
-            fi
-        fi
-    fi
-}
-
+    export -f trap
     export -f _timep_printTimeDiff    
-    export -f _timep_check_traps    
     export timep_TMPDIR="${timep_TMPDIR}"
 
     # setup a string with the command to run
@@ -267,33 +239,12 @@ _timep_check_traps() {
 # this will setup a DEBUG trap to measure runtime from every command, then will run the specified code.
 # the source code is generated and then sourced (instead of directly defined) so that things like the tmpdir/logfile path are hardcoded.
 # this allows timep to run without adding any new (and potengtially conflicting) variables to the code being run / time profiled.
-timep_runFuncSrc+="(
-printf '\\n
-----------------------------------------------------------------------------
------------------------ RUNTIME BREAKDOWN BY COMMAND -----------------------
-----------------------------------------------------------------------------
 
-COMMAND PROFILED:
-%s
+timep_DEBUG_trap_str[0]='timep_nPipe="${#PIPESTATUS[@]}"
+timep_ENDTIME_CUR="${EPOCHREALTIME}"
+'
 
-START TIME: 
-%s (%s)
-
-FORMAT:
-----------------------------------------------------------------------------
-[ PID {NAME.SHLVL.NESTING} ]  LINENO:  RUNTIME  (TSTART --> TSTOP) <<--- { CMD }
-----------------------------------------------------------------------------\\n\\n' \"$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")\" \"\$(date)\" \"\${EPOCHREALTIME}\" >\"\${timep_TMPDIR}\"/time.ALL;
-    declare timep_FUNCDEPTH_PREV timep_BASH_SUBSHELL_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_ENDTIME_cur timep_RUNTIME_CUR timep_LINE_OUT timep_PPID timep_KK;
-    declare -a timep_STARTTIME timep_RUNTIME timep_BASH_COMMAND timep_LINENO timep_BASHPID;
-    set -T;
-    timep_BASHPID=(\"\${BASHPID}\");
-    timep_BASHPID_PREV=\"\${BASHPID}\";
-    timep_FUNCDEPTH_PREV=\"\${#FUNCNAME[@]}\";
-    timep_BASH_SUBSHELL_PREV=\"\${BASH_SUBSHELL}\";
-    timep_BG_PID_PREV=\"\$!\";
-    timep_RUNTIME[\${#FUNCNAME[@]}]=0
-    printf '\\n%s\\n' \"\$!\" >\"\${timep_TMPDIR}\"/.bg.pid
-    trap 'timep_ENDTIME_CUR=\"\${EPOCHREALTIME}\";
+timep_DEBUG_trap_str[1]="
 (( \${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )) && timep_STARTTIME='\"''\"';
 [[ \"\${timep_BG_PID_PREV}\" != \"\$!\" ]] && printf '\"'\"'%s\\n'\"'\"' \"\$!\" >>\"\${timep_TMPDIR}\"/.bg.pid
 if [[ -z \${timep_PPID} ]] || {  [[ \"\${timep_BASHPID_PREV##*->}\" != \"\${BASHPID}\" ]] && grep -F -q \"\${BASHPID}\" \"\${timep_TMPDIR}\"/.bg.pid; }; then
@@ -338,11 +289,45 @@ timep_BG_PID_PREV=\"\$!\";
 timep_BASH_COMMAND[\${timep_FUNCDEPTH_PREV}]=\"\${BASH_COMMAND}\";
 timep_FUNCNAME[\${timep_FUNCDEPTH_PREV}]=\"\${FUNCNAME:-main}\";
 timep_LINENO[\${timep_FUNCDEPTH_PREV}]=\"\${LINENO}\";
-timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]=\"\${EPOCHREALTIME}\"' DEBUG;
+timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]=\"\${EPOCHREALTIME}\"'
+"
+
+timep_runFuncSrc+="(
+printf '\\n
+----------------------------------------------------------------------------
+----------------------- RUNTIME BREAKDOWN BY COMMAND -----------------------
+----------------------------------------------------------------------------
+
+COMMAND PROFILED:
+%s
+
+START TIME: 
+%s (%s)
+
+FORMAT:
+----------------------------------------------------------------------------
+[ PID {NAME.SHLVL.NESTING} ]  LINENO:  RUNTIME  (TSTART --> TSTOP) <<--- { CMD }
+----------------------------------------------------------------------------\\n\\n' \"$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")\" \"\$(date)\" \"\${EPOCHREALTIME}\" >\"\${timep_TMPDIR}\"/time.ALL;
+    declare timep_FUNCDEPTH_PREV timep_BASH_SUBSHELL_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_ENDTIME_cur timep_RUNTIME_CUR timep_LINE_OUT timep_PPID timep_KK;
+    declare -a timep_STARTTIME timep_RUNTIME timep_BASH_COMMAND timep_LINENO timep_BASHPID;
+
+    set -T;
+    set -m;
+
+    timep_BASHPID_A=(\"\${BASHPID}\");
+    timep_FUNCNAME_A=('main');
+    timep_BASHPID_PREV=\"\${BASHPID}\";
+    timep_FUNCDEPTH_PREV=\"\${#FUNCNAME[@]}\";
+    timep_BASH_SUBSHELL_PREV=\"\${BASH_SUBSHELL}\";
+    timep_BG_PID_PREV=\"\$!\";
+    timep_EXEC_N=(0)
+
+    printf '\\n%s\\n' \"\$!\" >\"\${timep_TMPDIR}\"/.bg.pid
+    trap ' DEBUG;
 
     ${timep_runCmd}
 
-    trap - DEBUG;
+    trap '' DEBUG;
 
 )"
 

@@ -4,15 +4,15 @@
 declare -a timep_BASHPID_A timep_FUNCNAME_A timep_EXEC_N 
 set -T; 
 timep_EXEC_N=(0)
-BASH_COMMAND_PREV="$BASH_COMMAND"
+timep_BASH_COMMAND_PREV="$BASH_COMMAND"
 timep_FUNCNAME_A[0]="${FUNCNAME[0]:-main}"
 timep_FUNCDEPTH_PREV=${#FUNCNAME[@]}
 timep_BASHPID_A[${BASH_SUBSHELL}]="${BASHPID}"
-BASH_SUBSHELL_PREV="${BASH_SUBSHELL}"
+timep_BASH_SUBSHELL_PREV="${BASH_SUBSHELL}"
 TMPDIR=/dev/shm/.timep
 [[ -d "$TMPDIR" ]] && \rm -rf "$TMPDIR"
-LOGPATH="${TMPDIR}/.log/${BASHPID}/log"
-mkdir -p "${LOGPATH%/log}"
+timep_LOGPATH="${TMPDIR}/.log/${BASHPID}/log"
+mkdir -p "${timep_LOGPATH%/log}"
 echo "${BASH_SUBSHELL}" >"${TMPDIR}/.log/${BASHPID}"/.subshell.prev
 read -r _ _ _ _ PGRP_PREV _ _ TGPID_PREV _ </proc/${BASHPID}/stat
 
@@ -47,7 +47,10 @@ TSTART=${EPOCHREALTIME}
 
 #BASH_NESTING=("${BASHPID}.${BASH_SUBSHELL}_${FUNCNAME[0]:-main}.${#FUNCNAME[@]}")
 
-trap 'timep_ENDTIME_CUR="${EPOCHREALTIME}"
+trap '
+'"'"'
+timep_nPipe="${#PIPESTATUS[@]}"
+timep_ENDTIME_CUR="${EPOCHREALTIME}"
 if [[ "${timep_FUNCNAME_A[-1]}.${timep_FUNCDEPTH_PREV:-0}" == "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" ]]; then
 	printf '"'"'\nFUNC (%s):  %s'"'"' "${#FUNCNAME[@]}" "${FUNCNAME[0]:-main}"
 else
@@ -55,8 +58,8 @@ else
 	    unset "timep_EXEC_N[-1]" "timep_FUNCNAME_A[-1]"
 	    printf '"'"'\nFUNC (-):  %s -> %s'"'"' "${timep_FUNCNAME_A[-1]}.${timep_FUNCDEPTH_PREV:-0}" "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" 
 	else
-	    LOGPATH="${TMPDIR}/.log/${BASHPID}/"$(IFS='"'"'.'"'"'; printf '"'"'%s'"'"' "${timep_EXEC_N[*]}")"/log"
-	    mkdir -p "${LOGPATH%/log}"
+	    timep_LOGPATH="${TMPDIR}/.log/${BASHPID}/"$(IFS='"'"'.'"'"'; printf '"'"'%s'"'"' "${timep_EXEC_N[*]}")"/log"
+	    mkdir -p "${timep_LOGPATH%/log}"
             (( timep_EXEC_N[-1] = timep_EXEC_N[-1]  + 1 ))
 	    timep_EXEC_N+=(0); 
 	    printf '"'"'\nFUNC (+):  %s -> %s'"'"' "${timep_FUNCNAME_A[-1]}.${timep_FUNCDEPTH_PREV:-0}" "${FUNCNAME[0]:-main}.${#FUNCNAME[@]}" 
@@ -64,27 +67,27 @@ else
 	fi
 	timep_FUNCDEPTH_PREV="${#FUNCNAME[@]}"
 fi
-if [[ "${timep_BASHPID_A[${BASH_SUBSHELL_PREV}]}" != "${BASHPID}" ]] || (( BASH_SUBSHELL > BASH_SUBSHELL_PREV )); then
+if [[ "${timep_BASHPID_A[${timep_BASH_SUBSHELL_PREV}]}" != "${BASHPID}" ]] || (( BASH_SUBSHELL > timep_BASH_SUBSHELL_PREV )); then
     read -r _ _ _ _ PGRP _ _ TGPID _ </proc/${BASHPID}/stat
     if [[ "${PGRP:-${TGPID}]}" != "${PGRP_PREV:-${TGPID_PREV}]}" ]]; then
         timep_BASHPID_A=()
 	timep_FUNCNAME_A=()
         timep_EXEC_N=(1)
         timep_FUNCNAME_A[${#FUNCNAME[@]}]="${FUNCNAME[0]:-main}"
-        LOGPATH="${TMPDIR}/.log/${BASHPID}/log"
-        mkdir -p "${LOGPATH}"
-        echo "${BASH_SUBSHELL}" >"${LOGPATH}".subshell.prev
+        timep_LOGPATH="${TMPDIR}/.log/${BASHPID}/log"
+        mkdir -p "${timep_LOGPATH}"
+        echo "${BASH_SUBSHELL}" >"${timep_LOGPATH}".subshell.prev
     fi
     timep_BASHPID_A[${BASH_SUBSHELL}]="${BASHPID}"
 fi
-[[ -f "${LOGPATH}".timep_EXEC_N ]] && {
-    mapfile -t -d '"''"' timep_EXEC_N <"${LOGPATH}".timep_EXEC_N 
-    \rm -f "${LOGPATH}".timep_EXEC_N
+[[ -f "${timep_LOGPATH}".timep_EXEC_N ]] && {
+    mapfile -t -d '"''"' timep_EXEC_N <"${timep_LOGPATH}".timep_EXEC_N 
+    \rm -f "${timep_LOGPATH}".timep_EXEC_N
 }
 (( timep_EXEC_N[-1] = timep_EXEC_N[-1]  + 1 ))
-(( ${#timep_BASHPID_A[@]} > 1 )) && printf '"'"'%s\0'"'"' "${timep_EXEC_N[@]}" >"${LOGPATH}".timep_EXEC_N
-printf '"'"'\nCOMMAND:  %s --> %s\nPID:  %s\nexec/line number: %s, %s\n\n'"'"' "$BASH_COMMAND_PREV" "$BASH_COMMAND" "$(IFS='"'"'>'"'"'; printf '"'"'%s'"'"' "${timep_BASHPID_A[*]}")"   "$(IFS='"'"'.'"'"'; printf '"'"'%s'"'"' "${timep_EXEC_N[*]}")" $LINENO; 
-BASH_COMMAND_PREV="$BASH_COMMAND"; ' DEBUG; 
+(( ${#timep_BASHPID_A[@]} > 1 )) && printf '"'"'%s\0'"'"' "${timep_EXEC_N[@]}" >"${timep_LOGPATH}".timep_EXEC_N
+printf '"'"'\nCOMMAND:  %s --> %s\nPID:  %s\nexec/line number: %s, %s\n\n'"'"' "$timep_BASH_COMMAND_PREV" "$BASH_COMMAND" "$(IFS='"'"'>'"'"'; printf '"'"'%s'"'"' "${timep_BASHPID_A[*]}")"   "$(IFS='"'"'.'"'"'; printf '"'"'%s'"'"' "${timep_EXEC_N[*]}")" $LINENO; 
+timep_BASH_COMMAND_PREV="$BASH_COMMAND"; ' DEBUG; 
 
 echo hi
 echo hi0 | cat | { sleep 1;  cat; } |  tee
@@ -105,7 +108,7 @@ ff &
 
 : <<'EOF'
 NESTING (1):  1494992.1_main.0
-COMMAND:  BASH_COMMAND_PREV="$BASH_COMMAND" --> echo hi
+COMMAND:  timep_BASH_COMMAND_PREV="$BASH_COMMAND" --> echo hi
 exec/line number: 1, 436
 
 hi
@@ -314,7 +317,7 @@ COMMAND:  tee --> tee
 exec/line number: 7.6, 1
 
 NESTING (1):  1494992.1_main.0
-COMMAND:  BASH_COMMAND_PREV="$BASH_COMMAND" --> echo hi
+COMMAND:  timep_BASH_COMMAND_PREV="$BASH_COMMAND" --> echo hi
 exec/line number: 1, 436
 
 hi
@@ -529,11 +532,11 @@ EOF
 # new mini test
 (
 set -T; trap 'echo "child died ($REPLY)" >&$fd' CHLD
-trap 'printf '"'"'(EXIT): (%s.%s): %s\n'"'"' "$BASHPID" "$BASH_SUBSHELL" "$BASH_COMMAND_PREV"; :' EXIT
-trap_exit='printf '"'"'(EXIT): (%s.%s): %s\n'"'"' "$BASHPID" "$BASH_SUBSHELL" "$BASH_COMMAND_PREV"; :'
-BASH_COMMAND_PREV='none'
+trap 'printf '"'"'(EXIT): (%s.%s): %s\n'"'"' "$BASHPID" "$BASH_SUBSHELL" "$timep_BASH_COMMAND_PREV"; :' EXIT
+trap_exit='printf '"'"'(EXIT): (%s.%s): %s\n'"'"' "$BASHPID" "$BASH_SUBSHELL" "$timep_BASH_COMMAND_PREV"; :'
+timep_BASH_COMMAND_PREV='none'
 printf '\n\nparent PID is %s\n\n\n' "${BASHPID}.${BASH_SUBSHELL}"
-trap 'trap -- KILL; trap '"'${trap_exit//"'"/"'"'"'"'"'"'"'"}'"' EXIT; printf '"'"'(DEBUG): (%s.%s): %s\n'"'"' "$BASHPID" "$BASH_SUBSHELL" "$BASH_COMMAND"; BASH_COMMAND_PREV="$BASH_COMMAND"' DEBUG
+trap 'trap -- KILL; trap '"'${trap_exit//"'"/"'"'"'"'"'"'"'"}'"' EXIT; printf '"'"'(DEBUG): (%s.%s): %s\n'"'"' "$BASHPID" "$BASH_SUBSHELL" "$BASH_COMMAND"; timep_BASH_COMMAND_PREV="$BASH_COMMAND"' DEBUG
 shopt -u lastpipe
 printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 1 | cat | { tee; printf '(%s.%s): %s\n' "$BASHPID" "$BASH_SUBSHELL" 2 >&${fd}; sleep 5; }
 printf '\n\n\n' >&2
