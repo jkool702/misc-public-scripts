@@ -198,8 +198,8 @@ trap() {
 
     for trapType in "${@}"; do
         case "${trapType}" in
-            EXIT)    builtin trap "${trapStr}"'timep_EXIT_flag=true' EXIT ;;
-            RETURN)  builtin trap "${trapStr}"'timep_RETURN_flag=true' RETURN ;;
+            EXIT)    builtin trap "${trapStr}"'timep_EXIT_FLAG=true' EXIT ;;
+            RETURN)  builtin trap "${trapStr}"'timep_RETURN_FLAG=true' RETURN ;;
             DEBUG)   builtin trap "${timep_DEBUG_trap_str[0]}""${trapStr}""${timep_DEBUG_trap_str[1]}" ;;
             *)       builtin trap "${trapStr}" "${trapType}" ;;
         esac
@@ -238,13 +238,60 @@ trap() {
 # generate the code for a wrapper function (timep_runFunc) that wraps around whatever we are running / time profiling.
 # this will setup a DEBUG trap to measure runtime from every command, then will run the specified code.
 # the source code is generated and then sourced (instead of directly defined) so that things like the tmpdir/logfile path are hardcoded.
-# this allows timep to run without adding any new (and potengtially conflicting) variables to the code being run / time profiled.
+# this allows timep to run without adding any new (and potentially conflicting) variables to the code being run / time profiled.
 
+# first 2 DEBUG trap commands must be to record number of PIPESTATUS elements and endtime
 timep_DEBUG_trap_str[0]='timep_nPipe="${#PIPESTATUS[@]}"
 timep_ENDTIME_CUR="${EPOCHREALTIME}"
 '
 
-timep_DEBUG_trap_str[1]="
+# main timep DEBUG trap
+#
+# first, check if BASHPID changed. if so, increase nesting/subshell lvl. reset RETURN/EXIT traps, and check TPGID to determine if it was a subshell or a fork
+#    if fork then start new log tree by setting the logpath root to the current PID
+# else check for subshell exit (see if prev EXEC_N logfile exists). if so increment EXEC_N an extra time 
+# else check if last command was a bg fork
+#
+# second, check if we are entering/exiting a function
+#
+# third, check if this is
+timep_DEBUG_trap_str[1]='
+if [[ "${timep_BASHPID_PREV}" == "${BASHPID}" ]]; then
+    if [[ -f "${timep_LOGPATH}.${timep_EXEC_N[-1]}" ]]; then
+        (( timep_EXEC_N[-1] += 1 ))        
+        timep_IFS_PREV="${IFS}"; IFS='"'"'.'"'"';
+        timep_BASH_COMMAND[-1]="< subshell ${!}: ${timep_EXEC_N[*]} >"
+        IFS="${timep_IFS_PREV}"; unset timep_IFS_PREV;
+    elif [[ "${timep_BG_PID_PREV}" != $! ]]; then
+        timep_BG_PID_PREV=$!
+        timep_IFS_PREV="${IFS}"; IFS='"'"'.'"'"';
+        timep_BASH_COMMAND[-1]="< background fork ${!}: ${timep_EXEC_N[*]} >"
+        IFS="${timep_IFS_PREV}"; unset timep_IFS_PREV;
+    fi
+else
+    read -r _ _ _ _ _ _ _ timep_TPGID _ </proc/${BASHPID}/stat
+    timep_BASHPID_A+=("${BASHPID}")
+    if [[ "${timep_TPGID}" == "${timep_BASHPID_PREV}" ]]; then
+        timep_IFS_PREV="${IFS}"; IFS='.';
+        timep_LOGPATH="${timep_TMPDIR}/.log/${timep_BASHPID_A[*]}/log.${timep_EXEC_N[*]}"
+        IFS="${timep_IFS_PREV}"; unset timep_IFS_PREV;
+        mkdir -p "${timep_TMPDIR}/.log/${timep_BASHPID_A[*]}"
+    else
+        timep_LOGPATH+=".${timep_EXEC_N[-1]}"
+    fi
+    timep_EXEC_N+=("0")
+    timep_NO_PREV_FLAG=true
+    trap '"''"' EXIT RETURN
+fi
+if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
+    timep_EXEC_N+=("0")
+    timep_NO_PREV_FLAG=true
+    timep_FUNCNAME_A+=("${FUNCNAME[0]}")
+elif (( ${#FUNCNAME[@]} < timep_FUNCDEPTH_PREV )); then
+    unset "timep_FUNCNAME_A[-1]" "timep_EXEC_N[-1]" "timep_BASH_COMMAND[-1]"
+fi
+'
+"
 (( \${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )) && timep_STARTTIME='\"''\"';
 [[ \"\${timep_BG_PID_PREV}\" != \"\$!\" ]] && printf '\"'\"'%s\\n'\"'\"' \"\$!\" >>\"\${timep_TMPDIR}\"/.bg.pid
 if [[ -z \${timep_PPID} ]] || {  [[ \"\${timep_BASHPID_PREV##*->}\" != \"\${BASHPID}\" ]] && grep -F -q \"\${BASHPID}\" \"\${timep_TMPDIR}\"/.bg.pid; }; then
@@ -316,18 +363,25 @@ FORMAT:
 
     timep_BASHPID_A=(\"\${BASHPID}\");
     timep_FUNCNAME_A=('main');
+    timep_EXEC_N=(0)
     timep_BASHPID_PREV=\"\${BASHPID}\";
     timep_FUNCDEPTH_PREV=\"\${#FUNCNAME[@]}\";
     timep_BASH_SUBSHELL_PREV=\"\${BASH_SUBSHELL}\";
     timep_BG_PID_PREV=\"\$!\";
-    timep_EXEC_N=(0)
+    timep_BASH_COMMAND_PREV='<init>'
 
-    printf '\\n%s\\n' \"\$!\" >\"\${timep_TMPDIR}\"/.bg.pid
-    trap ' DEBUG;
+    timep_EXIT_FLAG=false
+    timep_RETURN_FLAG=false
+    timep_NO_PREV_FLAG=false
+    timep_NO_NEXT_FLAG=false
+
+    timep_LOGPATH=\"\${timep_TMPDIR}/.log/${BASHPID}/log\"
+    mkdir -p \"\${timep_LOGPATH%/log}\"
+    trap ${timep_DEBUG_trap_str[*]@Q} DEBUG;
 
     ${timep_runCmd}
 
-    trap '' DEBUG;
+    trap - DEBUG EXIT RETURN;
 
 )"
 
