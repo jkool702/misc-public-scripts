@@ -35,7 +35,7 @@ timep() (
     #        timep works by "hijacking" the DEBUG trap, and if the code alters the DEBUG traop then timep will stop working.
     #    Additionally, timep adds a several variables (all which start with "timep_") + function(s) to the runtime env of whatever is being profiled. The code being profiled must NOT modify these.
     #        FUNCTIONS:  _timep_printTimeDiff
-    #        VARIABLES:  timep_ID timep_ID_PREV timep_FUNCDEPTH_PREV timep_BASH_SUBSHELL_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_TRAP_TYPE timep_ENDTIME_CUR timep_RUNTIME_CUR timep_LINE_OUT timep_PPID timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND timep_LINENO timep_NESTING timep_BASHPID timep_FUNCNAME timep_RUNTIME_SUM;
+    #        VARIABLES:  timep_ID timep_ID_PREV timep_FUNCDEPTH_PREV timep_BASH_SUBSHELL_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_TRAP_TYPE timep_ENDTIME timep_RUNTIME_CUR timep_LINE_OUT timep_PPID timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND timep_LINENO timep_NESTING timep_BASHPID timep_FUNCNAME timep_RUNTIME_SUM;
     #
     # DEPENDENCIES:
     #    1) bash 5.0+ (it needs to support the $EPOCHREALTIME variable)
@@ -241,8 +241,8 @@ trap() {
 # this allows timep to run without adding any new (and potentially conflicting) variables to the code being run / time profiled.
 
 # first 2 DEBUG trap commands must be to record number of PIPESTATUS elements and endtime
-timep_DEBUG_trap_str[0]='timep_nPipe="${#PIPESTATUS[@]}"
-timep_ENDTIME_CUR="${EPOCHREALTIME}"
+timep_DEBUG_trap_str[0]='timep_NPIPE[${#timep_EXEC_N[@]}]="${#PIPESTATUS[@]}"
+timep_ENDTIME="${EPOCHREALTIME}"
 '
 
 # main timep DEBUG trap
@@ -254,7 +254,8 @@ timep_ENDTIME_CUR="${EPOCHREALTIME}"
 #
 # second, check if we are entering/exiting a function
 #
-# third, check if this is
+# third, check if this is a RETURN/EXIT trap firing
+
 timep_DEBUG_trap_str[1]='
 if [[ "${timep_BASHPID_PREV}" == "${BASHPID}" ]]; then
     if [[ -f "${timep_LOGPATH}.${timep_EXEC_N[-1]}" ]]; then
@@ -287,9 +288,21 @@ if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
     timep_EXEC_N+=("0")
     timep_NO_PREV_FLAG=true
     timep_FUNCNAME_A+=("${FUNCNAME[0]}")
+    timep_LOGPATH+=".${timep_EXEC_N[-1]}"
 elif (( ${#FUNCNAME[@]} < timep_FUNCDEPTH_PREV )); then
     unset "timep_FUNCNAME_A[-1]" "timep_EXEC_N[-1]" "timep_BASH_COMMAND[-1]"
+    timep_LOGPATH="${timep_LOGPATH%.*}"
 fi
+if ${timep_EXIT_FLAG} && ${timep_RETURN_FLAG}; then
+    timep_NO_PREV_FLAG=true
+    timep_NO_NEXT_FLAG=true
+elif ${timep_EXIT_FLAG} || ${timep_RETURN_FLAG}; then
+    timep_NO_NEXT_FLAG=true
+fi
+
+
+
+timep_STARTTIME[${#timep_EXEC_N[@]}]=${EPOCHREALTIME}
 '
 "
 (( \${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )) && timep_STARTTIME='\"''\"';
@@ -306,9 +319,9 @@ elif [[ \"\${timep_BASHPID_PREV##*->}\" != \"\${BASHPID}\" ]]; then
     fi
 fi
 if [[ \${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]} ]]; then
-    timep_RUNTIME_CUR=\"\$(( \${timep_ENDTIME_CUR//./} - \${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]//./} ))\";
+    timep_RUNTIME_CUR=\"\$(( \${timep_ENDTIME//./} - \${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]//./} ))\";
     (( timep_RUNTIME[\${timep_FUNCDEPTH_PREV}]+=\"\${timep_RUNTIME_CUR}\" ));
-    _timep_printTimeDiff \"\${timep_BASHPID_PREV}\" \"\${timep_FUNCDEPTH_PREV}\" \"\${timep_FUNCNAME[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_LINENO[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_ENDTIME_CUR}\" \"\${timep_BASH_COMMAND[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_RUNTIME_CUR}\" ;
+    _timep_printTimeDiff \"\${timep_BASHPID_PREV}\" \"\${timep_FUNCDEPTH_PREV}\" \"\${timep_FUNCNAME[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_LINENO[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_STARTTIME[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_ENDTIME}\" \"\${timep_BASH_COMMAND[\${timep_FUNCDEPTH_PREV}]}\" \"\${timep_RUNTIME_CUR}\" ;
     printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}\"/time.ALL;
     printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}/time.\${timep_PPID}.\${timep_FUNCDEPTH_PREV}_\${timep_FUNCNAME[\${timep_FUNCDEPTH_PREV}]}\";
 else
@@ -320,7 +333,7 @@ if (( \${#FUNCNAME[@]} < timep_FUNCDEPTH_PREV )); then
         timep_RUNTIME_CUR=\"\${timep_RUNTIME[\${timep_KK}]}\";
         ((timep_KK--));
         (( timep_RUNTIME[\${timep_KK}]+=\"\${timep_RUNTIME_CUR}\" ));
-        _timep_printTimeDiff \"\${timep_BASHPID_PREV}\" \"\${timep_KK}\" \"\${timep_FUNCNAME[\${timep_KK}]}\" \"\${timep_LINENO[\${timep_KK}]}\" \"\${timep_STARTTIME[\${timep_KK}]}\" \"\${timep_ENDTIME_CUR}\" \"\${timep_BASH_COMMAND[\${timep_KK}]}\" \"\${timep_RUNTIME_CUR}\";
+        _timep_printTimeDiff \"\${timep_BASHPID_PREV}\" \"\${timep_KK}\" \"\${timep_FUNCNAME[\${timep_KK}]}\" \"\${timep_LINENO[\${timep_KK}]}\" \"\${timep_STARTTIME[\${timep_KK}]}\" \"\${timep_ENDTIME}\" \"\${timep_BASH_COMMAND[\${timep_KK}]}\" \"\${timep_RUNTIME_CUR}\";
         printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}\"/time.ALL;
         printf '%s' \"\${timep_LINE_OUT}\" >>\"\${timep_TMPDIR}/time.\${timep_PPID}.\${timep_KK}_\${timep_FUNCNAME[\${timep_KK}]}\";
         ((timep_KK++));
@@ -355,7 +368,7 @@ FORMAT:
 ----------------------------------------------------------------------------
 [ PID {NAME.SHLVL.NESTING} ]  LINENO:  RUNTIME  (TSTART --> TSTOP) <<--- { CMD }
 ----------------------------------------------------------------------------\\n\\n' \"$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")\" \"\$(date)\" \"\${EPOCHREALTIME}\" >\"\${timep_TMPDIR}\"/time.ALL;
-    declare timep_FUNCDEPTH_PREV timep_BASH_SUBSHELL_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_ENDTIME_cur timep_RUNTIME_CUR timep_LINE_OUT timep_PPID timep_KK;
+    declare timep_FUNCDEPTH_PREV timep_BASH_SUBSHELL_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_ENDTIME timep_RUNTIME_CUR timep_LINE_OUT timep_PPID timep_KK;
     declare -a timep_STARTTIME timep_RUNTIME timep_BASH_COMMAND timep_LINENO timep_BASHPID;
 
     set -T;
@@ -369,6 +382,8 @@ FORMAT:
     timep_BASH_SUBSHELL_PREV=\"\${BASH_SUBSHELL}\";
     timep_BG_PID_PREV=\"\$!\";
     timep_BASH_COMMAND_PREV='<init>'
+    timep_STARTTIME=()
+    timep_NPIPE=()
 
     timep_EXIT_FLAG=false
     timep_RETURN_FLAG=false
