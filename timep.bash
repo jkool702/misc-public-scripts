@@ -64,7 +64,7 @@ timep() (
     shopt -s extglob
 
     local timep_runType=''
-    local -a timep_DEBUG_trap_str
+    local -a timep_DEBUG_TRAP_STR
 
     # parse flags
     while true; do
@@ -200,7 +200,7 @@ trap() {
         case "${trapType}" in
             EXIT)    builtin trap "${trapStr}"'timep_EXIT_FLAG=true' EXIT ;;
             RETURN)  builtin trap "${trapStr}"'timep_RETURN_FLAG=true' RETURN ;;
-            DEBUG)   builtin trap "${timep_DEBUG_trap_str[0]}""${trapStr}""${timep_DEBUG_trap_str[1]}" ;;
+            DEBUG)   builtin trap "${timep_DEBUG_TRAP_STR[0]}""${trapStr}""${timep_DEBUG_TRAP_STR[1]}" ;;
             *)       builtin trap "${trapStr}" "${trapType}" ;;
         esac
     done
@@ -241,11 +241,13 @@ trap() {
 # this allows timep to run without adding any new (and potentially conflicting) variables to the code being run / time profiled.
 
 # first 2 DEBUG trap commands must be to record number of PIPESTATUS elements and endtime
-timep_DEBUG_trap_str[0]='timep_NPIPE[${#timep_NEXEC[@]}]="${#PIPESTATUS[@]}"
+timep_DEBUG_TRAP_STR[0]='timep_NPIPE[${#timep_NEXEC[@]}]="${#PIPESTATUS[@]}"
 timep_ENDTIME="${EPOCHREALTIME}"
 '
 
 # main timep DEBUG trap
+#
+# we have already recorded the number of PIPESTATUS elements and the previous command end time
 #
 # first, check if BASHPID changed. if so, increase nesting/subshell lvl. reset RETURN/EXIT traps, and check TPGID to determine if it was a subshell or a fork
 #    if fork then start new log tree by setting the logpath root to the current PID
@@ -255,8 +257,10 @@ timep_ENDTIME="${EPOCHREALTIME}"
 # second, check if we are entering/exiting a function
 #
 # third, check if this is a RETURN/EXIT trap firing
+#
+# lastly, resolve the current line number, write log line, update PREV variables, and record the start time for the command that is about to run
 
-timep_DEBUG_trap_str[1]='
+timep_DEBUG_TRAP_STR[1]='
 timep_IFS_PREV="${IFS}"; IFS='"''"'.'"''"';
 timep_NEXEC_STR="${timep_NEXEC[*]}"
 IFS='"''"'>'"''"'
@@ -367,11 +371,11 @@ FORMAT:
     timep_LOG_FD=()
     exec {timep_LOG_FD[0]}>\"\${timep_LOGPATH}\"
     mkdir -p \"\${timep_LOGPATH%/log}\"
-    trap ${timep_DEBUG_trap_str[@]@Q} DEBUG;
+    trap '' DEBUG;
 
     ${timep_runCmd}
 
-    trap - DEBUG EXIT RETURN;
+    builtin trap - DEBUG EXIT RETURN;
 
 )"
 
@@ -407,6 +411,11 @@ esac
 
 printf '\n\nThe %s being time profiled has finished running!\ntimep will now process the logged timing data.\ntimep will save the time profiles it generates in "%s"\n\n' "$([[ "${timep_runType}" == 's' ]] && echo 'script' || echo 'function')" "${timep_TMPDIR}" >&2
 unset IFS
+
+# TO DO
+##### AFTER the code has finished running, a post-processing phase will:
+# 1. identify commands that are parts of pipelines by lookig for NPIPE > 1. NPIPE is greater that 1 for a single DEBUG trap firing after a pipeline has finished.
+# 2. starting with the most deeply nested logs, compute the total run time (by summing the individual command runtimes), then merge the log upwad into the "placeholder line" in the parent's log. use the summer runtime (not end time - start time) for this "placeholder line" so that the runtime profile is minimally affected by the timing instrumentation
 
 # get lists of unique commands run (unique combinations of pid + subshell level in the logged data
 mapfile -t -d '' uniq_pids < <(printf '%s\0' "${timep_TMPDIR}"/time.[0-9]*)
