@@ -257,25 +257,25 @@ timep_ENDTIME="${EPOCHREALTIME}"
 # third, check if this is a RETURN/EXIT trap firing
 
 timep_DEBUG_trap_str[1]='
+timep_IFS_PREV="${IFS}"; IFS='"''"'.'"''"';
+timep_EXEC_N_STR="${timep_EXEC_N[*]}"
+IFS='"''"'>'"''"'
+timep_BASHPID_STR="${timep_BASHPID_A[*]}"
+timep_FUNCNAME_STR="${timep_FUNCNAME_A[*]}"
+IFS="${timep_IFS_PREV}"; unset timep_IFS_PREV;
 if [[ "${timep_BASHPID_PREV}" == "${BASHPID}" ]]; then
     if [[ -f "${timep_LOGPATH}.${timep_EXEC_N[-1]}" ]]; then
-        (( timep_EXEC_N[-1] += 1 ))        
-        timep_IFS_PREV="${IFS}"; IFS='"'"'.'"'"';
-        timep_BASH_COMMAND[-1]="< subshell ${!}: ${timep_EXEC_N[*]} >"
-        IFS="${timep_IFS_PREV}"; unset timep_IFS_PREV;
+        timep_BASH_COMMAND[-1]="<< subshell: ${!} >>"
     elif [[ "${timep_BG_PID_PREV}" != $! ]]; then
         timep_BG_PID_PREV=$!
-        timep_IFS_PREV="${IFS}"; IFS='"'"'.'"'"';
-        timep_BASH_COMMAND[-1]="< background fork ${!}: ${timep_EXEC_N[*]} >"
-        IFS="${timep_IFS_PREV}"; unset timep_IFS_PREV;
+        timep_BASH_COMMAND[-1]="<< background fork: ${!} >>"
     fi
 else
     read -r _ _ _ _ _ _ _ timep_TPGID _ </proc/${BASHPID}/stat
     timep_BASHPID_A+=("${BASHPID}")
-    if [[ "${timep_TPGID}" == "${timep_BASHPID_PREV}" ]]; then
-        timep_IFS_PREV="${IFS}"; IFS='.';
-        timep_LOGPATH="${timep_TMPDIR}/.log/${timep_BASHPID_A[*]}/log.${timep_EXEC_N[*]}"
-        IFS="${timep_IFS_PREV}"; unset timep_IFS_PREV;
+    timep_BASHPID_STR+=">${BASHPID}"
+    if [[ "${timep_TPGID}" == "${timep_BASHPID_PREV}" ]]; then       
+        timep_LOGPATH="${timep_TMPDIR}/.log/${timep_BASHPID_A[*]}/log.${timep_EXEC_N_STR}"
         mkdir -p "${timep_TMPDIR}/.log/${timep_BASHPID_A[*]}"
     else
         timep_LOGPATH+=".${timep_EXEC_N[-1]}"
@@ -283,6 +283,7 @@ else
     timep_EXEC_N+=("0")
     timep_NO_PREV_FLAG=true
     trap '"''"' EXIT RETURN
+    set -m
 fi
 if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
     timep_EXEC_N+=("0")
@@ -299,10 +300,29 @@ if ${timep_EXIT_FLAG} && ${timep_RETURN_FLAG}; then
 elif ${timep_EXIT_FLAG} || ${timep_RETURN_FLAG}; then
     timep_NO_NEXT_FLAG=true
 fi
+timep_LINENO[0]=${LINENO}
+if [[ "${timep_LINENO_PREV}" == "${LINENO}" ]]; then
+    (( timep_LINENO[1] += 1 ))
+else
+    timep_LINENO[1]=0
+fi
+if ${timep_NO_PREV_FLAG}; then
+    timep_NO_PREV_FLAG=false
+else
+    {
+        printf '"''"'%s\t'"''"' 
+        printf '"''"'%s\n'"''"' "${timep_BASH_COMMAND[-1]}"
+    } >&${timep_LOG_FD[${#timep_EXEC_N[@]}]}
+fi
+if ${timep_NO_NEXT_FLAG}; then
+    exec {timep_LOG_FD[-1]}>&-
+    unset "timep_LOG_FD[-1]"
+else
+    timep_STARTTIME[${#timep_EXEC_N[@]}]=${EPOCHREALTIME}
+fi
 
 
 
-timep_STARTTIME[${#timep_EXEC_N[@]}]=${EPOCHREALTIME}
 '
 "
 (( \${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )) && timep_STARTTIME='\"''\"';
@@ -390,9 +410,11 @@ FORMAT:
     timep_NO_PREV_FLAG=false
     timep_NO_NEXT_FLAG=false
 
-    timep_LOGPATH=\"\${timep_TMPDIR}/.log/${BASHPID}/log\"
+    timep_LOGPATH=\"\${timep_TMPDIR}/.log/\${BASHPID}/log\"
+    timep_LOG_FD=()
+    exec {timep_LOG_FD[0]}>\"\${timep_LOGPATH}\"
     mkdir -p \"\${timep_LOGPATH%/log}\"
-    trap ${timep_DEBUG_trap_str[*]@Q} DEBUG;
+    trap ${timep_DEBUG_trap_str[@]@Q} DEBUG;
 
     ${timep_runCmd}
 
