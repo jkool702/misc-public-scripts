@@ -142,34 +142,36 @@ timep() (
 
     export timep_TMPDIR="${timep_TMPDIR}"
 
-    # helper function to get src code from functions
+# helper function to get src code from functions
 getFuncSrc() {
     local out 
     getFuncSrc0() {
-        local m n p kk
+        local m n p kk off
         local -a A
         read -r _ n p < <(shopt -s extdebug; declare -F "$1")
-        case "${p}" in
-            main) 
-                declare -f "$1"
-            ;;
-            *)
-                ((n--))
-                mapfile -t A <"$p"
-                A=("${A[@]:$n}")
-                m=$( kk=1;  IFS=$'\n'; until . /proc/self/fd/0 <<<"${A[*]:0:$kk}" &>/dev/null; do ((kk++)); done; echo "$kk"; )
-                printf '%s\n' "${A[@]:0:$m}"
-            ;;
-        esac
+        ((n--))
+        if [[ "${p}" == 'main' ]]; then
+            off=$(( 1 - $( { history | grep -n '' | grep -E '^[0-9]+:[[:space:]]*[0-9]*[[:space:]]*((function[[:space:]]+'"$1"')|('"$1"'[[:space:]]*\(\)))' | tail -n 1; history | grep -n '' | tail -n 1; } | sed -E s/'\:.*$'// | sed -zE s/'\n'/' +'/) ))
+            mapfile -t A < <(history | tail -n $off | sed -E s/'^[[:space:]]*[0-9]*[[:space:]]*'//)
+        else
+            mapfile -t A <"$p"
+            A=("${A[@]:$n}")
+        fi
+        m=$( kk=1;  IFS=$'\n'; until . /proc/self/fd/0 <<<"${A[*]:0:$kk}" &>/dev/null || (( m > ${#A[@]} )); do ((kk++)); done; echo "$kk"; )
+        if (( m == 0 )) || (( m > ${#A[@]} )); then
+            declare -f "$1"
+        else
+            printf '%s\n' "${A[@]:0:$m}"
+        fi
     }
-out="$(getFuncSrc0 "$1")"
-grep -qE '^[[:space:]]*((\.)|(source))[[:space:]]+\<\(.+\)[[:space:]]*$' <<<"$out" && {
-    out="${out#*\<\(}"
-    out="${out%\)}"
-    out="$(eval "$out")"
-}
-echo "$out"
-bash --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type $nn 2>/dev/null | grep -qF 'is a function' && getFuncSrc "$nn"; done
+    out="$(getFuncSrc0 "$1")"
+    grep -qE '^[[:space:]]*((\.)|(source))[[:space:]]+\<\(.+\)[[:space:]]*$' <<<"$out" && {
+        out="${out#*\<\(}"
+        out="${out%\)}"
+        out="$(eval "$out")"
+    }
+    echo "$out"
+    bash --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type $nn 2>/dev/null | grep -qF 'is a function' && getFuncSrc "$nn"; done
 }
 
 
