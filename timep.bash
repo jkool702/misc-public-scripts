@@ -192,7 +192,7 @@ trap() {
         return
     else
         [[ "${1}" == '--' ]] && shift 1
-        trapStr="${1%\;}; "$'\n'
+        trapStr="${1%\;}; "
         shift 1
     fi
 
@@ -200,7 +200,7 @@ trap() {
         case "${trapType}" in
             EXIT)    builtin trap "${trapStr}"'timep_EXIT_FLAG=true' EXIT ;;
             RETURN)  builtin trap "${trapStr}"'timep_RETURN_FLAG=true' RETURN ;;
-            DEBUG)   builtin trap "${timep_DEBUG_TRAP_STR[0]}""${trapStr}""${timep_DEBUG_TRAP_STR[1]}" ;;
+            DEBUG)   builtin trap "${timep_DEBUG_TRAP_STR[0]}""${trapStr}""${timep_DEBUG_TRAP_STR[1]}" DEBUG ;;
             *)       builtin trap "${trapStr}" "${trapType}" ;;
         esac
     done
@@ -278,28 +278,33 @@ else
     read -r _ _ _ _ _ _ _ timep_TPGID _ </proc/${BASHPID}/stat
     timep_BASHPID_A+=("${BASHPID}")
     timep_BASHPID_STR+=">${BASHPID}"
-    if [[ "${timep_TPGID}" == "${timep_BASHPID_PREV}" ]]; then       
+    if [[ "${timep_TPGID}" == "${BASHPID}" ]]; then       
+        timep_LOGPATH+=".${timep_NEXEC[-1]}"
+    else
         timep_LOGPATH="${timep_TMPDIR}/.log/${timep_BASHPID_STR//\>/.}/log.${timep_NEXEC_STR}"
         mkdir -p "${timep_TMPDIR}/.log/${timep_BASHPID_STR//\>/.}"
-    else
-        timep_LOGPATH+=".${timep_NEXEC[-1]}"
     fi
     timep_NEXEC+=("0")
-    exec {timep_LOG_FD[${#timep_NEXEC[@]}]}>\"\${timep_LOGPATH}\"
+    timep_NEXEC_STR+=".${timep_NEXEC[-1]}"
+    timep_BASHPID_STR+=">${BASHPID}"
+    exec {timep_LOG_FD[${#timep_NEXEC[@]}]}>"${timep_LOGPATH}"
     timep_NO_PREV_FLAG=true
     trap '"''"' EXIT RETURN
     set -m
 fi
 if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
     timep_NEXEC+=("0")
+    timep_NEXEC_STR+=".${timep_NEXEC[-1]}"
+    timep_FUNCNAME_STR+=">${FUNCNAME[0]}"
     timep_NO_PREV_FLAG=true
     timep_FUNCNAME_A+=("${FUNCNAME[0]}")
     timep_LOGPATH+=".${timep_NEXEC[-1]}"
-    exec {timep_LOG_FD[${#timep_NEXEC[@]}]}>\"\${timep_LOGPATH}\"
+    exec {timep_LOG_FD[${#timep_NEXEC[@]}]}>"${timep_LOGPATH}"
 elif (( ${#FUNCNAME[@]} < timep_FUNCDEPTH_PREV )); then
     timep_LOGPATH="${timep_LOGPATH%.*}"
     timep_BASH_COMMAND[${#timep_NEXEC[@]}]="<< function: ${timep_FUNCNAME_A[${#timep_NEXEC[@]}]} >>"
     unset "timep_FUNCNAME_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]"
+    timep_RETURN_FLAG=false
 fi
 if ${timep_EXIT_FLAG} && ${timep_RETURN_FLAG}; then
     timep_NO_PREV_FLAG=true
