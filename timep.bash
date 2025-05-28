@@ -140,100 +140,40 @@ timep() (
         fi
     }    
 
-    export timep_runType="${timep_runType}"
-
-
-_timep_printTimeDiff() {
-## prints a line in the format of the time.ALL log file
-# 7 inputs: $BASHPID $NAME $SHLVL.$BASH_SUBSHELL $LINENO tStart tEnd $BASH_COMMAND
-    local tStart tEnd tDiff d d6 shellName timep_LINENO_OFFSET
-    
-    [[ "${5}" ]] && tStart="${5}" #|| { [[ -f "${timep_TMPDIR}/.run.time.start.last" ]] && read -r tStart <"${timep_TMPDIR}/.run.time.start.last"; }
-    
-    [[ "${6}" ]] && tEnd="${6}" || tEnd="${EPOCHREALTIME}"
-
-    shellName="${2##*/}"
-
-    if [[ $tStart ]]; then
-        printf -v d '%.07d' "${8}"
-        d6=$(( ${#d} - 6 ))
-        printf -v tDiff '%s.%s' "${d:0:$d6}" "${d:$d6}"
-    fi
-
-    if [[ -z ${FUNCNAME} ]]; then
-        if [[ -f "${timep_TMPDIR}/.lineno.offset" ]]; then
-            read -r timep_LINENO_OFFSET <"${timep_TMPDIR}/.lineno.offset"
-        else
-            [[ ${4} ]] && echo "${4}" >"${timep_TMPDIR}/.lineno.offset"
-            timep_LINENO_OFFSET="$4"
-        fi
-
-        if [[ $tStart ]]; then
-            printf -v timep_LINE_OUT '[ %s.%s {%s} ]  %s:  %s sec  ( %s --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "${tDiff}" "$tStart" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
-        else
-            printf -v timep_LINE_OUT '[ %s.%s {%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$(( ${4} - timep_LINENO_OFFSET + 1 ))" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
-            return 1
-        fi    
-    else
-        if [[ $tStart ]]; then
-            printf -v timep_LINE_OUT '[ %s.%s {%s} ]  %s:  %s sec  ( %s --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$4" "${tDiff}" "$tStart" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
-        else
-            printf -v timep_LINE_OUT '[ %s.%s {%s} ]  %s:  ERROR ( ??? --> %s ) <<--- { %s }\n' "$1" "${shellName// /.}" "$3" "$4" "$tEnd" "${7//$'\n'/'$'"'"'\n'"'"}" 
-            return 1
-        fi    
-    fi
-}
-
-trap() {
-    local trapStr trapType
-
-    if [[ "${1}" == -[lp] ]]; then
-        builtin trap "${@}"
-        return
-    else
-        [[ "${1}" == '--' ]] && shift 1
-        trapStr="${1%\;}; "
-        shift 1
-    fi
-
-    for trapType in "${@}"; do
-        case "${trapType}" in
-            EXIT)    builtin trap "${trapStr}"'timep_EXIT_FLAG=true' EXIT ;;
-            RETURN)  builtin trap "${trapStr}"'timep_RETURN_FLAG=true' RETURN ;;
-            DEBUG)   builtin trap "${timep_DEBUG_TRAP_STR[0]}""${trapStr}""${timep_DEBUG_TRAP_STR[1]}" DEBUG ;;
-            *)       builtin trap "${trapStr}" "${trapType}" ;;
-        esac
-    done
-}
-
-    export -f trap
-    export -f _timep_printTimeDiff    
     export timep_TMPDIR="${timep_TMPDIR}"
 
-    # setup a string with the command to run
-    case "${timep_runType}" in
-        s)
-            shift 1
-            timep_runCmd="$(<"${timep_runCmdPath}")"
-            if [[ "${timep_runCmd}" == '#!'* ]]; then
-                timep_runCmd1="${timep_runCmd%%$'\n'*}"
-                timep_runCmd="${timep_runCmd#*$'\n'}"
-            else
-                timep_runCmd1='#!'"$(type -p bash)"
-            fi
-            # start of wrapper code
-            timep_runFuncSrc="${timep_runCmd1}"$'\n'
-        ;;
-        f)
+    # helper function to get src code from functions
+getFuncSrc() {
+    local out 
+    getFuncSrc0() {
+        local m n p kk
+        local -a A
+        read -r _ n p < <(shopt -s extdebug; declare -F "$1")
+        case "${p}" in
+            main) 
+                declare -f "$1"
+            ;;
+            *)
+                ((n--))
+                mapfile -t A <"$p"
+                A=("${A[@]:$n}")
+                m=$( kk=1;  IFS=$'\n'; until . /proc/self/fd/0 <<<"${A[*]:0:$kk}" &>/dev/null; do ((kk++)); done; echo "$kk"; )
+                printf '%s\n' "${A[@]:0:$m}"
+            ;;
+        esac
+    }
+out="$(getFuncSrc0 "$1")"
+grep -qE '^[[:space:]]*((\.)|(source))[[:space:]]+\<\(.+\)[[:space:]]*$' <<<"$out" && {
+    out="${out#*\<\(}"
+    out="${out%\)}"
+    out="$(eval "$out")"
+}
+echo "$out"
+bash --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type $nn 2>/dev/null | grep -qF 'is a function' && getFuncSrc "$nn"; done
+}
 
-            declare -F "$1" &>/dev/null && . <(declare -f "$1")
-            printf -v timep_runCmd '%q ' "${@}"
-            [[ -t 0 ]] || timep_runCmd+=" <&0"
-            
-            # start of wrapper code
-            timep_runFuncSrc='timep_runFunc () '
-        ;;
-    esac
+
+ 
     
 # generate the code for a wrapper function (timep_runFunc) that wraps around whatever we are running / time profiling.
 # this will setup a DEBUG trap to measure runtime from every command, then will run the specified code.
@@ -338,6 +278,55 @@ else
 fi
 '
 
+# overload the trap builtin to allow the use of custom EXIT/RETURN/DEBUG traps
+trap() {
+    local trapStr trapType
+
+    if [[ "${1}" == -[lp] ]]; then
+        builtin trap "${@}"
+        return
+    else
+        [[ "${1}" == '--' ]] && shift 1
+        trapStr="${1%\;}; "
+        shift 1
+    fi
+
+    for trapType in "${@}"; do
+        case "${trapType}" in
+            EXIT)    builtin trap "${trapStr}"'timep_EXIT_FLAG=true' EXIT ;;
+            RETURN)  builtin trap "${trapStr}"'timep_RETURN_FLAG=true' RETURN ;;
+            DEBUG)   builtin trap "${timep_DEBUG_TRAP_STR[0]}""${trapStr}""${timep_DEBUG_TRAP_STR[1]}" DEBUG ;;
+            *)       builtin trap "${trapStr}" "${trapType}" ;;
+        esac
+    done
+}
+
+    export -f trap
+
+    # setup a string with the command to run
+    case "${timep_runType}" in
+        s)
+            shift 1
+            timep_runCmd="$(<"${timep_runCmdPath}")"
+            if [[ "${timep_runCmd}" == '#!'* ]]; then
+                timep_runCmd1="${timep_runCmd%%$'\n'*}"
+                timep_runCmd="${timep_runCmd#*$'\n'}"
+            else
+                timep_runCmd1='#!'"$(type -p bash)"
+            fi
+            # start of wrapper code
+            timep_runFuncSrc="${timep_runCmd1}"$'\n'
+        ;;
+        f)
+
+            declare -F "$1" &>/dev/null && . <(declare -f "$1")
+            printf -v timep_runCmd '%q ' "${@}"
+            [[ -t 0 ]] || timep_runCmd+=" <&0"
+            
+            # start of wrapper code
+            timep_runFuncSrc='timep_runFunc () '
+        ;;
+    esac
 timep_runFuncSrc+="(
 printf '\\n
 ----------------------------------------------------------------------------
