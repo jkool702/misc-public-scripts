@@ -113,7 +113,8 @@ timep() (
          return 1
     }
 
-export timep_TMPDIR="${timep_TMPDIR}"
+    export timep_TMPDIR="${timep_TMPDIR}"
+    mkdir -p "${timep_TMPDIR}"/.log
 
     # determine if command being profiled is a shell script or not
     [[ ${timep_runType} == [sf] ]] || {
@@ -209,12 +210,14 @@ timep_ENDTIME="${EPOCHREALTIME}"
 # lastly, resolve the current line number, write log line, update PREV variables, and record the start time for the command that is about to run
 
 timep_DEBUG_TRAP_STR[1]='
-timep_IFS_PREV="${IFS}"; IFS='"''"'.'"''"';
+timep_IFS_PREV="${IFS}"
+IFS='"'"'.'"'"'
 timep_NEXEC_STR="${timep_NEXEC[*]}"
-IFS='"''"'>'"''"'
+IFS='"'"'>'"'"'
 timep_BASHPID_STR="${timep_BASHPID_A[*]}"
 timep_FUNCNAME_STR="${timep_FUNCNAME_A[*]}"
-IFS="${timep_IFS_PREV}"; unset timep_IFS_PREV;
+IFS="${timep_IFS_PREV}"
+unset timep_IFS_PREV
 if [[ "${timep_BASHPID_PREV}" == "${BASHPID}" ]]; then
     if [[ -f "${timep_LOGPATH}.${timep_NEXEC[-1]}" ]]; then
         timep_BASH_COMMAND[${#timep_NEXEC[@]}]="\<\< subshell \>\>"
@@ -226,18 +229,18 @@ else
     read -r _ _ _ _ _ _ _ timep_TPGID _ </proc/${BASHPID}/stat
     timep_BASHPID_A+=("${BASHPID}")
     timep_BASHPID_STR+=">${BASHPID}"
-    if [[ "${timep_TPGID}" == "${BASHPID}" ]]; then       
-        timep_LOGPATH+=".${timep_NEXEC[-1]}"
-    else
+    if [[ "${timep_TPGID}" == "${BASHPID_PREV}" ]]; then       
         timep_LOGPATH="${timep_TMPDIR}/.log/${timep_BASHPID_STR//\>/.}/log.${timep_NEXEC_STR}"
         mkdir -p "${timep_TMPDIR}/.log/${timep_BASHPID_STR//\>/.}"
+    else
+        timep_LOGPATH+=".${timep_NEXEC[-1]}"
     fi
     timep_NEXEC+=("0")
     timep_NEXEC_STR+=".${timep_NEXEC[-1]}"
     timep_BASHPID_STR+=">${BASHPID}"
     exec {timep_LOG_FD[${#timep_NEXEC[@]}]}>"${timep_LOGPATH}"
     timep_NO_PREV_FLAG=true
-    builtin trap '"'"'timep_EXIT_FLAG=true'"'"'EXIT
+    builtin trap '"'"'timep_EXIT_FLAG=true'"'"' EXIT
     set -m
 fi
 if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
@@ -270,8 +273,8 @@ if ${timep_NO_PREV_FLAG}; then
     timep_NO_PREV_FLAG=false
 else
     {
-        printf '"''"'%s\t'"''"' "${timep_NPIPE[${#timep_NEXEC[@]}]}" "${timep_STARTTIME[${#timep_NEXEC[@]}]}" "${timep_ENDTIME}" "${timep_LINENO[0]}.${timep_LINENO[1]}" "${timep_NEXEC_STR}" "${timep_BASHPID_STR}" "${timep_FUNCNAME_STR}"
-        printf '"''"'%s\n'"''"' "${timep_BASH_COMMAND[#timep_NEXEC[@]}]}"
+        printf '"'"'%s\t'"'"' "${timep_NPIPE[${#timep_NEXEC[@]}]}" "${timep_STARTTIME[${#timep_NEXEC[@]}]}" "${timep_ENDTIME}" "${timep_LINENO[0]}.${timep_LINENO[1]}" "${timep_NEXEC_STR}" "${timep_BASHPID_STR}" "${timep_FUNCNAME_STR}"
+        printf '"'"'%s\n'"'"' "${timep_BASH_COMMAND[${#timep_NEXEC[@]}]}"
     } >&${timep_LOG_FD[${#timep_NEXEC[@]}]}
 fi
 if ${timep_NO_NEXT_FLAG}; then
@@ -327,13 +330,14 @@ trap() {
         ;;
         f)
             _timep_getFuncSrc "$1" >"${timep_TMPDIR}"/functions.bash
-            timep_runCmd1='. "${timep_TMPDIR}"/functions.bash'
+            chmod +x "${timep_TMPDIR}"/functions.bash
+            timep_runCmd1='#!'"$(type -p bash)"
             #declare -F "$1" &>/dev/null && . <(declare -f "$1")
             printf -v timep_runCmd '%q ' "${@}"
             [[ -t 0 ]] || timep_runCmd+=" <&0"
             
             # start of wrapper code
-            timep_runFuncSrc="${timep_runCmd1}"$'\n''timep_runFunc () '
+            timep_runFuncSrc="${timep_runCmd1}"$'\n''timep_runFunc() '
         ;;
     esac
 timep_runFuncSrc+="(
@@ -374,10 +378,10 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
     timep_TMPDIR=\"${timep_TMPDIR}\"
     timep_LOGPATH=\"\${timep_TMPDIR}/.log/\${BASHPID}/log\"
     timep_LOG_FD=()
-    exec {timep_LOG_FD[0]}>\"\${timep_LOGPATH}\"
+    exec {timep_LOG_FD[1]}>\"\${timep_LOGPATH}\"
     mkdir -p \"\${timep_LOGPATH%/log}\"
     echo \"\$(( LINENO + 3 ))\" >\"\${timep_TMPDIR}\"/.log/log.lineno_offset
-    builtin trap \"${timep_DEBUG_TRAP_STR[0]}${timep_DEBUG_TRAP_STR[1]}\" DEBUG
+    builtin trap '${timep_DEBUG_TRAP_STR[@]//"'"/"'"'"'"'"'"'"'"}' DEBUG
 
     ${timep_runCmd}
 
@@ -385,35 +389,32 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
 
 )"
 
-#case "${timep_runType}" in
-#    f)  
-#        # source the wrapper function we just generated
-#        eval "${timep_runFuncSrc}"
-#
-#        # source it again by using declare -f in a command substitution
-#        # this may seem silly because it IS silly...but, it makes $LINENO give meaningful line numbers in the DEBUG trap
-#        . <(declare -f timep_runFunc)
-#
-#        # now actually run it
-#        if [[ -t 0 ]]; then
-#            timep_runFunc
-#        else
-#            timep_runFunc <&0
-#        fi
-#    ;;
-#    s)  
-        # save script/function (with added debug trap) in new script file and make it executable
-        echo "${timep_runFuncSrc}" >"${timep_TMPDIR}"/main.bash
-        chmod +x "${timep_TMPDIR}"/main.bash
+   # save script/function (with added debug trap) in new script file and make it executable
+    echo "${timep_runFuncSrc}" >"${timep_TMPDIR}"/main.bash
+    chmod +x "${timep_TMPDIR}"/main.bash
 
+    case "${timep_runType}" in
+    f)  
+        # source the original functions and then the wrapper function we just generated
+        . "${timep_TMPDIR}"/functions.bash 
+        . "${timep_TMPDIR}"/main.bash 
+        
+        # now actually run it
+        if [[ -t 0 ]]; then
+            timep_runFunc
+        else
+            timep_runFunc <&0
+        fi
+    ;;
+    s)  
         # source the script (with added debug trap)
         if [[ -t 0 ]]; then
-           bash --debug -O extglob "${timep_TMPDIR}"/main.bash "${@}"
+           "${timep_TMPDIR}"/main.bash "${@}"
         else
-            bash --debug -O extglob  "${timep_TMPDIR}"/main.bash "${@}" <&0
+           "${timep_TMPDIR}"/main.bash "${@}" <&0
         fi        
-    #;;
-#esac
+    ;;
+esac
 
 printf '\n\nThe %s being time profiled has finished running!\ntimep will now process the logged timing data.\ntimep will save the time profiles it generates in "%s"\n\n' "$([[ "${timep_runType}" == 's' ]] && echo 'script' || echo 'function')" "${timep_TMPDIR}" >&2
 unset IFS
