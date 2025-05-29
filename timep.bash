@@ -155,15 +155,24 @@ _timep_getFuncSrc() {
     getFuncSrc0() {
         local m n p kk off
         local -a A
-        read -r _ n p < <(shopt -s extdebug; declare -F "$1")
+        # get where the function was sourced from. note: extdebug will tell us where thre function definition started, but not where it ends.
+        read -r _ n p < <(shopt -s extdebug; declare -F "${1}")
         ((n--))
         if [[ "${p}" == 'main' ]]; then
-            off=$(( 1 - $( { history | grep -n '' | grep -E '^[0-9]+:[[:space:]]*[0-9]*[[:space:]]*((function[[:space:]]+'"$1"')|('"$1"'[[:space:]]*\(\)))' | tail -n 1; history | grep -n '' | tail -n 1; } | sed -E s/'\:.*$'// | sed -zE s/'\n'/' +'/) ))
+            # try to pull function definition out of the bash history
+            off=$(( 1 - $( { history | grep -n '' | grep -E '^[0-9]+:[[:space:]]*[0-9]*[[:space:]]*((function[[:space:]]+'"${1}"')|('"${1}"'[[:space:]]*\(\)))' | tail -n 1; history | grep -n '' | tail -n 1; } | sed -E s/'\:.*$'// | sed -zE s/'\n'/' +'/) ))
             mapfile -t A < <(history | tail -n $off | sed -E s/'^[[:space:]]*[0-9]*[[:space:]]*'//)
-        else
-            mapfile -t A <"$p"
+        elif [[ -f "${p}" ]]; then
+            # pull function definition from file
+            mapfile -t A <"${p}"
             A=("${A[@]:$n}")
+        else
+            # cant extract original source. use declare -f.
+            declare -f "${1}"
+            return
         fi
+        # our text blob *should* now start at the start of the function definition, but goes all the way to the EOF.
+        # try sourcing just the 1st line, then the first 2, then the first 3, etc. until the function sources correctly.
         m=$( kk=1;  IFS=$'\n'; until . /proc/self/fd/0 <<<"${A[*]:0:$kk}" &>/dev/null || (( m > ${#A[@]} )); do ((kk++)); done; echo "$kk"; )
         if (( m == 0 )) || (( m > ${#A[@]} )); then
             declare -f "$1"
@@ -172,13 +181,9 @@ _timep_getFuncSrc() {
         fi
     }
     out="$(getFuncSrc0 "$1")"
-    grep -qE '^[[:space:]]*((\.)|(source))[[:space:]]+\<\(.+\)[[:space:]]*$' <<<"$out" && {
-        out="${out#*\<\(}"
-        out="${out%\)}"
-        out="$(eval "$out")"
-    }
     echo "$out"
-    bash --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type $nn 2>/dev/null | grep -qF 'is a function' && getFuncSrc "$nn"; done
+    # feed the functiom definition through bash --rpm-requires to get dependencies, then test each with type to find function dependencies. re-call _timep_getFuncSrc for each dependent function.
+    bash --debug --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type $nn 2>/dev/null | grep -qF 'is a function' && getFuncSrc "$nn"; done
 }
 
 
@@ -198,10 +203,9 @@ timep_ENDTIME="${EPOCHREALTIME}"
 #
 # we have already recorded the number of PIPESTATUS elements and the previous command end time
 #
-# first, check if BASHPID changed. if so, increase nesting/subshell lvl. reset RETURN/EXIT traps, and check TPGID to determine if it was a subshell or a fork
-#    if fork then start new log tree by setting the logpath root to the current PID
+# first, check if BASHPID changed. if so, increase nesting/subshell lvl and re-set EXIT traps.
 # else check for subshell exit (see if prev EXEC_N logfile exists). if so increment EXEC_N an extra time 
-# else check if last command was a bg fork
+# else check if last command was a bg fork. if so log thre pid/nexec
 #
 # second, check if we are entering/exiting a function
 #
