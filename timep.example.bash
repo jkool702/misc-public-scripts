@@ -3,7 +3,7 @@
 # NOTE: the output in this example is not quite right. Something isnt being accounted for correctly with subshells. 
 # But the overall format is correct, EXCEPT that all the forked `echo _d` commands should be split off into their own profiles.
 
-. <(curl https://raw.githubusercontent.com/jkool702/misc-public-scripts/refs/heads/timep_testing_7/timep.bash)
+# . <(curl https://raw.githubusercontent.com/jkool702/misc-public-scripts/refs/heads/timep_testing_7/timep.bash)
 
 gg() (
     . <(for nn in {1..4};
@@ -28,7 +28,7 @@ done);
         ff2
     };
     ( ff3 );
-    ff4 & )
+    ( ff4 & )
 )
 
 timep gg

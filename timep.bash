@@ -113,37 +113,43 @@ timep() (
          return 1
     }
 
+export timep_TMPDIR="${timep_TMPDIR}"
+
     # determine if command being profiled is a shell script or not
     [[ ${timep_runType} == [sf] ]] || {
-        timep_runCmdPath="$(type -p "$1")"
-        if [[ ${timep_runCmdPath} ]]; then
-        # type -p gave a path for this command. Resolve this path if we can.
-            if type realpath &>/dev/null; then
-                timep_runCmdPath="$(realpath "${timep_runCmdPath}")"
-            elif type readlink &>/dev/null && [[ $(readlink "${timep_runCmdPath}") ]]; then
-                timep_runCmdPath="$(readlink "${timep_runCmdPath}")"
-            fi
+        if declare -F "$1" &>/dev/null; then
+            # command is a function, which takes precedence over a script
+            timep_runType=f
+        else
+            timep_runCmdPath="$(type -p "$1")"
+            if [[ ${timep_runCmdPath} ]]; then
+            # type -p gave a path for this command. Resolve this path if we can.
+                if type realpath &>/dev/null; then
+                    timep_runCmdPath="$(realpath "${timep_runCmdPath}")"
+                elif type readlink &>/dev/null && [[ $(readlink "${timep_runCmdPath}") ]]; then
+                    timep_runCmdPath="$(readlink "${timep_runCmdPath}")"
+                fi
 
-            if type file &>/dev/null && { [[ "$(file "${timep_runCmdPath}")" == *shell\ script*executable* ]] || { [[ "$(file "${timep_runCmdPath}")" == *text ]] && [[ -x "${timep_runCmdPath}" ]]; }; }; then
-                # file is text and either starts with a shebang or is executeable. Assume it is a script.
-                timep_runType=s
-            elif [[ "${timep_runCmdPath}" == *.*sh ]] && read -r <"${1}" && [[ "${REPLY}" == '#!'* ]]; then
-            # file name ends in .*sh (e.g., .sh or .bash) and file begins with a shebang. Assume shell script.
-                timep_runType=s
+                if type file &>/dev/null && { [[ "$(file "${timep_runCmdPath}")" == *shell\ script*executable* ]] || { [[ "$(file "${timep_runCmdPath}")" == *text ]] && [[ -x "${timep_runCmdPath}" ]]; }; }; then
+                    # file is text and either starts with a shebang or is executeable. Assume it is a script.
+                    timep_runType=s
+                elif [[ "${timep_runCmdPath}" == *.*sh ]] && read -r <"${1}" && [[ "${REPLY}" == '#!'* ]]; then
+                # file name ends in .*sh (e.g., .sh or .bash) and file begins with a shebang. Assume shell script.
+                    timep_runType=s
+                else
+                # for all other cases treat it as a shell function.
+                    timep_runType=f
+                fi
             else
-            # for all other cases treat it as a shell function.
+            # type -p didnt give a path. Treat it as a shell function.
                 timep_runType=f
             fi
-        else
-        # type -p didnt give a path. Treat it as a shell function.
-            timep_runType=f
         fi
     }    
 
-    export timep_TMPDIR="${timep_TMPDIR}"
 
 # helper function to get src code from functions
-getFuncSrc() {
+_timep_getFuncSrc() {
     local out 
     getFuncSrc0() {
         local m n p kk off
@@ -211,10 +217,10 @@ timep_FUNCNAME_STR="${timep_FUNCNAME_A[*]}"
 IFS="${timep_IFS_PREV}"; unset timep_IFS_PREV;
 if [[ "${timep_BASHPID_PREV}" == "${BASHPID}" ]]; then
     if [[ -f "${timep_LOGPATH}.${timep_NEXEC[-1]}" ]]; then
-        timep_BASH_COMMAND[${#timep_NEXEC[@]}]="<< subshell >>"
+        timep_BASH_COMMAND[${#timep_NEXEC[@]}]="\<\< subshell \>\>"
     elif [[ "${timep_BG_PID_PREV}" != $! ]]; then
         timep_BG_PID_PREV=$!
-        timep_BASH_COMMAND[${#timep_NEXEC[@]}]+=$'"'"'\n'"'"'"<< background fork: ${!} >>"
+        timep_BASH_COMMAND[${#timep_NEXEC[@]}]+=$'"'"'\n'"'"'"\<\< background fork: ${!} \>\>"
     fi
 else
     read -r _ _ _ _ _ _ _ timep_TPGID _ </proc/${BASHPID}/stat
@@ -231,7 +237,7 @@ else
     timep_BASHPID_STR+=">${BASHPID}"
     exec {timep_LOG_FD[${#timep_NEXEC[@]}]}>"${timep_LOGPATH}"
     timep_NO_PREV_FLAG=true
-    trap '"''"' EXIT RETURN
+    builtin trap '"'"'timep_EXIT_FLAG=true'"'"'EXIT
     set -m
 fi
 if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
@@ -244,7 +250,7 @@ if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
     exec {timep_LOG_FD[${#timep_NEXEC[@]}]}>"${timep_LOGPATH}"
 elif (( ${#FUNCNAME[@]} < timep_FUNCDEPTH_PREV )); then
     timep_LOGPATH="${timep_LOGPATH%.*}"
-    timep_BASH_COMMAND[${#timep_NEXEC[@]}]="<< function: ${timep_FUNCNAME_A[${#timep_NEXEC[@]}]} >>"
+    timep_BASH_COMMAND[${#timep_NEXEC[@]}]="\<\< function: ${timep_FUNCNAME_A[${#timep_NEXEC[@]}]} \>\>"
     unset "timep_FUNCNAME_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]"
     timep_RETURN_FLAG=false
 fi
@@ -289,7 +295,7 @@ trap() {
         return
     else
         [[ "${1}" == '--' ]] && shift 1
-        trapStr="${1%\;}; "
+        trapStr="${1%\;}"$'\n'
         shift 1
     fi
 
@@ -320,13 +326,14 @@ trap() {
             timep_runFuncSrc="${timep_runCmd1}"$'\n'
         ;;
         f)
-
-            declare -F "$1" &>/dev/null && . <(declare -f "$1")
+            _timep_getFuncSrc "$1" >"${timep_TMPDIR}"/functions.bash
+            timep_runCmd1='. "${timep_TMPDIR}"/functions.bash'
+            #declare -F "$1" &>/dev/null && . <(declare -f "$1")
             printf -v timep_runCmd '%q ' "${@}"
             [[ -t 0 ]] || timep_runCmd+=" <&0"
             
             # start of wrapper code
-            timep_runFuncSrc='timep_runFunc () '
+            timep_runFuncSrc="${timep_runCmd1}"$'\n''timep_runFunc () '
         ;;
     esac
 timep_runFuncSrc+="(
@@ -341,11 +348,12 @@ COMMAND PROFILED:
 START TIME: 
 %s (%s)
 
-FORMAT:
+FORMAT (TAB-SEPERATED):
 ----------------------------------------------------------------------------
-[ PID {NAME.SHLVL.NESTING} ]  LINENO:  RUNTIME  (TSTART --> TSTOP) <<--- { CMD }
-----------------------------------------------------------------------------\\n\\n' \"$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")\" \"\$(date)\" \"\${EPOCHREALTIME}\" >\"\${timep_TMPDIR}\"/time.ALL;
-    declare timep_FUNCDEPTH_PREV timep_BASHPID_PREV timep_LINENO_PREV timep_BG_PID_PREV timep_IFS_PREV timep_LOGPATH timep_ENDTIME timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NO_PREV_FLAG timep_NO_NEXT_FLAG timep_EXIT_FLAG timep_RETURN_FLAG;
+NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
+----------------------------------------------------------------------------\\n\\n' \"$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")\" \"\$(date)\" \"\${EPOCHREALTIME}\" >\"\${timep_TMPDIR}\"/.log/log.format;
+
+    declare timep_FUNCDEPTH_PREV timep_BASHPID_PREV timep_LINENO_PREV timep_BG_PID_PREV timep_IFS_PREV timep_TPGID timep_LOGPATH timep_ENDTIME timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NO_PREV_FLAG timep_NO_NEXT_FLAG timep_EXIT_FLAG timep_RETURN_FLAG timep_TMPDIR;
     declare -a timep_STARTTIME timep_BASH_COMMAND timep_LINENO timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_NPIPE timep_LOG_FD;
 
     set -T;
@@ -363,11 +371,13 @@ FORMAT:
     timep_NO_PREV_FLAG=false
     timep_NO_NEXT_FLAG=false
 
+    timep_TMPDIR=\"${timep_TMPDIR}\"
     timep_LOGPATH=\"\${timep_TMPDIR}/.log/\${BASHPID}/log\"
     timep_LOG_FD=()
     exec {timep_LOG_FD[0]}>\"\${timep_LOGPATH}\"
     mkdir -p \"\${timep_LOGPATH%/log}\"
-    trap '' DEBUG;
+    echo \"\$(( LINENO + 3 ))\" >\"\${timep_TMPDIR}\"/.log/log.lineno_offset
+    builtin trap \"${timep_DEBUG_TRAP_STR[0]}${timep_DEBUG_TRAP_STR[1]}\" DEBUG
 
     ${timep_runCmd}
 
@@ -375,35 +385,35 @@ FORMAT:
 
 )"
 
-case "${timep_runType}" in
-    f)  
-        # source the wrapper function we just generated
-        eval "${timep_runFuncSrc}"
-
-        # source it again by using declare -f in a command substitution
-        # this may seem silly because it IS silly...but, it makes $LINENO give meaningful line numbers in the DEBUG trap
-        . <(declare -f timep_runFunc)
-
-        # now actually run it
-        if [[ -t 0 ]]; then
-            timep_runFunc
-        else
-            timep_runFunc <&0
-        fi
-    ;;
-    s)  
-        # save script (with added debug trap) in new script file and make it executable
+#case "${timep_runType}" in
+#    f)  
+#        # source the wrapper function we just generated
+#        eval "${timep_runFuncSrc}"
+#
+#        # source it again by using declare -f in a command substitution
+#        # this may seem silly because it IS silly...but, it makes $LINENO give meaningful line numbers in the DEBUG trap
+#        . <(declare -f timep_runFunc)
+#
+#        # now actually run it
+#        if [[ -t 0 ]]; then
+#            timep_runFunc
+#        else
+#            timep_runFunc <&0
+#        fi
+#    ;;
+#    s)  
+        # save script/function (with added debug trap) in new script file and make it executable
         echo "${timep_runFuncSrc}" >"${timep_TMPDIR}"/main.bash
         chmod +x "${timep_TMPDIR}"/main.bash
 
-        # run the script (with added debug trap)
+        # source the script (with added debug trap)
         if [[ -t 0 ]]; then
-            "${timep_TMPDIR}"/main.bash "${@}"
+           bash --debug -O extglob "${timep_TMPDIR}"/main.bash "${@}"
         else
-            { "${timep_TMPDIR}"/main.bash "${@}"; } <&0
+            bash --debug -O extglob  "${timep_TMPDIR}"/main.bash "${@}" <&0
         fi        
-    ;;
-esac
+    #;;
+#esac
 
 printf '\n\nThe %s being time profiled has finished running!\ntimep will now process the logged timing data.\ntimep will save the time profiles it generates in "%s"\n\n' "$([[ "${timep_runType}" == 's' ]] && echo 'script' || echo 'function')" "${timep_TMPDIR}" >&2
 unset IFS
@@ -412,7 +422,7 @@ unset IFS
 ##### AFTER the code has finished running, a post-processing phase will:
 # 1. identify commands that are parts of pipelines by lookig for NPIPE > 1. NPIPE is greater that 1 for a single DEBUG trap firing after a pipeline has finished.
 # 2. starting with the most deeply nested logs, compute the total run time (by summing the individual command runtimes), then merge the log upwad into the "placeholder line" in the parent's log. use the summer runtime (not end time - start time) for this "placeholder line" so that the runtime profile is minimally affected by the timing instrumentation
-
+:<<'EOF'
 # get lists of unique commands run (unique combinations of pid + subshell level in the logged data
 mapfile -t -d '' uniq_pids < <(printf '%s\0' "${timep_TMPDIR}"/time.[0-9]*)
 uniq_pids=("${uniq_pids[@]##*/time.}")
@@ -482,5 +492,5 @@ export -nf _timep_check_traps
 #if ! [[  "${timep_TMPDIR}" == "$PWD" ]] && { { shopt nullglob &>/dev/null && [[ -z $(printf '%s' "${timep_TMPDIR}"/*) ]]; } || { ! shopt nullglob &>/dev/null && [[ "$(printf '%s' "${timep_TMPDIR}"/*)" == "${timep_TMPDIR}"'/*' ]]; }; }; then 
 #    \rm -r "${timep_TMPDIR}"
 #fi
-    
+EOF
 )
