@@ -225,7 +225,7 @@ IFS="${timep_IFS_PREV}"
 unset timep_IFS_PREV
 if [[ "${timep_BASHPID_PREV}" == "${BASHPID}" ]] && [[ "${timep_BASH_SUBSHELL_PREV}" == "${BASH_SUBSHELL}" ]]; then
     if [[ -f "${timep_TMPDIR}/.log/log.${timep_NEXEC_STR}" ]]; then
-        timep_BASH_COMMAND[${timep_NESTING_LVL}]="\<\< subshell \>\>"
+        timep_BASH_COMMAND[${timep_NESTING_LVL}]+=$'"'"'\t'"'"'"\<\< subshell \>\>"
     fi
     if [[ "${timep_BG_PID_PREV}" != $! ]]; then
         timep_BG_PID_PREV=$!
@@ -290,8 +290,8 @@ else
     timep_FUNCDEPTH_PREV="${#FUNCNAME[@]}"
     timep_LINENO_PREV="${LINENO}" 
     timep_BASH_SUBSHELL_PREV="${BASH_SUBSHELL}"
-    timep_BASH_COMMAND[${timep_NESTING_LVL}]="${BASH_COMMAND}"
-    (( timep_NEXEC[-1] += 1 ))
+    timep_BASH_COMMAND[${timep_NESTING_LVL}]="${BASH_COMMAND@Q}"
+    (( timep_NEXEC[-1]++ ))
     timep_STARTTIME[${timep_NESTING_LVL}]=${EPOCHREALTIME}
 fi
 '
@@ -368,7 +368,6 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
     declare -a timep_STARTTIME timep_BASH_COMMAND timep_LINENO timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_NPIPE timep_LOG_FD;
 
     set -T;
-    set -m;
 
     timep_BASHPID_A=(\"\${BASHPID}\");
     timep_FUNCNAME_A=('main');
@@ -381,7 +380,7 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
 
     timep_EXIT_FLAG=false
     timep_RETURN_FLAG=false
-    timep_NO_PREV_FLAG=false
+    timep_NO_PREV_FLAG=true
     timep_NO_NEXT_FLAG=false
 
     timep_NESTING_LVL=0
