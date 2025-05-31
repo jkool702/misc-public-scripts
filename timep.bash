@@ -271,7 +271,7 @@ if ${timep_EXIT_FLAG}; then
     unset "timep_BASHPID_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]"
     timep_EXIT_FLAG=false
     timep_NO_NEXT_FLAG=true
-    timep_BASH_COMMAND[${timep_NESTING_LVL}]="\<\< subshell \>\>""
+    timep_BASH_COMMAND[${timep_NESTING_LVL}]="\<\< subshell \>\>"
     declare -p timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_BASH_COMMAND timep_NPIPE timep_STARTTIME timep_LINENO timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_LOG_FD timep_NESTING_LVL timep_BASH_SUBSHELL_PREV >"${timep_LOGPATH}".vars
 fi
 if ${timep_NO_NEXT_FLAG}; then
