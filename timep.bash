@@ -233,7 +233,7 @@ elif (( ${#FUNCNAME[@]} < timep_FUNCDEPTH_PREV )) || [[ "${timep_FUNCNAME_PREV}"
 fi
 if [[ "${timep_BG_PID_PREV}" != "${!}" ]]; then
     timep_BG_PID_PREV="${!}"
-    printf '"'"'%s\t%s.%s\n'"'"' "${timep_NEXEC_STR}" "${timep_BASHPID_STR}" "${!}" >>${timep_TMPDIR}/.log/bg_pids
+    printf '"'"'%s\t%s.%s\n'"'"' "${timep_NEXEC_STR}" "${timep_BASHPID_STR}" "${!}" >>"${timep_TMPDIR}/.log/bg_pids"
 fi
 if ${timep_NO_PREV_FLAG}; then
     timep_NO_PREV_FLAG=false
@@ -367,8 +367,8 @@ trap() {
             timep_runFuncSrc="${timep_runCmd1}"$'\n'
         ;;
         f)
-            _timep_getFuncSrc "$1" >"${timep_TMPDIR}"/functions.bash
-            chmod +x "${timep_TMPDIR}"/functions.bash
+            _timep_getFuncSrc "$1" >"${timep_TMPDIR}/functions.bash"
+            chmod +x "${timep_TMPDIR}/functions.bash"
             timep_runCmd1='#!'"$(type -p bash)"
 
             printf -v timep_runCmd '%q ' "${@}"
@@ -430,7 +430,7 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
     builtin trap 'timep_EXIT_FLAG=true' EXIT
     builtin trap 'timep_RETURN_FLAG=true' RETURN
 
-    echo \"\$(( LINENO + 4 ))\" >\"\${timep_TMPDIR}\"/.log/lineno_offset
+    echo \"\$(( LINENO + 4 ))\" >\"\${timep_TMPDIR}/.log/lineno_offset\"
 
     builtin trap '${timep_DEBUG_TRAP_STR[@]//"'"/"'"'"'"'"'"'"'"}' DEBUG
 
@@ -441,14 +441,14 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
 )"
 
    # save script/function (with added debug trap) in new script file and make it executable
-    echo "${timep_runFuncSrc}" >"${timep_TMPDIR}"/main.bash
-    chmod +x "${timep_TMPDIR}"/main.bash
+    echo "${timep_runFuncSrc}" >"${timep_TMPDIR}/main.bash"
+    chmod +x "${timep_TMPDIR}/main.bash"
 
     case "${timep_runType}" in
     f)  
         # source the original functions and then the wrapper function we just generated
-        . "${timep_TMPDIR}"/functions.bash 
-        . "${timep_TMPDIR}"/main.bash 
+        . "${timep_TMPDIR}/functions.bash"
+        . "${timep_TMPDIR}/main.bash"
         
         # now actually run it
         if [[ -t 0 ]]; then
@@ -460,9 +460,9 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
     s)  
         # run the script (with added debug trap)
         if [[ -t 0 ]]; then
-           "${timep_TMPDIR}"/main.bash "${@}"
+           "${timep_TMPDIR}/main.bash" "${@}"
         else
-           "${timep_TMPDIR}"/main.bash "${@}" <&0
+           "${timep_TMPDIR}/main.bash" "${@}" <&0
         fi        
     ;;
 esac
