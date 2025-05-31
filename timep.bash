@@ -8,6 +8,7 @@ timep() (
     # USAGE:     timep [-s|-f] [--] _______          --OR--
     #    [...] | timep [-s|-f] [--] _______ | [...]
     #
+    # TO DO: UPDATE "OUTPUT" SECTION DOCUMENTATION. THE BELOW SECTION APPLIES TO AN OLDER VERSION OF timep
     # OUTPUT: 
     #    4 types of time profiles will be saved to disk in timep's tmpdir directory (a new directory under /dev/shm or /tmp or $PWD - printed to stderr at the end):
     #        time.ALL :                       the individual per-command run times for every command run under any pid. This is generated directly by the DEBUF trap as the code runs
@@ -23,7 +24,7 @@ timep() (
     #              and will end the file with + separate data from different PIDs with a NULL.
     #
     # FLAGS:
-    #    Flags must be given before the command being profiled. if multiple -s/-f are given the last one is used/.
+    #    Flags must be given before the command being profiled. if multiple -s/-f are given the last one is used.
     #    -s | --shell    : force timep to treat the code being profiled as a shell script
     #    -f | --function : force timep to treat the code being profiled as a shell function
     #    --              : stop arg parsing (allows propfiling something with the same name as a flag)
@@ -31,33 +32,33 @@ timep() (
     #             Assume a shell function unless detection explicitly indicates a shell script.
     #
     # RUNTIME CONDITIONS/REQUIREMENTS:
-    #    It is REQUIRED that the shell script/function you are generating the time profile for does NOT use a DEBUG trap ANYWHERE.
-    #        timep works by "hijacking" the DEBUG trap, and if the code alters the DEBUG traop then timep will stop working.
-    #    Additionally, timep adds a several variables (all which start with "timep_") + function(s) to the runtime env of whatever is being profiled. The code being profiled must NOT modify these.
-    #        FUNCTIONS:  _timep_printTimeDiff
-    #        VARIABLES:  timep_ID timep_ID_PREV timep_FUNCDEPTH_PREV timep_BASH_SUBSHELL_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_TRAP_TYPE timep_ENDTIME timep_RUNTIME_CUR timep_LINE_OUT timep_PPID timep_STARTTIME timep_ENDTIME timep_BASH_COMMAND timep_LINENO timep_NESTING timep_BASHPID timep_FUNCNAME timep_RUNTIME_SUM;
+    #    timep adds a several variables (all which start with "timep_") + function(s) to the runtime env of whatever is being profiled. The code being profiled must NOT modify these.
+    #        FUNCTIONS:  _timep_*    trap
+    #        VARIABLES:  timep_*
+    #
+    #    timep works by using DEBUG, EXIT and RETURN traps. To allow profiling bash code which *also* sets these traps, timep defines a `trap` funbction to overload the builtin `trap`. This function will incorporate the traps required by timep into the traps seyt by the bash code.
+    #    for timep to work correctly, any EXIT/RETURN/DEBUG trapos set by the code beiung profiled must NOT be set using `builtin trap` - the overloaded `trap` function must be used (i.e., just call `trap ...`)
     #
     # DEPENDENCIES:
-    #    1) bash 5.0+ (it needs to support the $EPOCHREALTIME variable)
-    #    2) sed, grep, sort, mkdir, file*
+    #    1) bash 5.0+ (required to support the $EPOCHREALTIME variable)
+    #    2) sed, grep, sort, mkdir, tail, file*
     #
     # NOTES: 
-    #    1. Scripts using RETURN traps MAY not work as expected. "set -T" is used to propogate the DEBUG trap into shell functions,
-    #         which also propogates RETURN traps into shell functions. This may or may not cause unexpected "RETURN trap"-related behavior.
-    #    2. The line numbers may not correspond exactly to the line numbers in the original code, but will ensure commamds are ordered correctly.
-    #    3. Any shell scripts called by the top-level script/function being profiled will NOT have their runtimes profiled, since the DEBUG trap doesnt propogate to sripts.
+    #    1. timep attempts to find the raw source code for functions being profiled, but in some instances (example: functions defined via `. <(...)` or functions defined in terminal when historyis off) this isnt possible.
+    #         In these cases,  `declare -f <func>` will be treated as the source, and the line numbers may not correspond exactly to the line numbers in the original code. Commamds are, however, still ordered correctly.
+    #    2. Any shell scripts called by the top-level script/function being profiled will NOT have their runtimes profiled, since the DEBUG trap doesnt propogate to sripts.
     #         To profile these, either source them (instead of calling them) or call them via `timep -s <script>`. However, shell functions that are called WILL automatically be profiled.
-    #    4. To define a custom TMPDIR, pass `timep_TMPDIR` as an environment variable. e.g., timep_TMPDIR=/path/to/tmpdir timep codeToProfile
+    #    3. To define a custom TMPDIR (other than /dev/shm/.timep.XXXXXX), pass `timep_TMPDIR` as an environment variable. e.g., timep_TMPDIR=/path/to/tmpdir timep codeToProfile
     #
     # DIFFERENCES IN HOW SCRIPTS AND FUNCTIONS ARE HANDLED
-    #    if the command being profiled is a shell script, timep will create a new script file under
+    #    If the command being profiled is a shell script, timep will create a new script file under
     #        $timep_TMPDIR that defines our DEBUG trap followed by the contents of the original script. 
     #        this new script is called with any arguments passed on the timep commandline (if no flags: ${2}+).
-    #    if the command being profiled is a shell function (or, in general, NOT a shell script), timep will create a new
+    #    If the command being profiled is a shell function (or, in general, NOT a shell script), timep will create a new
     #        shell function (runFunc) that defines our DEBUG trap and then calls whatever commandline was passed to timep.
-    #        this then gets re-sourced (via `. <(declare -f runFunc)`) to make $LINENO give meaningful line numbers.
-    #    the intent is to run scripts as scripts and functions as functions, so that things like $0 and $BASH_SOURCE work as expected.
-    #    for both scripts and functions, if stdin is not a terminal then it is passed to the stdin of the code being profiled.
+    #        this then gets saved to a file (main.bash) and sourced to make $LINENO give meaningful line numbers. runFunc is then called directly.
+    #    The intent is to run scripts as scripts and functions as functions, so that things like $0 and $BASH_SOURCE work as expected.
+    #    For both scripts and functions, if stdin is not a terminal then it is passed to the stdin of the code being profiled.
     #
     ################################################################################################################################################################
 
@@ -152,12 +153,15 @@ timep() (
 # helper function to get src code from functions
 _timep_getFuncSrc() {
     local out 
+    
     getFuncSrc0() {
         local m n p kk off
         local -a A
+        
         # get where the function was sourced from. note: extdebug will tell us where thre function definition started, but not where it ends.
         read -r _ n p < <(shopt -s extdebug; declare -F "${1}")
         ((n--))
+        
         if [[ "${p}" == 'main' ]]; then
             # try to pull function definition out of the bash history
             off=$(( 1 - $( { history | grep -n '' | grep -E '^[0-9]+:[[:space:]]*[0-9]*[[:space:]]*((function[[:space:]]+'"${1}"')|('"${1}"'[[:space:]]*\(\)))' | tail -n 1; history | grep -n '' | tail -n 1; } | sed -E s/'\:.*$'// | sed -zE s/'\n'/' +'/) ))
@@ -171,6 +175,10 @@ _timep_getFuncSrc() {
             declare -f "${1}"
             return
         fi
+        
+        # return declare -f if A is empty
+        (( ${#A[@]} == 0 )) && { declare -f "$1"; return; }
+        
         # our text blob *should* now start at the start of the function definition, but goes all the way to the EOF.
         # try sourcing just the 1st line, then the first 2, then the first 3, etc. until the function sources correctly.
         m=$( kk=1;  IFS=$'\n'; until . /proc/self/fd/0 <<<"${A[*]:0:$kk}" &>/dev/null || (( m > ${#A[@]} )); do ((kk++)); done; echo "$kk"; )
@@ -180,8 +188,10 @@ _timep_getFuncSrc() {
             printf '%s\n' "${A[@]:0:$m}"
         fi
     }
+    
     out="$(getFuncSrc0 "$1")"
     echo "$out"
+    
     # feed the function definition through `bash --rpm-requires` to get dependencies, 
     # then test each with `type` to find function dependencies. 
     # re-call _timep_getFuncSrc for each dependent function.
