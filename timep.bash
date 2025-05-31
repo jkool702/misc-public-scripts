@@ -303,8 +303,10 @@ if [[ "${timep_BASHPID_PREV}" != "${BASHPID}" ]] || (( timep_BASH_SUBSHELL_PREV 
             1) timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}]="${PPID}" ;;
             *) (( timep_BASH_SUBSHELL_DIFF0 = timep_BASH_SUBSHELL_DIFF + 1 )); IFS=" " read -r _ _ _ timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] _ </proc/${timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF0}]} ;;
         esac
-        unset timep_BASH_SUBSHELL_DIFF0 timep_BASH_SUBSHELL_DIFF
+        (( timep_KK++ ))
+        unset timep_BASH_SUBSHELL_DIFF0 
     done
+    unset timep_BASH_SUBSHELL_DIFF
     for timep_KK in "${timep_BASHPID_ADD[@]}"; do
         (( timep_NESTING_LVL++ ))
         (( timep_BASH_SUBSHELL_PREV++ ))
