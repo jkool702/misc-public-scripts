@@ -135,7 +135,7 @@ timep() (
                 if type file &>/dev/null && { [[ "$(file "${timep_runCmdPath}")" == *shell\ script*executable* ]] || { [[ "$(file "${timep_runCmdPath}")" == *text ]] && [[ -x "${timep_runCmdPath}" ]]; }; }; then
                     # file is text and either starts with a shebang or is executeable. Assume it is a script.
                     timep_runType=s
-                elif [[ "${timep_runCmdPath}" == *.*sh ]] && read -r <"${1}" && [[ "${REPLY}" == '#!'* ]]; then
+                elif [[ "${timep_runCmdPath}" == *.*sh ]] && read -r <"${timep_runCmdPath}" && [[ "${REPLY}" == '#!'* ]]; then
                 # file name ends in .*sh (e.g., .sh or .bash) and file begins with a shebang. Assume shell script.
                     timep_runType=s
                 else
@@ -238,10 +238,6 @@ if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
     timep_NEXEC_STR+=".0"
     timep_FUNCNAME_STR+=".${FUNCNAME[0]}"
 fi
-if [[ "${timep_BG_PID_PREV}" != "${!}" ]]; then
-    timep_BG_PID_PREV="${!}"
-    printf '"'"'%s\t%s.%s\n'"'"' "${timep_NEXEC_STR}" "${timep_BASHPID_STR}" "${!}" >>"${timep_TMPDIR}/.log/bg_pids"
-fi
 if ${timep_NO_PREV_FLAG}; then
     timep_NO_PREV_FLAG=false
 else
@@ -271,7 +267,7 @@ if ${timep_EXIT_FLAG}; then
     timep_EXIT_FLAG=false
     timep_NO_NEXT_FLAG=true
     timep_BASH_COMMAND[${timep_NESTING_LVL}]="\<\< subshell \>\>"
-    declare -p timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_BASH_COMMAND timep_NPIPE timep_STARTTIME timep_LINENO timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_LOG_FD timep_NESTING_LVL timep_BASH_SUBSHELL_PREV >"${timep_LOGPATH}".vars
+    declare -p timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_BASH_COMMAND timep_NPIPE timep_STARTTIME timep_LINENO timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_LOG_FD timep_NESTING_LVL timep_BASH_SUBSHELL_PREV >"${timep_LOGPATH}.vars"
 fi
 if ${timep_NO_NEXT_FLAG}; then
     timep_NO_NEXT_FLAG=false
@@ -326,8 +322,11 @@ if [[ "${timep_BASHPID_PREV}" != "${BASHPID}" ]] || (( timep_BASH_SUBSHELL_PREV 
         timep_BASHPID_STR+=".${timep_KK}"
         exec {timep_LOG_FD[${timep_NESTING_LVL}]}>"${timep_LOGPATH}"
     done
-
     builtin trap '"'"'timep_EXIT_FLAG=true'"'"' EXIT
+fi
+if [[ "${timep_BG_PID_PREV}" != "${!}" ]]; then
+    timep_BG_PID_PREV="${!}"
+    printf '"'"'%s\t%s.%s\n'"'"' "${timep_NEXEC_STR}" "${timep_BASHPID_STR}" "${!}" >>"${timep_TMPDIR}/.log/bg_pids"
 fi
 timep_STARTTIME[${timep_NESTING_LVL}]=${EPOCHREALTIME}
 '
@@ -402,7 +401,7 @@ FORMAT (TAB-SEPERATED):
 NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
 ----------------------------------------------------------------------------\\n\\n' \"$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")\" \"\$(date)\" \"\${EPOCHREALTIME}\" >\"\${timep_TMPDIR}\"/.log/format;
 
-    declare timep_FUNCDEPTH_PREV timep_BASHPID_PREV timep_FUNCNAME_PREV timep_LINENO_0_PREV timep_BG_PID_PREV timep_IFS_PREV timep_LOGPATH timep_ENDTIME timep_NESTING_LVL timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NO_PREV_FLAG timep_NO_NEXT_FLAG timep_EXIT_FLAG timep_RETURN_FLAG timep_TMPDIR timep_LINENO_0 timep_LINENO_1;
+    declare timep_FUNCDEPTH_PREV timep_BASHPID_PREV timep_FUNCNAME_PREV timep_BG_PID_PREV timep_IFS_PREV timep_LOGPATH timep_ENDTIME timep_NESTING_LVL timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NO_PREV_FLAG timep_NO_NEXT_FLAG timep_EXIT_FLAG timep_RETURN_FLAG timep_TMPDIR timep_LINENO_0 timep_LINENO_1;
     declare -a timep_STARTTIME timep_BASH_COMMAND timep_LINENO timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_NPIPE timep_LOG_FD;
 
     set -T;
