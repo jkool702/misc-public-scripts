@@ -9,14 +9,14 @@ timep() (
     #    [...] | timep [-s|-f] [--] _______ | [...]
     #
     # TO DO: UPDATE "OUTPUT" SECTION DOCUMENTATION. THE BELOW SECTION APPLIES TO AN OLDER VERSION OF timep
-    # OUTPUT: 
+    # OUTPUT:
     #    4 types of time profiles will be saved to disk in timep's tmpdir directory (a new directory under /dev/shm or /tmp or $PWD - printed to stderr at the end):
     #        time.ALL :                       the individual per-command run times for every command run under any pid. This is generated directly by the DEBUF trap as the code runs
     #        time.<pid>.<#>_<name> :          the individual per-command run times for a specific pid at some function nesting level <#>
     #        time.combined.<pid>.<#>_<name> : the combined time and run count for each unique command run by that pid. The <#>.<#> is $SHLVL.$BASH_SUBSHELL
     #        time.combined.ALL :              the time.combined.<pid>.<#>.<#> files from all pids combined into a single file.  This is printed to stderr at the end
     #
-    # OUTPUT FORMAT: 
+    # OUTPUT FORMAT:
     #    for time.ALL profiles:                [ $PID.${#FUNCNAME[@]} {$NAME} ]  $LINENO:  <run_time> sec  ( <start_time --> <end_time> ) <<--- { $BASH_CMD }
     #    for time.<pid>.<#>_<name> profiles:   $LINENO:  <run_time> sec  ( <start_time --> <end_time> )  <<--- { $BASH_CMD }
     #    for time.combined profiles:           $LINENO:  <total_run_time> sec  <<--- (<run_count>x) { $BASH_CMD }
@@ -28,7 +28,7 @@ timep() (
     #    -s | --shell    : force timep to treat the code being profiled as a shell script
     #    -f | --function : force timep to treat the code being profiled as a shell function
     #    --              : stop arg parsing (allows propfiling something with the same name as a flag)
-    #    DEFAULT: Attempt to automatically detect shell scripts (*requires `file` for robust detection). 
+    #    DEFAULT: Attempt to automatically detect shell scripts (*requires `file` for robust detection).
     #             Assume a shell function unless detection explicitly indicates a shell script.
     #
     # RUNTIME CONDITIONS/REQUIREMENTS:
@@ -43,7 +43,7 @@ timep() (
     #    1) bash 5.0+ (required to support the $EPOCHREALTIME variable)
     #    2) sed, grep, sort, mkdir, tail, file*
     #
-    # NOTES: 
+    # NOTES:
     #    1. timep attempts to find the raw source code for functions being profiled, but in some instances (example: functions defined via `. <(...)` or functions defined in terminal when historyis off) this isnt possible.
     #         In these cases,  `declare -f <func>` will be treated as the source, and the line numbers may not correspond exactly to the line numbers in the original code. Commamds are, however, still ordered correctly.
     #    2. Any shell scripts called by the top-level script/function being profiled will NOT have their runtimes profiled, since the DEBUG trap doesnt propogate to sripts.
@@ -52,7 +52,7 @@ timep() (
     #
     # DIFFERENCES IN HOW SCRIPTS AND FUNCTIONS ARE HANDLED
     #    If the command being profiled is a shell script, timep will create a new script file under
-    #        $timep_TMPDIR that defines our DEBUG trap followed by the contents of the original script. 
+    #        $timep_TMPDIR that defines our DEBUG trap followed by the contents of the original script.
     #        this new script is called with any arguments passed on the timep commandline (if no flags: ${2}+).
     #    If the command being profiled is a shell function (or, in general, NOT a shell script), timep will create a new
     #        shell function (runFunc) that defines our DEBUG trap and then calls whatever commandline was passed to timep.
@@ -82,7 +82,7 @@ timep() (
     : "${timep_TMPDIR:=}"
 
     # try /dev/shm
-    [[ -d /dev/shm ]] && { 
+    [[ -d /dev/shm ]] && {
         timep_TMPDIR=/dev/shm/.timep."$(printf '%X' ${RANDOM}${RANDOM:1})"
         until ! [[ -d "$timep_TMPDIR" ]]; do
             timep_TMPDIR=/dev/shm/.timep."$(printf '%X' ${RANDOM}${RANDOM:1})"
@@ -95,7 +95,7 @@ timep() (
         timep_TMPDIR=/tmp/.timep."$(printf '%X' ${RANDOM}${RANDOM:1})"
         until ! [[ -d "$timep_TMPDIR" ]]; do
             timep_TMPDIR=/tmp/.timep."$(printf '%X' ${RANDOM}${RANDOM:1})"
-        done        
+        done
         mkdir -p "$timep_TMPDIR" &>/dev/null || timep_TMPDIR=''
     }
 
@@ -104,7 +104,7 @@ timep() (
         timep_TMPDIR="$PWD/.timep.$(printf '%X' ${RANDOM}${RANDOM:1})"
         until ! [[ -d "$timep_TMPDIR" ]]; do
             timep_TMPDIR="$PWD/.timep.$(printf '%X' ${RANDOM}${RANDOM:1})"
-        done   
+        done
         mkdir -p "$timep_TMPDIR" &>/dev/null || timep_TMPDIR=''
     }
 
@@ -147,21 +147,21 @@ timep() (
                 timep_runType=f
             fi
         fi
-    }    
+    }
 
 
 # helper function to get src code from functions
 _timep_getFuncSrc() {
-    local out 
-    
+    local out
+
     getFuncSrc0() {
         local m n p kk off
         local -a A
-        
+
         # get where the function was sourced from. note: extdebug will tell us where thre function definition started, but not where it ends.
         read -r _ n p < <(shopt -s extdebug; declare -F "${1}")
         ((n--))
-        
+
         if [[ "${p}" == 'main' ]]; then
             # try to pull function definition out of the bash history
             off=$(( 1 - $( { history | grep -n '' | grep -E '^[0-9]+:[[:space:]]*[0-9]*[[:space:]]*((function[[:space:]]+'"${1}"')|('"${1}"'[[:space:]]*\(\)))' | tail -n 1; history | grep -n '' | tail -n 1; } | sed -E s/'\:.*$'// | sed -zE s/'\n'/' +'/) ))
@@ -175,10 +175,10 @@ _timep_getFuncSrc() {
             declare -f "${1}"
             return
         fi
-        
+
         # return declare -f if A is empty
         (( ${#A[@]} == 0 )) && { declare -f "$1"; return; }
-        
+
         # our text blob *should* now start at the start of the function definition, but goes all the way to the EOF.
         # try sourcing just the 1st line, then the first 2, then the first 3, etc. until the function sources correctly.
         m=$( kk=1;  IFS=$'\n'; until . /proc/self/fd/0 <<<"${A[*]:0:$kk}" &>/dev/null || (( m > ${#A[@]} )); do ((kk++)); done; echo "$kk"; )
@@ -188,19 +188,19 @@ _timep_getFuncSrc() {
             printf '%s\n' "${A[@]:0:$m}"
         fi
     }
-    
+
     out="$(getFuncSrc0 "$1")"
     echo "$out"
-    
-    # feed the function definition through `bash --rpm-requires` to get dependencies, 
-    # then test each with `type` to find function dependencies. 
+
+    # feed the function definition through `bash --rpm-requires` to get dependencies,
+    # then test each with `type` to find function dependencies.
     # re-call _timep_getFuncSrc for each dependent function.
     bash --debug --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type $nn 2>/dev/null | grep -qF 'is a function' && _timep_getFuncSrc "$nn"; done
 }
 
 
- 
-    
+
+
 # generate the code for a wrapper function (timep_runFunc) that wraps around whatever we are running / time profiling.
 # this will setup a DEBUG trap to measure runtime from every command, then will run the specified code.
 # the source code is generated and then sourced (instead of directly defined) so that things like the tmpdir/logfile path are hardcoded.
@@ -210,13 +210,12 @@ _timep_getFuncSrc() {
 timep_DEBUG_TRAP_STR[0]='timep_NPIPE[${timep_NESTING_LVL}]="${#PIPESTATUS[@]}"
 timep_ENDTIME="${EPOCHREALTIME}"
 '
-
 # main timep DEBUG trap
 #
 # we have already recorded the number of PIPESTATUS elements and the previous command end time
 #
 # first, check if BASHPID changed. if so, increase nesting/subshell lvl and re-set EXIT traps.
-# else check for subshell exit (see if prev EXEC_N logfile exists). if so increment EXEC_N an extra time 
+# else check for subshell exit (see if prev EXEC_N logfile exists). if so increment EXEC_N an extra time
 # else check if last command was a bg fork. if so log thre pid/nexec
 #
 # second, check if we are entering/exiting a function
@@ -227,8 +226,8 @@ timep_ENDTIME="${EPOCHREALTIME}"
 
 timep_DEBUG_TRAP_STR[1]='
 if [[ -s "${timep_LOGPATH}.vars" ]]; then
-    . "${timep_LOGPATH}".vars
-    : >"${timep_LOGPATH}".vars
+    . "${timep_LOGPATH}.vars"
+    : >"${timep_LOGPATH}.vars"
 fi
 if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
     timep_NEXEC+=("0")
@@ -311,7 +310,7 @@ if [[ "${timep_BASHPID_PREV}" != "${BASHPID}" ]] || (( timep_BASH_SUBSHELL_PREV 
             *) (( timep_BASH_SUBSHELL_DIFF0 = timep_BASH_SUBSHELL_DIFF + 1 )); IFS=" " read -r _ _ _ timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] _ </proc/${timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF0}]} ;;
         esac
         (( timep_KK++ ))
-        unset timep_BASH_SUBSHELL_DIFF0 
+        unset timep_BASH_SUBSHELL_DIFF0
     done
     unset timep_BASH_SUBSHELL_DIFF
     for timep_KK in "${timep_BASHPID_ADD[@]}"; do
@@ -381,7 +380,7 @@ trap() {
 
             printf -v timep_runCmd '%q ' "${@}"
             [[ -t 0 ]] || timep_runCmd+=" <&0"
-            
+
             # start of wrapper code
             timep_runFuncSrc="${timep_runCmd1}"$'\n''timep_runFunc() '
         ;;
@@ -395,7 +394,7 @@ printf '\\n
 COMMAND PROFILED:
 %s
 
-START TIME: 
+START TIME:
 %s (%s)
 
 FORMAT (TAB-SEPERATED):
@@ -455,11 +454,11 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
     chmod +x "${timep_TMPDIR}/main.bash"
 
     case "${timep_runType}" in
-    f)  
+    f)
         # source the original functions and then the wrapper function we just generated
         . "${timep_TMPDIR}/functions.bash"
         . "${timep_TMPDIR}/main.bash"
-        
+
         # now actually run it
         if [[ -t 0 ]]; then
             timep_runFunc
@@ -467,13 +466,13 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
             timep_runFunc <&0
         fi
     ;;
-    s)  
+    s)
         # run the script (with added debug trap)
         if [[ -t 0 ]]; then
            "${timep_TMPDIR}/main.bash" "${@}"
         else
            "${timep_TMPDIR}/main.bash" "${@}" <&0
-        fi        
+        fi
     ;;
 esac
 
@@ -502,11 +501,11 @@ for p in "${uniq_pids[@]}"; do
 
     # find the unique commands (pid + subshell_lvl + line number + cmd) from just this pid/subshell_lvl
     mapfile -t uniq_lines_pid < <(grep -a -v -E '^((PID)|(NAME)|(NESTING)|([0-9]+\:[[:space:]]+ERROR)|\:|\0|$)' 2>/dev/null <"${timep_TMPDIR}/time.$p" | sed -E 's/:[^<:]+<<\-\-\- /: /' | sort -u)
-   
+
     tSumAll0=0
     printf -v outCur0 'NESTING LVL:\t%s\nPID:        \t%s\nNAME:        \t%s\n' "${p0##*.}" "${p0%%.*}" "${p1}"
     outCur=("${outCur0}")
-    
+
     # for each unique command run by this unique command, pull out the run count and pull out the run times and sum them together
     # print a line to the time.combined.<pid> file vcontaining the run count and the combined run time for that command
     # also, keep track of total run time for this PID
@@ -525,7 +524,7 @@ for p in "${uniq_pids[@]}"; do
         t6=$(( ${#tSum} - 6 ))
         printf -v outCur0 '%s:  %s.%s sec \t <<--- (%sx) %s\n' "${linesCmdCur[0]%%:*}" "${tSum:0:$t6}" "${tSum:$t6}" "${#timesCmdCur[@]}" "${linesCmdCur[0]#*\<\<\-\-\- }"
         outCur+=("${outCur0}")
-    done 
+    done
     printf -v tSumAll '%.07d' "$tSumAll0"
     t6=$(( ${#tSumAll} - 6 ))
     printf '%s' "${outCur[0]}" >"${timep_TMPDIR}/time.combined.$p"
@@ -548,11 +547,11 @@ printf '\n\nAdditional time profiles, including non-combined ones that show indi
 cat "${timep_TMPDIR}"/time.combined.ALL >&2
 
 export -n timep_TMPDIR
-export -nf _timep_printTimeDiff  
+export -nf _timep_printTimeDiff
 export -nf _timep_check_traps
 
 #\rm -f "${timep_TMPDIR}"/.timep.*
-#if ! [[  "${timep_TMPDIR}" == "$PWD" ]] && { { shopt nullglob &>/dev/null && [[ -z $(printf '%s' "${timep_TMPDIR}"/*) ]]; } || { ! shopt nullglob &>/dev/null && [[ "$(printf '%s' "${timep_TMPDIR}"/*)" == "${timep_TMPDIR}"'/*' ]]; }; }; then 
+#if ! [[  "${timep_TMPDIR}" == "$PWD" ]] && { { shopt nullglob &>/dev/null && [[ -z $(printf '%s' "${timep_TMPDIR}"/*) ]]; } || { ! shopt nullglob &>/dev/null && [[ "$(printf '%s' "${timep_TMPDIR}"/*)" == "${timep_TMPDIR}"'/*' ]]; }; }; then
 #    \rm -r "${timep_TMPDIR}"
 #fi
 EOF
