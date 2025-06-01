@@ -253,6 +253,14 @@ if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
     timep_FUNCNAME_STR+=".${FUNCNAME[0]}"
     timep_NEXEC+=("0")
 fi
+if ${timep_NO_PREV_FLAG}; then
+    timep_NO_PREV_FLAG=false
+else
+    [[ ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} ]] && {
+        printf '"'"'%s\t'"'"' "${timep_NPIPE[${timep_NESTING_LVL}]}" "${timep_STARTTIME[${timep_NESTING_LVL}]}" "${timep_ENDTIME}" "${timep_LINENO[${timep_NESTING_LVL}]}" "${timep_NEXEC_STR}" "${timep_BASHPID_STR}" "${timep_FUNCNAME_STR}"
+        printf '"'"'%s\n'"'"' "${timep_BASH_COMMAND[${timep_NESTING_LVL}]}"
+    } >&${timep_LOG_FD[${timep_NESTING_LVL}]}
+fi
 if ${timep_RETURN_FLAG}; then
     timep_LOGPATH="${timep_LOGPATH%.[0-9]*}"
     timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}"
@@ -262,7 +270,6 @@ if ${timep_RETURN_FLAG}; then
     (( timep_FUNCDEPTH_PREV-- ))
     unset "timep_FUNCNAME_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]" "timep_LOG_FD[-1]"
     timep_RETURN_FLAG=false
-    timep_NO_PREV_FLAG=true
     timep_NO_NEXT_FLAG=true
     timep_BASH_COMMAND[${timep_NESTING_LVL}]="\<\< function: ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} \>\>"
 fi
@@ -278,16 +285,7 @@ if ${timep_EXIT_FLAG}; then
     timep_NO_PREV_FLAG=false
     timep_BASH_COMMAND[${timep_NESTING_LVL}]="\<\< subshell \>\>"
     declare -p timep_BASHPID_A timep_NEXEC timep_BASH_COMMAND timep_NPIPE timep_STARTTIME timep_LINENO timep_NEXEC_STR timep_BASHPID_STR timep_LOG_FD timep_NESTING_LVL timep_NESTING_LVL_0 timep_BASH_SUBSHELL_PREV timep_LOGPATH timep_LOGPATH_0 timep_NO_PREV_FLAG >"${timep_LOGPATH_0}.vars"
-    timep_NO_PREV_FLAG=true
     timep_NO_NEXT_FLAG=true
-fi
-if ${timep_NO_PREV_FLAG}; then
-    timep_NO_PREV_FLAG=false
-else
-    [[ ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} ]] && {
-        printf '"'"'%s\t'"'"' "${timep_NPIPE[${timep_NESTING_LVL}]}" "${timep_STARTTIME[${timep_NESTING_LVL}]}" "${timep_ENDTIME}" "${timep_LINENO[${timep_NESTING_LVL}]}" "${timep_NEXEC_STR}" "${timep_BASHPID_STR}" "${timep_FUNCNAME_STR}"
-        printf '"'"'%s\n'"'"' "${timep_BASH_COMMAND[${timep_NESTING_LVL}]}"
-    } >&${timep_LOG_FD[${timep_NESTING_LVL}]}
 fi
 ${timep_NO_NEXT_FLAG} || {
     timep_LINENO_0="${LINENO}"
@@ -471,6 +469,8 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
 
     ${timep_runCmd}
 
+    wait
+    
     builtin trap - DEBUG EXIT RETURN;
 
 )"

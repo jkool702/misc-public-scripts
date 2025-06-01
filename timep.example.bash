@@ -6,29 +6,27 @@
 # . <(curl https://raw.githubusercontent.com/jkool702/misc-public-scripts/refs/heads/timep_testing_7/timep.bash)
 
 gg() (
-    . <(for nn in {1..4};
-do
-    cat <<EOF
-ff${nn}() {
-echo ${nn}a
-{ echo ${nn}b; }
-( echo ${nn}c )
-echo ${nn}d &
-}
-EOF
+    
 
-done);
+ff() {
+echo ${1}a
+{ echo ${1}b; }
+( echo ${1}c )
+echo ${1}d & wait
+}
+
     echo 0a;
     {
         echo 0b
     };
     ( echo 0c );
-    echo 0d & ff1;
+    echo 0d & wait
+    ff 1;
     {
-        ff2
+        ff 2
     };
-    ( ff3 );
-    ( ff4 & )
+    ( ff 3 );
+    ( ff 4 & wait )
 )
 
 timep gg
