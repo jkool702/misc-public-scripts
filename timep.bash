@@ -425,9 +425,8 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
     timep_BASHPID_PREV=\"\${BASHPID}\"
     timep_FUNCNAME_PREV='main'
     timep_FUNCDEPTH_PREV=\"\${#FUNCNAME[@]}\"
-    timep_BG_PID_PREV=\"\${!}\"
     timep_BASH_SUBSHELL_PREV=\"\${BASH_SUBSHELL}\"
-    timep_LINENO_0_PREV=0
+    timep_BG_PID_PREV=\"\${!}\"
 
     timep_NEXEC_STR=\"\${timep_NEXEC[*]}\"
     timep_BASHPID_STR=\"\${timep_BASHPID_A[*]}\"
@@ -440,9 +439,9 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
 
     timep_NESTING_LVL=0
     timep_NESTING_LVL_0=0
-    timep_LINENO_0=${LINENO}
+    timep_LINENO_0=\${LINENO}
     timep_LINENO_1=0
-    timep_LINENO[0]="${timep_LINENO_0}.${timep_LINENO_1}"
+    timep_LINENO[0]=\"\${timep_LINENO_0}.\${timep_LINENO_1}\"
     timep_TMPDIR=\"${timep_TMPDIR}\"
     timep_LOGPATH=\"\${timep_TMPDIR}/.log/log\"
     timep_LOGPATH_0=\"\${timep_LOGPATH}\"
