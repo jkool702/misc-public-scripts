@@ -276,8 +276,6 @@ if ${timep_EXIT_FLAG}; then
     declare -p timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_BASH_COMMAND timep_NPIPE timep_STARTTIME timep_LINENO timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_LOG_FD timep_NESTING_LVL timep_NESTING_LVL_0 timep_BASH_SUBSHELL_PREV timep_LOGPATH timep_LOGPATH_0 >"${timep_LOGPATH_0}.vars"
 fi
 if ${timep_NO_NEXT_FLAG}; then
-    timep_NO_NEXT_FLAG=false
-else
     timep_LINENO_0="${LINENO}"
     timep_LINENO_1="${timep_LINENO[${timep_NESTING_LVL}]#*.}"
     if [[ "${timep_LINENO[${timep_NESTING_LVL}]%.*}" == "${LINENO}" ]]; then
@@ -331,11 +329,15 @@ if [[ "${timep_BASHPID_PREV}" != "${BASHPID}" ]] || (( timep_BASH_SUBSHELL_PREV 
     done
     builtin trap '"'"'timep_EXIT_FLAG=true; :'"'"' EXIT
 fi
-if [[ "${timep_BG_PID_PREV}" != "${!}" ]]; then
-    timep_BG_PID_PREV="${!}"
-    printf '"'"'%s\t%s.%s\n'"'"' "${timep_NEXEC_STR}" "${timep_BASHPID_STR}" "${!}" >>"${timep_TMPDIR}/.log/bg_pids"
+if ${timep_NO_NEXT_FLAG}; then
+    timep_NO_NEXT_FLAG=false
+else
+    if [[ "${timep_BG_PID_PREV}" != "${!}" ]]; then
+        timep_BG_PID_PREV="${!}"
+        printf '"'"'%s\t%s.%s\n'"'"' "${timep_NEXEC_STR}" "${timep_BASHPID_STR}" "${!}" >>"${timep_TMPDIR}/.log/bg_pids"
+    fi
+    timep_STARTTIME[${timep_NESTING_LVL}]=${EPOCHREALTIME}
 fi
-timep_STARTTIME[${timep_NESTING_LVL}]=${EPOCHREALTIME}
 '
 #elif (( ${#FUNCNAME[@]} < timep_FUNCDEPTH_PREV )) || [[ "${timep_FUNCNAME_PREV}" != "${FUNCNAME[0]}" ]]; then
 #    timep_NO_PREV_FLAG=true
