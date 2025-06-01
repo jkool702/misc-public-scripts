@@ -229,7 +229,7 @@ if [[ -s "${timep_LOGPATH}.vars" ]]; then
     . "${timep_LOGPATH}.vars"
     : >"${timep_LOGPATH}.vars"
     (( timep_NESTING_LVL > timep_NESTING_LVL_0 )) && exec {timep_LOG_FD[${timep_NESTING_LVL}]}>"${timep_LOGPATH}"
-    builtin trap '"'"'timep_EXIT_FLAG=true'"'"' EXIT
+    builtin trap '"'"'timep_EXIT_FLAG=true; :'"'"' EXIT
 fi
 if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
     timep_NEXEC+=("0")
@@ -257,6 +257,7 @@ if ${timep_RETURN_FLAG}; then
     (( timep_FUNCDEPTH_PREV-- ))
     unset "timep_FUNCNAME_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]" "timep_LOG_FD[-1]"
     timep_RETURN_FLAG=false
+    timep_NO_PREV_FLAG=true
     timep_NO_NEXT_FLAG=true
     timep_BASH_COMMAND[${timep_NESTING_LVL}]="\<\< function: ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} \>\>"
 fi
@@ -269,6 +270,7 @@ if ${timep_EXIT_FLAG}; then
     (( timep_BASH_SUBSHELL_PREV-- ))
     unset "timep_BASHPID_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]" "timep_LOG_FD[-1]"
     timep_EXIT_FLAG=false
+    timep_NO_PREV_FLAG=true
     timep_NO_NEXT_FLAG=true
     timep_BASH_COMMAND[${timep_NESTING_LVL}]="\<\< subshell \>\>"
     declare -p timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_BASH_COMMAND timep_NPIPE timep_STARTTIME timep_LINENO timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_LOG_FD timep_NESTING_LVL timep_NESTING_LVL_0 timep_BASH_SUBSHELL_PREV timep_LOGPATH timep_LOGPATH_0 >"${timep_LOGPATH_0}.vars"
@@ -327,7 +329,7 @@ if [[ "${timep_BASHPID_PREV}" != "${BASHPID}" ]] || (( timep_BASH_SUBSHELL_PREV 
         timep_NEXEC_STR+=".0"
         timep_BASHPID_STR+=".${timep_KK}"
     done
-    builtin trap '"'"'timep_EXIT_FLAG=true'"'"' EXIT
+    builtin trap '"'"'timep_EXIT_FLAG=true; :'"'"' EXIT
 fi
 if [[ "${timep_BG_PID_PREV}" != "${!}" ]]; then
     timep_BG_PID_PREV="${!}"
@@ -353,8 +355,8 @@ trap() {
 
     for trapType in "${@}"; do
         case "${trapType}" in
-            EXIT)    builtin trap "${trapStr}"'timep_EXIT_FLAG=true' EXIT ;;
-            RETURN)  builtin trap "${trapStr}"'timep_RETURN_FLAG=true' RETURN ;;
+            EXIT)    builtin trap "${trapStr}"'timep_EXIT_FLAG=true; :' EXIT ;;
+            RETURN)  builtin trap "${trapStr}"'timep_RETURN_FLAG=true; :' RETURN ;;
             DEBUG)   builtin trap "${timep_DEBUG_TRAP_STR[0]}${trapStr}${timep_DEBUG_TRAP_STR[1]}" DEBUG ;;
             *)       builtin trap "${trapStr}" "${trapType}" ;;
         esac
@@ -442,8 +444,8 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
     exec {timep_LOG_FD[0]}>\"\${timep_LOGPATH}\"
     mkdir -p \"\${timep_LOGPATH%/log}\"
 
-    builtin trap 'timep_EXIT_FLAG=true' EXIT
-    builtin trap 'timep_RETURN_FLAG=true' RETURN
+    builtin trap 'timep_EXIT_FLAG=true; :' EXIT
+    builtin trap 'timep_RETURN_FLAG=true; :' RETURN
 
     echo \"\$(( LINENO + 4 ))\" >\"\${timep_TMPDIR}/.log/lineno_offset\"
 
