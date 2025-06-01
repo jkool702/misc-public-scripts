@@ -411,7 +411,9 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
     declare timep_FUNCDEPTH_PREV timep_BASHPID_PREV timep_FUNCNAME_PREV timep_BG_PID_PREV timep_IFS_PREV timep_LOGPATH timep_LOGPATH_0 timep_ENDTIME timep_NESTING_LVL timep_NESTING_LVL_0 timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NO_PREV_FLAG timep_NO_NEXT_FLAG timep_EXIT_FLAG timep_RETURN_FLAG timep_TMPDIR timep_LINENO_0 timep_LINENO_1;
     declare -a timep_STARTTIME timep_BASH_COMMAND timep_LINENO timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_NPIPE timep_LOG_FD;
 
-    set -T;
+    set -T
+
+    : & 2>/dev/null
 
     timep_BASHPID_A=(\"\${BASHPID}\")
     timep_FUNCNAME_A=('main')
