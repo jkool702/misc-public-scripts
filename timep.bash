@@ -229,6 +229,7 @@ if [[ -s "${timep_LOGPATH}.vars" ]]; then
     . "${timep_LOGPATH}.vars"
     : >"${timep_LOGPATH}.vars"
     (( timep_NESTING_LVL > timep_NESTING_LVL_0 )) && exec {timep_LOG_FD[${timep_NESTING_LVL}]}>"${timep_LOGPATH}"
+    builtin trap '"'"'timep_EXIT_FLAG=true'"'"' EXIT
 fi
 if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
     timep_NEXEC+=("0")
