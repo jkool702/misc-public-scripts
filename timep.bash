@@ -267,7 +267,7 @@ if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
     timep_NEXEC+=("0")
 fi
 
-if${timep_RETURN_FLAG} || ${timep_EXIT_FLAG} || ${timep_NO_PREV_FLAG}; then
+if ${timep_RETURN_FLAG} || ${timep_EXIT_FLAG} || ${timep_NO_PREV_FLAG}; then
     timep_NO_PREV_FLAG=false
 else
     [[ ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} ]] && {
@@ -408,7 +408,7 @@ trap() {
             timep_runFuncSrc="${timep_runCmd1}"$'\n'
         ;;
         c)
-            printf -v timep_runCmd '%s ' "${@}"
+            printf -v timep_runCmd '%q ' ${@}
             timep_runCmd1='#!'"$(type -p bash)"
 
             # start of wrapper code
@@ -416,39 +416,29 @@ trap() {
         ;;
         f)
             _timep_getFuncSrc "$1" >"${timep_TMPDIR}/functions.bash"
-            chmod +x "${timep_TMPDIR}/functions.bash"
             timep_runCmd1='#!'"$(type -p bash)"
 
-            printf -v timep_runCmd '%q ' "${@}"
+            printf -v timep_runCmd '%q ' ${@}
             [[ -t 0 ]] || timep_runCmd+=" <&0"
 
             # start of wrapper code
             timep_runFuncSrc="${timep_runCmd1}"$'\n''timep_runFunc() '
         ;;
     esac
+
+    { printf '\n\n'; declare -f trap; printf '\n\nexport -f trap\n\n'; } >>"${timep_TMPDIR}/functions.bash"
+    chmod +x "${timep_TMPDIR}/functions.bash"
 timep_runFuncSrc+="(
-printf '\\n
-----------------------------------------------------------------------------
------------------------ RUNTIME BREAKDOWN BY COMMAND -----------------------
-----------------------------------------------------------------------------
-
-COMMAND PROFILED:
-%s
-
-START TIME:
-%s (%s)
-
-FORMAT (TAB-SEPERATED):
-----------------------------------------------------------------------------
-NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
-----------------------------------------------------------------------------\\n\\n' \"$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")\" \"\$(date)\" \"\${EPOCHREALTIME}\" >\"\${timep_TMPDIR}\"/.log/format;
 
     declare timep_FUNCDEPTH_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_IFS_PREV timep_LOGPATH timep_LOGPATH_0 timep_ENDTIME timep_NESTING_LVL timep_NESTING_LVL_0 timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NO_PREV_FLAG timep_NO_NEXT_FLAG timep_EXIT_FLAG timep_RETURN_FLAG timep_ENTER_SUBSHELL_FLAG timep_TMPDIR timep_LINENO_0 timep_LINENO_1;
-    declare -a timep_STARTTIME timep_BASH_COMMAND timep_LINENO timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_NPIPE timep_LOG_FD;
+    declare -a timep_STARTTIME timep_BASH_COMMAND timep_LINENO timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_NPIPE timep_LOG_FD timep_A;
 
     set -T
 
     : & 2>/dev/null
+
+    timep_TMPDIR=\"${timep_TMPDIR}\"
+    . \"\${timep_TMPDIR}/functions.bash\"
 
     timep_BASHPID_A=(\"\${BASHPID}\")
     timep_FUNCNAME_A=()
@@ -473,7 +463,6 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
     timep_LINENO_0=\${LINENO}
     timep_LINENO_1=0
     timep_LINENO[0]=\"\${timep_LINENO_0}.\${timep_LINENO_1}\"
-    timep_TMPDIR=\"${timep_TMPDIR}\"
     timep_LOGPATH=\"\${timep_TMPDIR}/.log/log\"
     timep_LOGPATH_0=\"\${timep_LOGPATH}\"
     timep_LOG_FD=()
@@ -490,7 +479,7 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
 
     ${timep_runCmd}
 
-    wait
+    wait &>/dev/null
     
     builtin trap - DEBUG EXIT RETURN;
 
@@ -500,10 +489,26 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
     echo "${timep_runFuncSrc}" >"${timep_TMPDIR}/main.bash"
     chmod +x "${timep_TMPDIR}/main.bash"
 
+    printf '\\n
+----------------------------------------------------------------------------
+----------------------- RUNTIME BREAKDOWN BY COMMAND -----------------------
+----------------------------------------------------------------------------
+
+COMMAND PROFILED:
+%s
+
+START TIME:
+%s (%s)
+
+FORMAT (TAB-SEPERATED):
+----------------------------------------------------------------------------
+NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
+----------------------------------------------------------------------------\\n\\n' "$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")" "$(date)" "${EPOCHREALTIME}" >"${timep_TMPDIR}/.log/format"
+
     case "${timep_runType}" in
     f)
         # source the original functions and then the wrapper function we just generated
-        . "${timep_TMPDIR}/functions.bash"
+#        . "${timep_TMPDIR}/functions.bash"
         . "${timep_TMPDIR}/main.bash"
 
         # now actually run it
@@ -513,20 +518,12 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
             timep_runFunc "${@}" <&0
         fi
     ;;
-    s)
-        # run the script (with added debug trap)
-        if [[ -t 0 ]]; then
-           "${timep_TMPDIR}/main.bash" "${@}"
-        else
-           "${timep_TMPDIR}/main.bash" "${@}" <&0
-        fi
-    ;;
-    c)
+    c|s)
         # run the script (with added debug trap)
         if [[ -t 0 ]]; then
            "${timep_TMPDIR}/main.bash" 
         else
-           "${timep_TMPDIR}/main.bash" <&0
+           "${timep_TMPDIR}/main.bash"  <&0
         fi
     ;;
 esac
