@@ -6,26 +6,59 @@
 1b
 1c
 1d
+1e
+1f
+1g
 2a
 2b
 2c
 2d
+2e
+2f
+2g
 3a
 3b
 3c
 3d
+3e
+3f
+3g
 4a
 4b
 4c
 4d
+4e
+4f
+4g
+5a
+5b
+5c
+5d
+5e
+5f
+5g
+6a
+6b
+6c
+6d
+6e
+6f
+6g
+7a
+7b
+7c
+7d
+7e
+7f
+7g
 
 
 --------------------------------------
-/dev/shm/.timep.4E4B2/functions.bash
+/dev/shm/.timep.116D7749/functions.bash
 
 declare -x timep_RETURN_TRAP_STR=$'\n    timep_LOGPATH="${timep_LOGPATH%.[0-9]*}"\n    timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}"\n    timep_FUNCNAME_STR="${timep_FUNCNAME_STR%.*}"\n    (( timep_NESTING_LVL-- ))\n    (( timep_FUNCDEPTH_PREV-- ))\n    unset "timep_FUNCNAME_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]"\n    timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< function: ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} >>"\n'
-declare -x timep_EXIT_TRAP_STR=$'\n    timep_LOGPATH="${timep_LOGPATH%.[0-9]*}"\n    timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}"\n    timep_BASHPID_STR="${timep_BASHPID_STR%.[0-9]*}"\n    (( timep_NESTING_LVL-- ))\n    (( timep_BASH_SUBSHELL_PREV-- ))\n    unset "timep_BASHPID_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]" \n    timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< subshell >>"\n    declare -p timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_BASH_COMMAND timep_NPIPE timep_STARTTIME timep_LINENO timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NESTING_LVL timep_NESTING_LVL_0 timep_BASH_SUBSHELL_PREV  timep_FUNCDEPTH_PREV timep_LOGPATH timep_LOGPATH_0 >"${timep_LOGPATH_0}.vars"\n'
-declare -ax timep_DEBUG_TRAP_STR=([0]=$'timep_NPIPE[${timep_NESTING_LVL}]="${#PIPESTATUS[@]}"\ntimep_ENDTIME="${EPOCHREALTIME}"\n' [1]=$'\nif [[ ${BASH_COMMAND} ]] && [[ -s "${timep_LOGPATH}.vars" ]]; then\n    mapfile -t timep_A <"${timep_LOGPATH}.vars"\n    timep_IFS_PREV="${IFS}"\n    IFS=$\'\\n\'\n    eval "${timep_A[*]}"\n    IFS="${timep_IFS_PREV}"\n    unset timep_IFS_PREV timep_A\n    : >"${timep_LOGPATH}.vars"\n    builtin trap \'\n    timep_LOGPATH="${timep_LOGPATH%.[0-9]*}"\n    timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}"\n    timep_FUNCNAME_STR="${timep_FUNCNAME_STR%.*}"\n    (( timep_NESTING_LVL-- ))\n    (( timep_FUNCDEPTH_PREV-- ))\n    unset "timep_FUNCNAME_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]"\n    timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< function: ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} >>"\n\' RETURN\n    builtin trap \'\n    timep_LOGPATH="${timep_LOGPATH%.[0-9]*}"\n    timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}"\n    timep_BASHPID_STR="${timep_BASHPID_STR%.[0-9]*}"\n    (( timep_NESTING_LVL-- ))\n    (( timep_BASH_SUBSHELL_PREV-- ))\n    unset "timep_BASHPID_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]" \n    timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< subshell >>"\n    declare -p timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_BASH_COMMAND timep_NPIPE timep_STARTTIME timep_LINENO timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NESTING_LVL timep_NESTING_LVL_0 timep_BASH_SUBSHELL_PREV  timep_FUNCDEPTH_PREV timep_LOGPATH timep_LOGPATH_0 >"${timep_LOGPATH_0}.vars"\n\' EXIT\nfi\nif [[ "${timep_BASHPID_PREV}" != "${BASHPID}" ]] && (( timep_BASH_SUBSHELL_PREV < BASH_SUBSHELL )); then\n    timep_ENTER_SUBSHELL_FLAG=true\nfi\nif (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then\n    timep_FUNCNAME_A+=("${FUNCNAME[0]}")\n    timep_NO_PREV_FLAG=true\n    timep_FUNCDEPTH_PREV="${#FUNCNAME[@]}"\n    (( timep_NESTING_LVL++ ))\n    timep_NEXEC_STR+=".0"\n    timep_LOGPATH+=".${timep_NEXEC[-1]}"\n    timep_FUNCNAME_STR+=".${FUNCNAME[0]}"\n    timep_NEXEC+=("0")\nfi\nif ${timep_NO_PREV_FLAG}; then\n    timep_NO_PREV_FLAG=false\nelse\n    [[ ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} ]] && {\n        printf \'%s\\t\' "${timep_NPIPE[${timep_NESTING_LVL}]}" "${timep_STARTTIME[${timep_NESTING_LVL}]}" "${timep_ENDTIME}" "${timep_LINENO[${timep_NESTING_LVL}]}" "${timep_NEXEC_STR}" "${timep_BASHPID_STR}" "${timep_FUNCNAME_STR}"\n        printf \'%s\\n\' "${timep_BASH_COMMAND[${timep_NESTING_LVL}]}"\n    } >>${timep_LOGPATH}\nfi\n${timep_NO_NEXT_FLAG} || {\n    timep_LINENO_0="${LINENO}"\n    timep_LINENO_1="${timep_LINENO[${timep_NESTING_LVL}]#*.}"\n    if [[ "${timep_LINENO[${timep_NESTING_LVL}]%.*}" == "${LINENO}" ]]; then\n        (( timep_LINENO_1++ ))\n    else\n        timep_LINENO_1=0\n    fi\n    if ${timep_ENTER_SUBSHELL_FLAG}; then\n        timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< subshell >>"\n    else\n        timep_BASH_COMMAND[${timep_NESTING_LVL}]="${BASH_COMMAND@Q}"\n    fi\n    timep_LINENO[${timep_NESTING_LVL}]="${timep_LINENO_0}.${timep_LINENO_1}"\n    (( timep_NEXEC[-1]++ ))\n    timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}.${timep_NEXEC[-1]}"\n}\nif ${timep_ENTER_SUBSHELL_FLAG}; then\n    timep_ENTER_SUBSHELL_FLAG=false\n    timep_LOGPATH_0="${timep_LOGPATH}"\n    timep_NESTING_LVL_0="${timep_NESTING_LVL}"\n    timep_BASHPID_PREV="${BASHPID}"\n    (( timep_BASH_SUBSHELL_DIFF = BASH_SUBSHELL - timep_BASH_SUBSHELL_PREV ))\n    timep_KK=0\n    timep_BASHPID_ADD=()\n    while (( timep_BASH_SUBSHELL_DIFF > 0 )); do\n        (( timep_BASH_SUBSHELL_DIFF-- ))\n        case "${timep_KK}" in\n            0) timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}]="${BASHPID}" ;;\n            1) timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}]="${PPID}" ;;\n            *) (( timep_BASH_SUBSHELL_DIFF0 = timep_BASH_SUBSHELL_DIFF + 1 )); IFS=" " read -r _ _ _ timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] _ </proc/${timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF0}]}/stat ;;\n        esac\n        (( timep_KK++ ))\n        unset timep_BASH_SUBSHELL_DIFF0\n    done\n    unset timep_BASH_SUBSHELL_DIFF\n    for timep_KK in "${timep_BASHPID_ADD[@]}"; do\n        (( timep_NESTING_LVL++ ))\n        (( timep_BASH_SUBSHELL_PREV++ ))\n        timep_BASHPID_A+=("${timep_KK}")\n        timep_LINENO+=("${timep_LINENO[-1]}")\n        timep_BASH_COMMAND+=("<< subshell >>")\n        timep_NPIPE+=("1")\n        timep_LOGPATH+=".${timep_NEXEC[-1]}"\n        timep_NEXEC_STR+=".0"\n        timep_BASHPID_STR+=".${timep_KK}"\n        timep_NEXEC+=("0")\n    done\n    timep_BASH_COMMAND[-1]="${BASH_COMMAND@Q}"\n    builtin trap \'timep_EXIT_FLAG=true; :\' EXIT\nfi\nif ${timep_NO_NEXT_FLAG}; then\n    timep_NO_NEXT_FLAG=false\nelse\n    if [[ "${timep_BG_PID_PREV}" != "${!}" ]]; then\n        timep_BG_PID_PREV="${!}"\n        printf \'%s\\t%s.%s\\n\' "${timep_NEXEC_STR}" "${timep_BASHPID_STR}" "${!}" >>"${timep_TMPDIR}/.log/bg_pids"\n    fi\n    timep_STARTTIME[${timep_NESTING_LVL}]=${EPOCHREALTIME}\nfi\n')
+declare -x timep_EXIT_TRAP_STR="timep_EXIT_FLAG=true; :"
+declare -ax timep_DEBUG_TRAP_STR=([1]=$'\nif [[ ${BASH_COMMAND} ]] && [[ -s "${timep_LOGPATH}.vars" ]]; then\n    mapfile -t timep_A <"${timep_LOGPATH}.vars"\n    timep_IFS_PREV="${IFS}"\n    IFS=$\'\\n\'\n    eval "${timep_A[*]}"\n    IFS="${timep_IFS_PREV}"\n    unset timep_IFS_PREV timep_A\n    : >"${timep_LOGPATH}.vars"\n    builtin trap \'timep_EXIT_FLAG=true; :\' EXIT\nfi\nif [[ "${timep_BASHPID_PREV}" != "${BASHPID}" ]] && (( timep_BASH_SUBSHELL_PREV < BASH_SUBSHELL )); then\n    timep_ENTER_SUBSHELL_FLAG=true\nfi\nif [[ "${timep_BG_PID_PREV}" != "${!}" ]]; then\n    timep_BG_PID_PREV="${!}"\n    (( timep_NBG++ ))\n    printf \'%s\\t%s.%s\\n\' "${timep_NEXEC_STR}_${timep_NBG}" "${timep_BASHPID_STR}" "${!}" >>"${timep_TMPDIR}/.log/bg_pids"\n    [[ "${timep_BASH_COMMAND[-1]}" == "<< subshell >>" ]] && timep_BASH_COMMAND[-1]="<< background fork: $! >>"\nfi\nif (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then\n    timep_FUNCNAME_A+=("${FUNCNAME[0]}")\n    timep_NO_PREV_FLAG=true\n    timep_FUNCDEPTH_PREV="${#FUNCNAME[@]}"\n    (( timep_NESTING_LVL++ ))\n    timep_NEXEC_STR+=".0"\n    timep_LOGPATH+=".${timep_NEXEC[-1]}"\n    timep_FUNCNAME_STR+=".${FUNCNAME[0]}"\n    timep_NEXEC+=("0")\nfi\nif ${timep_NO_PREV_FLAG}; then\n    timep_NO_PREV_FLAG=false\nelse\n    [[ ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} ]] && {\n        printf \'%s\\t\' "${timep_NPIPE[${timep_NESTING_LVL}]}" "${timep_STARTTIME[${timep_NESTING_LVL}]}" "${timep_ENDTIME}" "${timep_LINENO[${timep_NESTING_LVL}]}" "${timep_NEXEC_STR}_${timep_NBG}" "${timep_BASHPID_STR}" "${timep_FUNCNAME_STR}"\n        printf \'%s\\n\' "${timep_BASH_COMMAND[${timep_NESTING_LVL}]}"\n    } >>${timep_LOGPATH}\nfi\nif ${timep_EXIT_FLAG}; then\n    timep_LOGPATH="${timep_LOGPATH%.[0-9]*}"\n    timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}"\n    timep_BASHPID_STR="${timep_BASHPID_STR%.[0-9]*}"\n    (( timep_NESTING_LVL-- ))\n    (( timep_BASH_SUBSHELL_PREV-- ))\n    unset "timep_BASHPID_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]" \n    timep_EXIT_FLAG=false\n    timep_NO_PREV_FLAG=false\n    timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< subshell >>"\n    declare -p timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_BASH_COMMAND timep_NPIPE timep_STARTTIME timep_LINENO timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NESTING_LVL timep_NESTING_LVL_0 timep_BASH_SUBSHELL_PREV timep_LOGPATH timep_LOGPATH_0 timep_NO_PREV_FLAG timep_NBG >"${timep_LOGPATH_0}.vars"\n    timep_NO_NEXT_FLAG=true\nfi\n${timep_NO_NEXT_FLAG} || {\n    timep_LINENO_0="${LINENO}"\n    timep_LINENO_1="${timep_LINENO[${timep_NESTING_LVL}]#*.}"\n    if [[ "${timep_LINENO[${timep_NESTING_LVL}]%.*}" == "${LINENO}" ]]; then\n        (( timep_LINENO_1++ ))\n    else\n        timep_LINENO_1=0\n    fi\n    if ${timep_ENTER_SUBSHELL_FLAG}; then\n        timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< subshell >>"\n    else\n        timep_BASH_COMMAND[${timep_NESTING_LVL}]="${BASH_COMMAND@Q}"\n    fi\n    timep_LINENO[${timep_NESTING_LVL}]="${timep_LINENO_0}.${timep_LINENO_1}"\n    (( timep_NEXEC[-1]++ ))\n    timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}.${timep_NEXEC[-1]}"\n}\nif ${timep_ENTER_SUBSHELL_FLAG}; then\n    timep_ENTER_SUBSHELL_FLAG=false\n    timep_LOGPATH_0="${timep_LOGPATH}"\n    timep_NESTING_LVL_0="${timep_NESTING_LVL}"\n    timep_BASHPID_PREV="${BASHPID}"\n    (( timep_BASH_SUBSHELL_DIFF = BASH_SUBSHELL - timep_BASH_SUBSHELL_PREV ))\n    timep_KK=0\n    timep_BASHPID_ADD=()\n    while (( timep_BASH_SUBSHELL_DIFF > 0 )); do\n        (( timep_BASH_SUBSHELL_DIFF-- ))\n        case "${timep_KK}" in\n            0) timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}]="${BASHPID}" ;;\n            1) timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}]="${PPID}" ;;\n            *) (( timep_BASH_SUBSHELL_DIFF0 = timep_BASH_SUBSHELL_DIFF + 1 )); IFS=" " read -r _ _ _ timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] _ </proc/${timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF0}]}/stat ;;\n        esac\n        (( timep_KK++ ))\n        unset timep_BASH_SUBSHELL_DIFF0\n    done\n    unset timep_BASH_SUBSHELL_DIFF\n    for timep_KK in "${timep_BASHPID_ADD[@]}"; do\n        (( timep_NESTING_LVL++ ))\n        (( timep_BASH_SUBSHELL_PREV++ ))\n        timep_BASHPID_A+=("${timep_KK}")\n        timep_LINENO+=("${timep_LINENO[-1]}")\n        timep_BASH_COMMAND+=("<< subshell >>")\n        timep_NPIPE+=("1")\n        timep_LOGPATH+=".${timep_NEXEC[-1]}"\n        timep_NEXEC_STR+=".0"\n        timep_BASHPID_STR+=".${timep_KK}"\n        timep_NEXEC+=("0")\n    done\n    timep_BASH_COMMAND[-1]="${BASH_COMMAND@Q}"\n    builtin trap \'timep_EXIT_FLAG=true; :\' EXIT\nfi\nif ${timep_NO_NEXT_FLAG}; then\n    timep_NO_NEXT_FLAG=false\nelse\n    timep_STARTTIME[${timep_NESTING_LVL}]=${EPOCHREALTIME}\nfi\n')
 
 
 trap () 
@@ -73,6 +106,9 @@ echo ${1}a
 { echo ${1}b; }
 ( echo ${1}c )
 echo ${1}d & wait
+( echo ${1}e & wait )
+{ echo ${1}f; } & wait
+( echo ${1}g; ) & wait
 }
 
     echo 0a;
@@ -86,17 +122,20 @@ echo ${1}d & wait
         ff 2
     };
     ( ff 3 );
-    ( ff 4 & wait )
+    ff 4 & wait 
+    ( ff 5 & wait )
+    { ff 6; } & wait
+    ( ff 7; ) & wait
 )
 
 
 --------------------------------------
-/dev/shm/.timep.4E4B2/main.bash
+/dev/shm/.timep.116D7749/main.bash
 
 #!/usr/bin/bash
 timep_runFunc() (
 
-    declare timep_FUNCDEPTH_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_IFS_PREV timep_LOGPATH timep_LOGPATH_0 timep_ENDTIME timep_NESTING_LVL timep_NESTING_LVL_0 timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NO_PREV_FLAG timep_NO_NEXT_FLAG timep_EXIT_FLAG timep_RETURN_FLAG timep_ENTER_SUBSHELL_FLAG timep_TMPDIR timep_LINENO_0 timep_LINENO_1;
+    declare timep_FUNCDEPTH_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_IFS_PREV timep_LOGPATH timep_LOGPATH_0 timep_ENDTIME timep_NESTING_LVL timep_NESTING_LVL_0 timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NO_PREV_FLAG timep_NO_NEXT_FLAG timep_EXIT_FLAG timep_RETURN_FLAG timep_ENTER_SUBSHELL_FLAG timep_TMPDIR timep_LINENO_0 timep_LINENO_1 timep_NBG;
     declare -a timep_STARTTIME timep_BASH_COMMAND timep_LINENO timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_NPIPE timep_A;
 
     set -T
@@ -104,7 +143,7 @@ timep_runFunc() (
 
     : & 2>/dev/null
 
-    timep_TMPDIR="/dev/shm/.timep.4E4B2"
+    timep_TMPDIR="/dev/shm/.timep.116D7749"
     . "${timep_TMPDIR}/functions.bash"
 
     timep_BASHPID_A=("${BASHPID}")
@@ -124,6 +163,7 @@ timep_runFunc() (
     timep_NO_NEXT_FLAG=false
     timep_ENTER_SUBSHELL_FLAG=false
 
+    timep_NBG=0
     timep_NESTING_LVL=0
     timep_NESTING_LVL_0=0
     timep_LINENO_0=${LINENO}
@@ -134,31 +174,11 @@ timep_runFunc() (
     mkdir -p "${timep_LOGPATH%/log}"
 
     
-    builtin trap '
-    timep_LOGPATH="${timep_LOGPATH%.[0-9]*}"
-    timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}"
-    timep_FUNCNAME_STR="${timep_FUNCNAME_STR%.*}"
-    (( timep_NESTING_LVL-- ))
-    (( timep_FUNCDEPTH_PREV-- ))
-    unset "timep_FUNCNAME_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]"
-    timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< function: ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} >>"
-' RETURN
-    builtin trap '
-    timep_LOGPATH="${timep_LOGPATH%.[0-9]*}"
-    timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}"
-    timep_BASHPID_STR="${timep_BASHPID_STR%.[0-9]*}"
-    (( timep_NESTING_LVL-- ))
-    (( timep_BASH_SUBSHELL_PREV-- ))
-    unset "timep_BASHPID_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]" 
-    timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< subshell >>"
-    declare -p timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_BASH_COMMAND timep_NPIPE timep_STARTTIME timep_LINENO timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NESTING_LVL timep_NESTING_LVL_0 timep_BASH_SUBSHELL_PREV  timep_FUNCDEPTH_PREV timep_LOGPATH timep_LOGPATH_0 >"${timep_LOGPATH_0}.vars"
-' EXIT
+    builtin trap 'timep_EXIT_FLAG=true; :' EXIT
 
     echo "$(( LINENO + 5 ))" >"${timep_TMPDIR}/.log/lineno_offset"
 
-    builtin trap 'timep_NPIPE[${timep_NESTING_LVL}]="${#PIPESTATUS[@]}"
-timep_ENDTIME="${EPOCHREALTIME}"
- 
+    builtin trap '
 if [[ ${BASH_COMMAND} ]] && [[ -s "${timep_LOGPATH}.vars" ]]; then
     mapfile -t timep_A <"${timep_LOGPATH}.vars"
     timep_IFS_PREV="${IFS}"
@@ -167,28 +187,16 @@ if [[ ${BASH_COMMAND} ]] && [[ -s "${timep_LOGPATH}.vars" ]]; then
     IFS="${timep_IFS_PREV}"
     unset timep_IFS_PREV timep_A
     : >"${timep_LOGPATH}.vars"
-    builtin trap '"'"'
-    timep_LOGPATH="${timep_LOGPATH%.[0-9]*}"
-    timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}"
-    timep_FUNCNAME_STR="${timep_FUNCNAME_STR%.*}"
-    (( timep_NESTING_LVL-- ))
-    (( timep_FUNCDEPTH_PREV-- ))
-    unset "timep_FUNCNAME_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]"
-    timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< function: ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} >>"
-'"'"' RETURN
-    builtin trap '"'"'
-    timep_LOGPATH="${timep_LOGPATH%.[0-9]*}"
-    timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}"
-    timep_BASHPID_STR="${timep_BASHPID_STR%.[0-9]*}"
-    (( timep_NESTING_LVL-- ))
-    (( timep_BASH_SUBSHELL_PREV-- ))
-    unset "timep_BASHPID_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]" 
-    timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< subshell >>"
-    declare -p timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_BASH_COMMAND timep_NPIPE timep_STARTTIME timep_LINENO timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NESTING_LVL timep_NESTING_LVL_0 timep_BASH_SUBSHELL_PREV  timep_FUNCDEPTH_PREV timep_LOGPATH timep_LOGPATH_0 >"${timep_LOGPATH_0}.vars"
-'"'"' EXIT
+    builtin trap '"'"'timep_EXIT_FLAG=true; :'"'"' EXIT
 fi
 if [[ "${timep_BASHPID_PREV}" != "${BASHPID}" ]] && (( timep_BASH_SUBSHELL_PREV < BASH_SUBSHELL )); then
     timep_ENTER_SUBSHELL_FLAG=true
+fi
+if [[ "${timep_BG_PID_PREV}" != "${!}" ]]; then
+    timep_BG_PID_PREV="${!}"
+    (( timep_NBG++ ))
+    printf '"'"'%s\t%s.%s\n'"'"' "${timep_NEXEC_STR}_${timep_NBG}" "${timep_BASHPID_STR}" "${!}" >>"${timep_TMPDIR}/.log/bg_pids"
+    [[ "${timep_BASH_COMMAND[-1]}" == "<< subshell >>" ]] && timep_BASH_COMMAND[-1]="<< background fork: $! >>"
 fi
 if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
     timep_FUNCNAME_A+=("${FUNCNAME[0]}")
@@ -204,9 +212,22 @@ if ${timep_NO_PREV_FLAG}; then
     timep_NO_PREV_FLAG=false
 else
     [[ ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} ]] && {
-        printf '"'"'%s\t'"'"' "${timep_NPIPE[${timep_NESTING_LVL}]}" "${timep_STARTTIME[${timep_NESTING_LVL}]}" "${timep_ENDTIME}" "${timep_LINENO[${timep_NESTING_LVL}]}" "${timep_NEXEC_STR}" "${timep_BASHPID_STR}" "${timep_FUNCNAME_STR}"
+        printf '"'"'%s\t'"'"' "${timep_NPIPE[${timep_NESTING_LVL}]}" "${timep_STARTTIME[${timep_NESTING_LVL}]}" "${timep_ENDTIME}" "${timep_LINENO[${timep_NESTING_LVL}]}" "${timep_NEXEC_STR}_${timep_NBG}" "${timep_BASHPID_STR}" "${timep_FUNCNAME_STR}"
         printf '"'"'%s\n'"'"' "${timep_BASH_COMMAND[${timep_NESTING_LVL}]}"
     } >>${timep_LOGPATH}
+fi
+if ${timep_EXIT_FLAG}; then
+    timep_LOGPATH="${timep_LOGPATH%.[0-9]*}"
+    timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}"
+    timep_BASHPID_STR="${timep_BASHPID_STR%.[0-9]*}"
+    (( timep_NESTING_LVL-- ))
+    (( timep_BASH_SUBSHELL_PREV-- ))
+    unset "timep_BASHPID_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]" 
+    timep_EXIT_FLAG=false
+    timep_NO_PREV_FLAG=false
+    timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< subshell >>"
+    declare -p timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_BASH_COMMAND timep_NPIPE timep_STARTTIME timep_LINENO timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NESTING_LVL timep_NESTING_LVL_0 timep_BASH_SUBSHELL_PREV timep_LOGPATH timep_LOGPATH_0 timep_NO_PREV_FLAG timep_NBG >"${timep_LOGPATH_0}.vars"
+    timep_NO_NEXT_FLAG=true
 fi
 ${timep_NO_NEXT_FLAG} || {
     timep_LINENO_0="${LINENO}"
@@ -262,10 +283,6 @@ fi
 if ${timep_NO_NEXT_FLAG}; then
     timep_NO_NEXT_FLAG=false
 else
-    if [[ "${timep_BG_PID_PREV}" != "${!}" ]]; then
-        timep_BG_PID_PREV="${!}"
-        printf '"'"'%s\t%s.%s\n'"'"' "${timep_NEXEC_STR}" "${timep_BASHPID_STR}" "${!}" >>"${timep_TMPDIR}/.log/bg_pids"
-    fi
     timep_STARTTIME[${timep_NESTING_LVL}]=${EPOCHREALTIME}
 fi
 ' DEBUG
@@ -278,18 +295,45 @@ fi
 
 
 --------------------------------------
-/dev/shm/.timep.4E4B2/.log/bg_pids
+/dev/shm/.timep.116D7749/.log/bg_pids
 
-.2.2.3	272503.272506.272508
-.2.2.4.5	272503.272506.272510
-.2.2.10.17	272503.272506.272512
-.2.2.22.24.5	272503.272506.272513.272515
-.2.2.22.24.1	272503.272506.272516.272517
-.2.2.22.24.1.4	272503.272506.272516.272517.272519
+.2.2.3_1	282510.282513.282515
+.2.2.5.5_2	282510.282513.282517
+.2.2.5.7.0_3	282510.282513.282518.282519
+.2.2.5.7_4	282510.282513.282520
+.2.2.5.7_3	282510.282513.282521
+.2.2.5.14_3	282510.282513.282523
+.2.2.5.16.0_4	282510.282513.282524.282525
+.2.2.5.16_5	282510.282513.282526
+.2.2.5.16_4	282510.282513.282528
+.2.2.5.19.5_6	282510.282513.282529.282531
+.2.2.5.19.7.0_7	282510.282513.282529.282532.282533
+.2.2.5.19.7_8	282510.282513.282529.282534
+.2.2.5.19.7_7	282510.282513.282529.282535
+.2.2.5.13_3	282510.282513.282536
+.2.2.5.14.4_3	282510.282513.282536.282538
+.2.2.5.14.6.0_4	282510.282513.282536.282539.282540
+.2.2.5.14.6_5	282510.282513.282536.282541
+.2.2.5.14.6_4	282510.282513.282536.282542
+.2.2.5.15.0_4	282510.282513.282543.282544
+.2.2.5.15.1.4_4	282510.282513.282543.282544.282546
+.2.2.5.15.1.6.0_5	282510.282513.282543.282544.282547.282548
+.2.2.5.15.1.6_6	282510.282513.282543.282544.282549
+.2.2.5.15.1.7_6	282510.282513.282543.282544.282550
+.2.2.5.15_5	282510.282513.282551
+.2.2.5.16.5_5	282510.282513.282551.282553
+.2.2.5.16.7.0_6	282510.282513.282551.282554.282555
+.2.2.5.16.7_7	282510.282513.282551.282556
+.2.2.5.16.8_7	282510.282513.282551.282557
+.2.2.5.16_6	282510.282513.282558
+.2.2.5.17.5_6	282510.282513.282558.282560
+.2.2.5.17.7.0_7	282510.282513.282558.282561.282562
+.2.2.5.17.7_8	282510.282513.282558.282563
+.2.2.5.17.8_8	282510.282513.282558.282564
 
 
 --------------------------------------
-/dev/shm/.timep.4E4B2/.log/format
+/dev/shm/.timep.116D7749/.log/format
 
 \n
 ----------------------------------------------------------------------------
@@ -300,7 +344,7 @@ COMMAND PROFILED:
 gg 
 
 START TIME:
-Mon Jun  2 12:32:34 PM EDT 2025 (1748881954.839454)
+Mon Jun  2 01:54:42 PM EDT 2025 (1748886882.416079)
 
 FORMAT (TAB-SEPERATED):
 ----------------------------------------------------------------------------
@@ -308,163 +352,480 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
 ----------------------------------------------------------------------------\n\n
 
 --------------------------------------
-/dev/shm/.timep.4E4B2/.log/lineno_offset
+/dev/shm/.timep.116D7749/.log/lineno_offset
 
-67
-
-
---------------------------------------
-/dev/shm/.timep.4E4B2/.log/log
-
-1	1748881954.898130	1748881954.898230	100.0	.2.2	272503	<main>.gg	'gg'
-1	1748881954.899238	1748881954.899327	101.0	.2	272503	<main>.gg	'gg'
-1	1748881954.900266	1748881954.900352	102.0	.4	272503	<main>	'gg'
-1	1748881954.844559	1748881954.901362	232.0	.5	272503	<main>	'gg'
+50
 
 
 --------------------------------------
-/dev/shm/.timep.4E4B2/.log/log.2
+/dev/shm/.timep.116D7749/.log/log.2
 
-1	1748881954.844829	1748881954.845466	99.0	.2.1	272503	<main>.gg	'gg'
-1	1748881954.844829	1748881954.897001	99.0	.2.1	272503	<main>.gg	'gg'
-
-
---------------------------------------
-/dev/shm/.timep.4E4B2/.log/log.2.2
-
-1	1748881954.846075	1748881954.846113	106.0	.2.2.0	272503.272506	<main>.gg	'echo 0a'
-1	1748881954.846455	1748881954.847824	108.0	.2.2.1	272503.272506	<main>.gg	'echo 0b'
-1	1748881954.846455	1748881954.852491	108.0	.2.2.1	272503.272506	<main>.gg	'echo 0b'
-1	1748881954.852801	1748881954.853290	111.0	.2.2.2	272503.272506	<main>.gg	'echo 0d'
-1	1748881954.853676	1748881954.854007	111.0	.2.2.3	272503.272506	<main>.gg	'wait'
-1	1748881954.860072	1748881954.860104	100.0	.2.2.4.6	272503.272506	<main>.gg.ff	'wait'
-1	1748881954.860368	1748881954.860393	101.0	.2.2.4	272503.272506	<main>.gg.ff	'wait'
-1	1748881954.860654	1748881954.860678	102.0	.2.2.8	272503.272506	<main>.gg	'wait'
-1	1748881954.854289	1748881954.860963	112.0	.2.2.9	272503.272506	<main>.gg	'ff 1'
-1	1748881954.867200	1748881954.867229	100.0	.2.2.10.18	272503.272506	<main>.gg.ff	'wait'
-1	1748881954.867492	1748881954.867517	101.0	.2.2.10	272503.272506	<main>.gg.ff	'wait'
-1	1748881954.867776	1748881954.867801	102.0	.2.2.20	272503.272506	<main>.gg	'wait'
-1	1748881954.861227	1748881954.868095	104.0	.2.2.21	272503.272506	<main>.gg	'wait'
+	1748886882.428226		98.0	.2.1_0	282510	<main>.gg	'gg'
+	1748886882.428226		98.0	.2.1_0	282510	<main>.gg	'gg'
 
 
 --------------------------------------
-/dev/shm/.timep.4E4B2/.log/log.2.2.10
+/dev/shm/.timep.116D7749/.log/log.2.2
 
-1	1748881954.861736	1748881954.861784	106.0	.2.2.10.11	272503.272506	<main>.gg.ff	<< function: 'wait' >>
-1	1748881954.862063	1748881954.862087	114.0	.2.2.10.12	272503.272506	<main>.gg.ff	'ff 2'
-1	1748881954.862351	1748881954.862371	99.0	.2.2.10.13	272503.272506	<main>.gg.ff	'ff 2'
-1	1748881954.862631	1748881954.862659	100.0	.2.2.10.14	272503.272506	<main>.gg.ff	'echo ${1}a'
-1	1748881954.862922	1748881954.863489	101.0	.2.2.10.15	272503.272506	<main>.gg.ff	'echo ${1}b'
-1	1748881954.862922	1748881954.864983	101.0	.2.2.10.15	272503.272506	<main>.gg.ff	'echo ${1}b'
-1	1748881954.865299	1748881954.865762	103.0	.2.2.10.16	272503.272506	<main>.gg.ff	'echo ${1}d'
-1	1748881954.866116	1748881954.866918	103.0	.2.2.10.17	272503.272506	<main>.gg.ff	'wait'
+	1748886882.429298		108.0	.2.2.0_0	282510.282513	<main>.gg	'echo 0a'
+	1748886882.429620		110.0	.2.2.1_0	282510.282513	<main>.gg	'echo 0b'
+	1748886882.429620		112.0	.2.2.2_0	282510.282513	<main>.gg	<< subshell >>
+	1748886882.436016		113.0	.2.2.3_1	282510.282513	<main>.gg	'echo 0d'
+	1748886882.436823		113.0	.2.2.4_1	282510.282513	<main>.gg	'wait'
 
 
 --------------------------------------
-/dev/shm/.timep.4E4B2/.log/log.2.2.10.16
+/dev/shm/.timep.116D7749/.log/log.2.2.2
 
-1	1748881954.863974	1748881954.864011	102.0	.2.2.10.16.0	272503.272506.272511	<main>.gg.ff	'echo ${1}c'
-1	1748881954.864303	1748881954.864324	54.0	.2.2.10.16.1	272503.272506.272511	<main>.gg.ff	'echo ${1}c'
-
-
---------------------------------------
-/dev/shm/.timep.4E4B2/.log/log.2.2.2
-
-1	1748881954.849501	1748881954.849615	110.0	.2.2.2.0	272503.272506.272507	<main>.gg	'echo 0c'
-1	1748881954.850624	1748881954.850696	54.0	.2.2.2.1	272503.272506.272507	<main>.gg	'echo 0c'
+	1748886882.432322		112.0	.2.2.2.0_0	282510.282513.282514	<main>.gg	'echo 0c'
+	1748886882.433451		53.0	.2.2.2.1_0	282510.282513.282514	<main>.gg	'echo 0c'
 
 
 --------------------------------------
-/dev/shm/.timep.4E4B2/.log/log.2.2.22
+/dev/shm/.timep.116D7749/.log/log.2.2.5
 
-1	1748881954.868860	1748881954.870348	106.0	.2.2.22.23	272503.272506	<main>.gg.ff	<< function: 'wait' >>
-1	1748881954.881179	1748881954.881206	100.0	.2.2.22.24.6	272503.272506.272513	<main>.gg.ff	'wait'
-1	1748881954.881468	1748881954.881494	101.0	.2.2.22.24	272503.272506.272513	<main>.gg.ff	'wait'
-1	1748881954.881751	1748881954.881775	102.0	.2.2.22.8	272503.272506.272513	<main>.gg	'wait'
-1	1748881954.868860	1748881954.882057	116.0	.2.2.22.9	272503.272506.272513	<main>.gg	<< subshell >>
-1	1748881954.868860	1748881954.884825	106.0	.2.2.22.23	272503.272506	<main>.gg.ff	<< function: 'wait' >>
-1	1748881954.868860	1748881954.895329	106.0	.2.2.22.23	272503.272506	<main>.gg.ff	<< function: 'wait' >>
-1	1748881954.895714	1748881954.895741	54.0	.2.2.22.24	272503.272506	<main>.gg.ff	'wait'
-
-
---------------------------------------
-/dev/shm/.timep.4E4B2/.log/log.2.2.22.10
-
-1	1748881954.882815	1748881954.882864	106.0	.2.2.22.10.11	272503.272506.272513	<main>.gg.ff	<< function: 'wait' >>
-1	1748881954.883141	1748881954.883162	54.0	.2.2.22.10.12	272503.272506.272513	<main>.gg.ff	'wait'
-
-
---------------------------------------
-/dev/shm/.timep.4E4B2/.log/log.2.2.22.24
-
-1	1748881954.872005	1748881954.872153	116.0	.2.2.22.24.0	272503.272506.272513	<main>.gg.ff	'ff 3'
-1	1748881954.873141	1748881954.873213	99.0	.2.2.22.24.1	272503.272506.272513	<main>.gg.ff	'ff 3'
-1	1748881954.874153	1748881954.874252	100.0	.2.2.22.24.2	272503.272506.272513	<main>.gg.ff	'echo ${1}a'
-1	1748881954.875190	1748881954.876362	101.0	.2.2.22.24.3	272503.272506.272513	<main>.gg.ff	'echo ${1}b'
-1	1748881954.875190	1748881954.879447	101.0	.2.2.22.24.3	272503.272506.272513	<main>.gg.ff	'echo ${1}b'
-1	1748881954.879746	1748881954.880220	103.0	.2.2.22.24.4	272503.272506.272513	<main>.gg.ff	'echo ${1}d'
-1	1748881954.880580	1748881954.880887	103.0	.2.2.22.24.5	272503.272506.272513	<main>.gg.ff	'wait'
-1	1748881954.886033	1748881954.886797	117.0	.2.2.22.24.0	272503.272506.272516	<main>.gg.ff	'ff 4'
-1	1748881954.886033	1748881954.886857	117.0	.2.2.22.24.0	272503.272506.272516	<main>.gg.ff	'ff 4'
-1	1748881954.891473	1748881954.891503	100.0	.2.2.22.24.1.5	272503.272506.272516.272517	<main>.gg.ff	'wait'
-1	1748881954.891761	1748881954.891786	101.0	.2.2.22.24.1	272503.272506.272516.272517	<main>.gg.ff	'wait'
-1	1748881954.892044	1748881954.892069	102.0	.2.2.22.24.7	272503.272506.272516.272517	<main>.gg	'wait'
-1	1748881954.886033	1748881954.892345	99.0	.2.2.22.24.8	272503.272506.272516.272517	<main>.gg	<< subshell >>
-1	1748881954.887362	1748881954.894288	117.0	.2.2.22.24.1	272503.272506.272516	<main>.gg.ff	'wait'
-1	1748881954.894566	1748881954.894587	54.0	.2.2.22.24.2	272503.272506.272516	<main>.gg.ff	'wait'
+	1748886882.437717		98.0	.2.2.5.1_1	282510.282513	<main>.gg.ff	'ff 1'
+	1748886882.438023		99.0	.2.2.5.2_1	282510.282513	<main>.gg.ff	'echo ${1}a'
+	1748886882.438324		100.0	.2.2.5.3_1	282510.282513	<main>.gg.ff	'echo ${1}b'
+	1748886882.438324		101.0	.2.2.5.4_1	282510.282513	<main>.gg.ff	<< subshell >>
+	1748886882.441508		102.0	.2.2.5.5_2	282510.282513	<main>.gg.ff	'echo ${1}d'
+	1748886882.442307		102.0	.2.2.5.6_2	282510.282513	<main>.gg.ff	'wait'
+	1748886882.442307		103.0	.2.2.5.7_4	282510.282513	<main>.gg.ff	<< background fork: 282520 >>
+	1748886882.442307		102.0	.2.2.5.6_2	282510.282513	<main>.gg.ff	'wait'
+	1748886882.442307		104.0	.2.2.5.7_3	282510.282513	<main>.gg.ff	<< background fork: 282521 >>
+	1748886882.442307		104.0	.2.2.5.7_2	282510.282513	<main>.gg.ff	<< subshell >>
+	1748886882.442307		105.0	.2.2.5.8_2	282510.282513	<main>.gg.ff	<< subshell >>
+	1748886882.454399		116.0	.2.2.5.9_2	282510.282513	<main>.gg.ff	'ff 2'
+	1748886882.454691		98.0	.2.2.5.10_2	282510.282513	<main>.gg.ff	'ff 2'
+	1748886882.454974		99.0	.2.2.5.11_2	282510.282513	<main>.gg.ff	'echo ${1}a'
+	1748886882.455268		100.0	.2.2.5.12_2	282510.282513	<main>.gg.ff	'echo ${1}b'
+	1748886882.455268		101.0	.2.2.5.13_2	282510.282513	<main>.gg.ff	<< subshell >>
+	1748886882.457852		102.0	.2.2.5.14_3	282510.282513	<main>.gg.ff	'echo ${1}d'
+	1748886882.458597		102.0	.2.2.5.15_3	282510.282513	<main>.gg.ff	'wait'
+	1748886882.458597		103.0	.2.2.5.16_5	282510.282513	<main>.gg.ff	<< background fork: 282526 >>
+	1748886882.458597		102.0	.2.2.5.15_3	282510.282513	<main>.gg.ff	'wait'
+	1748886882.458597		104.0	.2.2.5.16_4	282510.282513	<main>.gg.ff	<< background fork: 282528 >>
+	1748886882.468527		104.0	.2.2.5.17_5	282510.282513	<main>.gg.ff	'wait'
+	1748886882.468527		105.0	.2.2.5.18_5	282510.282513	<main>.gg.ff	<< subshell >>
+	1748886882.455268		100.0	.2.2.5.12_2	282510.282513	<main>.gg.ff	'echo ${1}b'
+	1748886882.497351		119.0	.2.2.5.13_2	282510.282513	<main>.gg.ff	'ff 4'
+	1748886882.497351		119.0	.2.2.5.13_3	282510.282513	<main>.gg.ff	'ff 4'
+	1748886882.498383		119.0	.2.2.5.14_3	282510.282513	<main>.gg.ff	'wait'
+	1748886882.498383		120.0	.2.2.5.15_4	282510.282513	<main>.gg.ff	<< subshell >>
+	1748886882.498383		120.0	.2.2.5.15_5	282510.282513	<main>.gg.ff	<< background fork: 282551 >>
+	1748886882.537575		121.0	.2.2.5.16_6	282510.282513	<main>.gg.ff	'wait'
+	1748886882.537575		121.0	.2.2.5.16_5	282510.282513	<main>.gg.ff	'wait'
+	1748886882.551644		122.0	.2.2.5.17_6	282510.282513	<main>.gg.ff	'wait'
+	1748886882.567465		53.0	.2.2.5.18_6	282510.282513	<main>.gg.ff	'wait'
 
 
 --------------------------------------
-/dev/shm/.timep.4E4B2/.log/log.2.2.22.24.1
+/dev/shm/.timep.116D7749/.log/log.2.2.5.13
 
-1	1748881954.887242	1748881954.887263	99.0	.2.2.22.24.1.0	272503.272506.272516.272517	<main>.gg.ff	'ff 4'
-1	1748881954.887538	1748881954.887567	100.0	.2.2.22.24.1.1	272503.272506.272516.272517	<main>.gg.ff	'echo ${1}a'
-1	1748881954.887824	1748881954.888356	101.0	.2.2.22.24.1.2	272503.272506.272516.272517	<main>.gg.ff	'echo ${1}b'
-1	1748881954.887824	1748881954.889829	101.0	.2.2.22.24.1.2	272503.272506.272516.272517	<main>.gg.ff	'echo ${1}b'
-1	1748881954.890135	1748881954.890563	103.0	.2.2.22.24.1.3	272503.272506.272516.272517	<main>.gg.ff	'echo ${1}d'
-1	1748881954.890907	1748881954.891204	103.0	.2.2.22.24.1.4	272503.272506.272516.272517	<main>.gg.ff	'wait'
+	1748886882.456239		101.0	.2.2.5.13.0_2	282510.282513.282522	<main>.gg.ff	'echo ${1}c'
+	1748886882.456566		53.0	.2.2.5.13.1_2	282510.282513.282522	<main>.gg.ff	'echo ${1}c'
 
 
 --------------------------------------
-/dev/shm/.timep.4E4B2/.log/log.2.2.22.24.1.3
+/dev/shm/.timep.116D7749/.log/log.2.2.5.14
 
-1	1748881954.888834	1748881954.888871	102.0	.2.2.22.24.1.3.0	272503.272506.272516.272517.272518	<main>.gg.ff	'echo ${1}c'
-1	1748881954.889174	1748881954.889193	54.0	.2.2.22.24.1.3.1	272503.272506.272516.272517.272518	<main>.gg.ff	'echo ${1}c'
-
-
---------------------------------------
-/dev/shm/.timep.4E4B2/.log/log.2.2.22.24.4
-
-1	1748881954.877280	1748881954.877363	102.0	.2.2.22.24.4.0	272503.272506.272513.272514	<main>.gg.ff	'echo ${1}c'
-1	1748881954.878072	1748881954.878122	54.0	.2.2.22.24.4.1	272503.272506.272513.272514	<main>.gg.ff	'echo ${1}c'
-
-
---------------------------------------
-/dev/shm/.timep.4E4B2/.log/log.2.2.22.24.9
-
-1	1748881954.893106	1748881954.893148	106.0	.2.2.22.24.9.10	272503.272506.272516.272517	<main>.gg.ff	<< function: 'wait' >>
-1	1748881954.893421	1748881954.893440	54.0	.2.2.22.24.9.11	272503.272506.272516.272517	<main>.gg.ff	'wait'
+	1748886882.498297		98.0	.2.2.5.14.0_2	282510.282513.282536	<main>.gg.ff	'ff 4'
+	1748886882.498603		99.0	.2.2.5.14.1_2	282510.282513.282536	<main>.gg.ff	'echo ${1}a'
+	1748886882.498890		100.0	.2.2.5.14.2_2	282510.282513.282536	<main>.gg.ff	'echo ${1}b'
+	1748886882.498890		101.0	.2.2.5.14.3_2	282510.282513.282536	<main>.gg.ff	<< subshell >>
+	1748886882.501397		102.0	.2.2.5.14.4_3	282510.282513.282536	<main>.gg.ff	'echo ${1}d'
+	1748886882.502084		102.0	.2.2.5.14.5_3	282510.282513.282536	<main>.gg.ff	'wait'
+	1748886882.502084		103.0	.2.2.5.14.6_5	282510.282513.282536	<main>.gg.ff	<< background fork: 282541 >>
+	1748886882.502084		102.0	.2.2.5.14.5_3	282510.282513.282536	<main>.gg.ff	'wait'
+	1748886882.502084		104.0	.2.2.5.14.6_4	282510.282513.282536	<main>.gg.ff	<< background fork: 282542 >>
+	1748886882.502084		104.0	.2.2.5.14.6_3	282510.282513.282536	<main>.gg.ff	<< subshell >>
+	1748886882.502084		105.0	.2.2.5.14.7_3	282510.282513.282536	<main>.gg.ff	<< subshell >>
+	1748886882.516498		53.0	.2.2.5.14.8_3	282510.282513.282536	<main>.gg.ff	'wait'
 
 
 --------------------------------------
-/dev/shm/.timep.4E4B2/.log/log.2.2.4
+/dev/shm/.timep.116D7749/.log/log.2.2.5.14.3
 
-1	1748881954.854566	1748881954.854586	99.0	.2.2.4.1	272503.272506	<main>.gg.ff	'ff 1'
-1	1748881954.854864	1748881954.854893	100.0	.2.2.4.2	272503.272506	<main>.gg.ff	'echo ${1}a'
-1	1748881954.855174	1748881954.856417	101.0	.2.2.4.3	272503.272506	<main>.gg.ff	'echo ${1}b'
-1	1748881954.855174	1748881954.858477	101.0	.2.2.4.3	272503.272506	<main>.gg.ff	'echo ${1}b'
-1	1748881954.858783	1748881954.859236	103.0	.2.2.4.4	272503.272506	<main>.gg.ff	'echo ${1}d'
-1	1748881954.859609	1748881954.859795	103.0	.2.2.4.5	272503.272506	<main>.gg.ff	'wait'
+	1748886882.499743		101.0	.2.2.5.14.3.0_2	282510.282513.282536.282537	<main>.gg.ff	'echo ${1}c'
+	1748886882.500084		53.0	.2.2.5.14.3.1_2	282510.282513.282536.282537	<main>.gg.ff	'echo ${1}c'
 
 
 --------------------------------------
-/dev/shm/.timep.4E4B2/.log/log.2.2.4.4
+/dev/shm/.timep.116D7749/.log/log.2.2.5.14.6
 
-1	1748881954.857454	1748881954.857489	102.0	.2.2.4.4.0	272503.272506.272509	<main>.gg.ff	'echo ${1}c'
-1	1748881954.857778	1748881954.857798	54.0	.2.2.4.4.1	272503.272506.272509	<main>.gg.ff	'echo ${1}c'
+	1748886882.504574		103.0	.2.2.5.14.6.0_4	282510.282513.282536.282539	<main>.gg.ff	'echo ${1}e'
+	1748886882.506517		103.0	.2.2.5.14.6.1_4	282510.282513.282536.282539	<main>.gg.ff	'wait'
+	1748886882.507589		53.0	.2.2.5.14.6.2_4	282510.282513.282536.282539	<main>.gg.ff	'wait'
+	1748886882.510631		104.0	.2.2.5.14.6.0_3	282510.282513.282536.282541	<main>.gg.ff	'echo ${1}f'
+	1748886882.511721		53.0	.2.2.5.14.6.1_3	282510.282513.282536.282541	<main>.gg.ff	'echo ${1}f'
 
 
 --------------------------------------
-/dev/shm/.timep.4E4B2/.log/log.6
+/dev/shm/.timep.116D7749/.log/log.2.2.5.14.7
 
-1	1748881954.904110	1748881954.904312	106.0	.6.7	272503	<main>.gg	<< function: 'gg' >>
+	1748886882.514868		105.0	.2.2.5.14.7.0_3	282510.282513.282536.282542	<main>.gg.ff	'echo ${1}g'
+	1748886882.515207		53.0	.2.2.5.14.7.1_3	282510.282513.282536.282542	<main>.gg.ff	'echo ${1}g'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.14.vars
+
+declare -a timep_BASHPID_A=([0]="282510" [1]="282513")
+declare -a timep_FUNCNAME_A=([0]="<main>" [1]="gg" [2]="ff")
+declare -a timep_NEXEC=([0]="2" [1]="2" [2]="5" [3]="14")
+declare -a timep_BASH_COMMAND=([0]="'gg'" [1]="<< subshell >>" [2]="'ff 1'" [3]="<< subshell >>")
+declare -a timep_NPIPE=([0]="1")
+declare -a timep_STARTTIME=([0]="1748886882.427942" [1]="1748886882.428226" [2]="1748886882.437439" [3]="1748886882.497351")
+declare -a timep_LINENO=([0]="209.0" [1]="108.0" [2]="114.0" [3]="98.0")
+declare -- timep_NEXEC_STR=".2.2.5.14"
+declare -- timep_BASHPID_STR="282510.282513"
+declare -- timep_FUNCNAME_STR="<main>.gg.ff"
+declare -- timep_NESTING_LVL="3"
+declare -- timep_NESTING_LVL_0="4"
+declare -- timep_BASH_SUBSHELL_PREV="3"
+declare -- timep_LOGPATH="/dev/shm/.timep.116D7749/.log/log.2.2.5"
+declare -- timep_LOGPATH_0="/dev/shm/.timep.116D7749/.log/log.2.2.5.14"
+declare -- timep_NO_PREV_FLAG="false"
+declare -- timep_NBG="3"
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.15
+
+	1748886882.519353		120.0	.2.2.5.15.0_3	282510.282513.282543	<main>.gg.ff	'ff 5'
+	1748886882.519353		120.0	.2.2.5.15.0_4	282510.282513.282543	<main>.gg.ff	'ff 5'
+	1748886882.520999		120.0	.2.2.5.15.1_4	282510.282513.282543	<main>.gg.ff	'wait'
+	1748886882.535452		53.0	.2.2.5.15.2_4	282510.282513.282543	<main>.gg.ff	'wait'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.15.1
+
+	1748886882.520583		98.0	.2.2.5.15.1.0_3	282510.282513.282543.282544	<main>.gg.ff	'ff 5'
+	1748886882.520927		99.0	.2.2.5.15.1.1_3	282510.282513.282543.282544	<main>.gg.ff	'echo ${1}a'
+	1748886882.521263		100.0	.2.2.5.15.1.2_3	282510.282513.282543.282544	<main>.gg.ff	'echo ${1}b'
+	1748886882.521263		101.0	.2.2.5.15.1.3_3	282510.282513.282543.282544	<main>.gg.ff	<< subshell >>
+	1748886882.523831		102.0	.2.2.5.15.1.4_4	282510.282513.282543.282544	<main>.gg.ff	'echo ${1}d'
+	1748886882.524627		102.0	.2.2.5.15.1.5_4	282510.282513.282543.282544	<main>.gg.ff	'wait'
+	1748886882.524627		103.0	.2.2.5.15.1.6_6	282510.282513.282543.282544	<main>.gg.ff	<< background fork: 282549 >>
+	1748886882.524627		103.0	.2.2.5.15.1.6_5	282510.282513.282543.282544	<main>.gg.ff	<< subshell >>
+	1748886882.524627		104.0	.2.2.5.15.1.7_6	282510.282513.282543.282544	<main>.gg.ff	<< background fork: 282550 >>
+	1748886882.524627		104.0	.2.2.5.15.1.7_5	282510.282513.282543.282544	<main>.gg.ff	<< subshell >>
+	1748886882.524627		105.0	.2.2.5.15.1.8_5	282510.282513.282543.282544	<main>.gg.ff	<< subshell >>
+	1748886882.534262		53.0	.2.2.5.15.1.9_5	282510.282513.282543.282544	<main>.gg.ff	'wait'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.15.1.3
+
+	1748886882.522144		101.0	.2.2.5.15.1.3.0_3	282510.282513.282543.282544.282545	<main>.gg.ff	'echo ${1}c'
+	1748886882.522458		53.0	.2.2.5.15.1.3.1_3	282510.282513.282543.282544.282545	<main>.gg.ff	'echo ${1}c'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.15.1.6
+
+	1748886882.526112		103.0	.2.2.5.15.1.6.0_5	282510.282513.282543.282544.282547	<main>.gg.ff	'echo ${1}e'
+	1748886882.527059		103.0	.2.2.5.15.1.6.1_5	282510.282513.282543.282544.282547	<main>.gg.ff	'wait'
+	1748886882.527832		53.0	.2.2.5.15.1.6.2_5	282510.282513.282543.282544.282547	<main>.gg.ff	'wait'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.15.1.7
+
+	1748886882.529725		104.0	.2.2.5.15.1.7.0_5	282510.282513.282543.282544.282549	<main>.gg.ff	'echo ${1}f'
+	1748886882.530063		53.0	.2.2.5.15.1.7.1_5	282510.282513.282543.282544.282549	<main>.gg.ff	'echo ${1}f'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.15.1.8
+
+	1748886882.532317		105.0	.2.2.5.15.1.8.0_5	282510.282513.282543.282544.282550	<main>.gg.ff	'echo ${1}g'
+	1748886882.532749		53.0	.2.2.5.15.1.8.1_5	282510.282513.282543.282544.282550	<main>.gg.ff	'echo ${1}g'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.15.1.vars
+
+declare -a timep_BASHPID_A=([0]="282510" [1]="282513" [2]="282543")
+declare -a timep_FUNCNAME_A=([0]="<main>" [1]="gg" [2]="ff")
+declare -a timep_NEXEC=([0]="2" [1]="2" [2]="5" [3]="15" [4]="1")
+declare -a timep_BASH_COMMAND=([0]="'gg'" [1]="<< subshell >>" [2]="'ff 1'" [3]="<< subshell >>" [4]="<< subshell >>")
+declare -a timep_NPIPE=([0]="1" [1]="1")
+declare -a timep_STARTTIME=([0]="1748886882.427942" [1]="1748886882.428226" [2]="1748886882.437439" [3]="1748886882.498383" [4]="1748886882.519353")
+declare -a timep_LINENO=([0]="209.0" [1]="108.0" [2]="114.0" [3]="120.0" [4]="98.0")
+declare -- timep_NEXEC_STR=".2.2.5.15.1"
+declare -- timep_BASHPID_STR="282510.282513.282543"
+declare -- timep_FUNCNAME_STR="<main>.gg.ff"
+declare -- timep_NESTING_LVL="4"
+declare -- timep_NESTING_LVL_0="5"
+declare -- timep_BASH_SUBSHELL_PREV="4"
+declare -- timep_LOGPATH="/dev/shm/.timep.116D7749/.log/log.2.2.5.15"
+declare -- timep_LOGPATH_0="/dev/shm/.timep.116D7749/.log/log.2.2.5.15.1"
+declare -- timep_NO_PREV_FLAG="false"
+declare -- timep_NBG="5"
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.16
+
+	1748886882.461483		103.0	.2.2.5.16.0_4	282510.282513.282524	<main>.gg.ff	'echo ${1}e'
+	1748886882.463718		103.0	.2.2.5.16.1_4	282510.282513.282524	<main>.gg.ff	'wait'
+	1748886882.465695		53.0	.2.2.5.16.2_4	282510.282513.282524	<main>.gg.ff	'wait'
+	1748886882.469900		104.0	.2.2.5.16.0_3	282510.282513.282526	<main>.gg.ff	'echo ${1}f'
+	1748886882.471001		53.0	.2.2.5.16.1_3	282510.282513.282526	<main>.gg.ff	'echo ${1}f'
+	1748886882.537308		121.0	.2.2.5.16.0_4	282510.282513.282551	<main>.gg.ff	'ff 6'
+	1748886882.537613		98.0	.2.2.5.16.1_4	282510.282513.282551	<main>.gg.ff	'ff 6'
+	1748886882.537908		99.0	.2.2.5.16.2_4	282510.282513.282551	<main>.gg.ff	'echo ${1}a'
+	1748886882.538199		100.0	.2.2.5.16.3_4	282510.282513.282551	<main>.gg.ff	'echo ${1}b'
+	1748886882.538199		101.0	.2.2.5.16.4_4	282510.282513.282551	<main>.gg.ff	<< subshell >>
+	1748886882.540636		102.0	.2.2.5.16.5_5	282510.282513.282551	<main>.gg.ff	'echo ${1}d'
+	1748886882.541337		102.0	.2.2.5.16.6_5	282510.282513.282551	<main>.gg.ff	'wait'
+	1748886882.541337		103.0	.2.2.5.16.7_7	282510.282513.282551	<main>.gg.ff	<< background fork: 282556 >>
+	1748886882.541337		103.0	.2.2.5.16.7_6	282510.282513.282551	<main>.gg.ff	<< subshell >>
+	1748886882.541337		104.0	.2.2.5.16.8_7	282510.282513.282551	<main>.gg.ff	<< background fork: 282557 >>
+	1748886882.541337		104.0	.2.2.5.16.8_6	282510.282513.282551	<main>.gg.ff	<< subshell >>
+	1748886882.541337		105.0	.2.2.5.16.9_6	282510.282513.282551	<main>.gg.ff	<< subshell >>
+	1748886882.549868		53.0	.2.2.5.16.10_6	282510.282513.282551	<main>.gg.ff	'wait'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.16.4
+
+	1748886882.539053		101.0	.2.2.5.16.4.0_4	282510.282513.282551.282552	<main>.gg.ff	'echo ${1}c'
+	1748886882.539372		53.0	.2.2.5.16.4.1_4	282510.282513.282551.282552	<main>.gg.ff	'echo ${1}c'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.16.7
+
+	1748886882.542611		103.0	.2.2.5.16.7.0_6	282510.282513.282551.282554	<main>.gg.ff	'echo ${1}e'
+	1748886882.543616		103.0	.2.2.5.16.7.1_6	282510.282513.282551.282554	<main>.gg.ff	'wait'
+	1748886882.543915		53.0	.2.2.5.16.7.2_6	282510.282513.282551.282554	<main>.gg.ff	'wait'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.16.8
+
+	1748886882.545639		104.0	.2.2.5.16.8.0_6	282510.282513.282551.282556	<main>.gg.ff	'echo ${1}f'
+	1748886882.545957		53.0	.2.2.5.16.8.1_6	282510.282513.282551.282556	<main>.gg.ff	'echo ${1}f'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.16.9
+
+	1748886882.548198		105.0	.2.2.5.16.9.0_6	282510.282513.282551.282557	<main>.gg.ff	'echo ${1}g'
+	1748886882.548565		53.0	.2.2.5.16.9.1_6	282510.282513.282551.282557	<main>.gg.ff	'echo ${1}g'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.16.vars
+
+declare -a timep_BASHPID_A=([0]="282510" [1]="282513")
+declare -a timep_FUNCNAME_A=([0]="<main>" [1]="gg" [2]="ff")
+declare -a timep_NEXEC=([0]="2" [1]="2" [2]="5" [3]="16")
+declare -a timep_BASH_COMMAND=([0]="'gg'" [1]="<< subshell >>" [2]="'ff 1'" [3]="<< subshell >>")
+declare -a timep_NPIPE=([0]="1")
+declare -a timep_STARTTIME=([0]="1748886882.427942" [1]="1748886882.428226" [2]="1748886882.437439" [3]="1748886882.498383")
+declare -a timep_LINENO=([0]="209.0" [1]="108.0" [2]="114.0" [3]="121.0")
+declare -- timep_NEXEC_STR=".2.2.5.16"
+declare -- timep_BASHPID_STR="282510.282513"
+declare -- timep_FUNCNAME_STR="<main>.gg.ff"
+declare -- timep_NESTING_LVL="3"
+declare -- timep_NESTING_LVL_0="4"
+declare -- timep_BASH_SUBSHELL_PREV="3"
+declare -- timep_LOGPATH="/dev/shm/.timep.116D7749/.log/log.2.2.5"
+declare -- timep_LOGPATH_0="/dev/shm/.timep.116D7749/.log/log.2.2.5.16"
+declare -- timep_NO_PREV_FLAG="false"
+declare -- timep_NBG="6"
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.17
+
+	1748886882.552214		122.0	.2.2.5.17.0_5	282510.282513.282558	<main>.gg.ff	'ff 7'
+	1748886882.552836		98.0	.2.2.5.17.1_5	282510.282513.282558	<main>.gg.ff	'ff 7'
+	1748886882.553387		99.0	.2.2.5.17.2_5	282510.282513.282558	<main>.gg.ff	'echo ${1}a'
+	1748886882.553937		100.0	.2.2.5.17.3_5	282510.282513.282558	<main>.gg.ff	'echo ${1}b'
+	1748886882.553937		101.0	.2.2.5.17.4_5	282510.282513.282558	<main>.gg.ff	<< subshell >>
+	1748886882.557196		102.0	.2.2.5.17.5_6	282510.282513.282558	<main>.gg.ff	'echo ${1}d'
+	1748886882.558737		102.0	.2.2.5.17.6_6	282510.282513.282558	<main>.gg.ff	'wait'
+	1748886882.558737		103.0	.2.2.5.17.7_8	282510.282513.282558	<main>.gg.ff	<< background fork: 282563 >>
+	1748886882.558737		103.0	.2.2.5.17.7_7	282510.282513.282558	<main>.gg.ff	<< subshell >>
+	1748886882.558737		104.0	.2.2.5.17.8_8	282510.282513.282558	<main>.gg.ff	<< background fork: 282564 >>
+	1748886882.558737		104.0	.2.2.5.17.8_7	282510.282513.282558	<main>.gg.ff	<< subshell >>
+	1748886882.558737		105.0	.2.2.5.17.9_7	282510.282513.282558	<main>.gg.ff	<< subshell >>
+	1748886882.566423		53.0	.2.2.5.17.10_7	282510.282513.282558	<main>.gg.ff	'wait'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.17.4
+
+	1748886882.554926		101.0	.2.2.5.17.4.0_5	282510.282513.282558.282559	<main>.gg.ff	'echo ${1}c'
+	1748886882.555261		53.0	.2.2.5.17.4.1_5	282510.282513.282558.282559	<main>.gg.ff	'echo ${1}c'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.17.7
+
+	1748886882.559637		103.0	.2.2.5.17.7.0_7	282510.282513.282558.282561	<main>.gg.ff	'echo ${1}e'
+	1748886882.560617		103.0	.2.2.5.17.7.1_7	282510.282513.282558.282561	<main>.gg.ff	'wait'
+	1748886882.560913		53.0	.2.2.5.17.7.2_7	282510.282513.282558.282561	<main>.gg.ff	'wait'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.17.8
+
+	1748886882.562618		104.0	.2.2.5.17.8.0_7	282510.282513.282558.282563	<main>.gg.ff	'echo ${1}f'
+	1748886882.562929		53.0	.2.2.5.17.8.1_7	282510.282513.282558.282563	<main>.gg.ff	'echo ${1}f'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.17.9
+
+	1748886882.564776		105.0	.2.2.5.17.9.0_7	282510.282513.282558.282564	<main>.gg.ff	'echo ${1}g'
+	1748886882.565102		53.0	.2.2.5.17.9.1_7	282510.282513.282558.282564	<main>.gg.ff	'echo ${1}g'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.17.vars
+
+declare -a timep_BASHPID_A=([0]="282510" [1]="282513")
+declare -a timep_FUNCNAME_A=([0]="<main>" [1]="gg" [2]="ff")
+declare -a timep_NEXEC=([0]="2" [1]="2" [2]="5" [3]="17")
+declare -a timep_BASH_COMMAND=([0]="'gg'" [1]="<< subshell >>" [2]="'ff 1'" [3]="<< subshell >>")
+declare -a timep_NPIPE=([0]="1")
+declare -a timep_STARTTIME=([0]="1748886882.427942" [1]="1748886882.428226" [2]="1748886882.437439" [3]="1748886882.537575")
+declare -a timep_LINENO=([0]="209.0" [1]="108.0" [2]="114.0" [3]="122.0")
+declare -- timep_NEXEC_STR=".2.2.5.17"
+declare -- timep_BASHPID_STR="282510.282513"
+declare -- timep_FUNCNAME_STR="<main>.gg.ff"
+declare -- timep_NESTING_LVL="3"
+declare -- timep_NESTING_LVL_0="4"
+declare -- timep_BASH_SUBSHELL_PREV="3"
+declare -- timep_LOGPATH="/dev/shm/.timep.116D7749/.log/log.2.2.5"
+declare -- timep_LOGPATH_0="/dev/shm/.timep.116D7749/.log/log.2.2.5.17"
+declare -- timep_NO_PREV_FLAG="false"
+declare -- timep_NBG="7"
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.18
+
+	1748886882.474633		105.0	.2.2.5.18.0_5	282510.282513.282528	<main>.gg.ff	'echo ${1}g'
+	1748886882.475232		53.0	.2.2.5.18.1_5	282510.282513.282528	<main>.gg.ff	'echo ${1}g'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.19
+
+	1748886882.477798		118.0	.2.2.5.19.0_5	282510.282513.282529	<main>.gg.ff	'ff 3'
+	1748886882.478332		98.0	.2.2.5.19.1_5	282510.282513.282529	<main>.gg.ff	'ff 3'
+	1748886882.478857		99.0	.2.2.5.19.2_5	282510.282513.282529	<main>.gg.ff	'echo ${1}a'
+	1748886882.479398		100.0	.2.2.5.19.3_5	282510.282513.282529	<main>.gg.ff	'echo ${1}b'
+	1748886882.479398		101.0	.2.2.5.19.4_5	282510.282513.282529	<main>.gg.ff	<< subshell >>
+	1748886882.482088		102.0	.2.2.5.19.5_6	282510.282513.282529	<main>.gg.ff	'echo ${1}d'
+	1748886882.482837		102.0	.2.2.5.19.6_6	282510.282513.282529	<main>.gg.ff	'wait'
+	1748886882.482837		103.0	.2.2.5.19.7_8	282510.282513.282529	<main>.gg.ff	<< background fork: 282534 >>
+	1748886882.482837		102.0	.2.2.5.19.6_6	282510.282513.282529	<main>.gg.ff	'wait'
+	1748886882.482837		104.0	.2.2.5.19.7_7	282510.282513.282529	<main>.gg.ff	<< background fork: 282535 >>
+	1748886882.489231		104.0	.2.2.5.19.8_8	282510.282513.282529	<main>.gg.ff	'wait'
+	1748886882.489231		105.0	.2.2.5.19.9_8	282510.282513.282529	<main>.gg.ff	<< subshell >>
+	1748886882.496230		53.0	.2.2.5.19.10_8	282510.282513.282529	<main>.gg.ff	'wait'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.19.4
+
+	1748886882.480443		101.0	.2.2.5.19.4.0_5	282510.282513.282529.282530	<main>.gg.ff	'echo ${1}c'
+	1748886882.480799		53.0	.2.2.5.19.4.1_5	282510.282513.282529.282530	<main>.gg.ff	'echo ${1}c'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.19.7
+
+	1748886882.485313		103.0	.2.2.5.19.7.0_7	282510.282513.282529.282532	<main>.gg.ff	'echo ${1}e'
+	1748886882.486507		103.0	.2.2.5.19.7.1_7	282510.282513.282529.282532	<main>.gg.ff	'wait'
+	1748886882.487536		53.0	.2.2.5.19.7.2_7	282510.282513.282529.282532	<main>.gg.ff	'wait'
+	1748886882.489888		104.0	.2.2.5.19.7.0_6	282510.282513.282529.282534	<main>.gg.ff	'echo ${1}f'
+	1748886882.490588		53.0	.2.2.5.19.7.1_6	282510.282513.282529.282534	<main>.gg.ff	'echo ${1}f'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.19.9
+
+	1748886882.493611		105.0	.2.2.5.19.9.0_8	282510.282513.282529.282535	<main>.gg.ff	'echo ${1}g'
+	1748886882.494313		53.0	.2.2.5.19.9.1_8	282510.282513.282529.282535	<main>.gg.ff	'echo ${1}g'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.19.vars
+
+declare -a timep_BASHPID_A=([0]="282510" [1]="282513")
+declare -a timep_FUNCNAME_A=([0]="<main>" [1]="gg" [2]="ff")
+declare -a timep_NEXEC=([0]="2" [1]="2" [2]="5" [3]="19")
+declare -a timep_BASH_COMMAND=([0]="'gg'" [1]="<< subshell >>" [2]="'ff 1'" [3]="<< subshell >>")
+declare -a timep_NPIPE=([0]="1")
+declare -a timep_STARTTIME=([0]="1748886882.427942" [1]="1748886882.428226" [2]="1748886882.437439" [3]="1748886882.468527")
+declare -a timep_LINENO=([0]="209.0" [1]="108.0" [2]="114.0" [3]="118.0")
+declare -- timep_NEXEC_STR=".2.2.5.19"
+declare -- timep_BASHPID_STR="282510.282513"
+declare -- timep_FUNCNAME_STR="<main>.gg.ff"
+declare -- timep_NESTING_LVL="3"
+declare -- timep_NESTING_LVL_0="4"
+declare -- timep_BASH_SUBSHELL_PREV="3"
+declare -- timep_LOGPATH="/dev/shm/.timep.116D7749/.log/log.2.2.5"
+declare -- timep_LOGPATH_0="/dev/shm/.timep.116D7749/.log/log.2.2.5.19"
+declare -- timep_NO_PREV_FLAG="false"
+declare -- timep_NBG="8"
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.4
+
+	1748886882.439576		101.0	.2.2.5.4.0_1	282510.282513.282516	<main>.gg.ff	'echo ${1}c'
+	1748886882.440019		53.0	.2.2.5.4.1_1	282510.282513.282516	<main>.gg.ff	'echo ${1}c'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.7
+
+	1748886882.443952		103.0	.2.2.5.7.0_3	282510.282513.282518	<main>.gg.ff	'echo ${1}e'
+	1748886882.445216		103.0	.2.2.5.7.1_3	282510.282513.282518	<main>.gg.ff	'wait'
+	1748886882.446302		53.0	.2.2.5.7.2_3	282510.282513.282518	<main>.gg.ff	'wait'
+	1748886882.449324		104.0	.2.2.5.7.0_2	282510.282513.282520	<main>.gg.ff	'echo ${1}f'
+	1748886882.450135		53.0	.2.2.5.7.1_2	282510.282513.282520	<main>.gg.ff	'echo ${1}f'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.8
+
+	1748886882.452792		105.0	.2.2.5.8.0_2	282510.282513.282521	<main>.gg.ff	'echo ${1}g'
+	1748886882.453119		53.0	.2.2.5.8.1_2	282510.282513.282521	<main>.gg.ff	'echo ${1}g'
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.5.vars
+
+declare -a timep_BASHPID_A=([0]="282510")
+declare -a timep_FUNCNAME_A=([0]="<main>" [1]="gg" [2]="ff")
+declare -a timep_NEXEC=([0]="2" [1]="2" [2]="5")
+declare -a timep_BASH_COMMAND=([0]="'gg'" [1]="<< subshell >>" [2]="<< subshell >>")
+declare -a timep_NPIPE=()
+declare -a timep_STARTTIME=([0]="1748886882.427942" [1]="1748886882.428226" [2]="1748886882.437439")
+declare -a timep_LINENO=([0]="209.0" [1]="108.0" [2]="114.0")
+declare -- timep_NEXEC_STR=".2.2.5"
+declare -- timep_BASHPID_STR="282510"
+declare -- timep_FUNCNAME_STR="<main>.gg.ff"
+declare -- timep_NESTING_LVL="2"
+declare -- timep_NESTING_LVL_0="3"
+declare -- timep_BASH_SUBSHELL_PREV="2"
+declare -- timep_LOGPATH="/dev/shm/.timep.116D7749/.log/log.2.2"
+declare -- timep_LOGPATH_0="/dev/shm/.timep.116D7749/.log/log.2.2.5"
+declare -- timep_NO_PREV_FLAG="false"
+declare -- timep_NBG="6"
+
+
+--------------------------------------
+/dev/shm/.timep.116D7749/.log/log.2.2.vars
+

@@ -13,6 +13,9 @@ echo ${1}a
 { echo ${1}b; }
 ( echo ${1}c )
 echo ${1}d & wait
+( echo ${1}e & wait )
+{ echo ${1}f; } & wait
+( echo ${1}g; ) & wait
 }
 
     echo 0a;
@@ -26,7 +29,10 @@ echo ${1}d & wait
         ff 2
     };
     ( ff 3 );
-    ( ff 4 & wait )
+    ff 4 & wait 
+    ( ff 5 & wait )
+    { ff 6; } & wait
+    ( ff 7; ) & wait
 )
 
 timep gg
