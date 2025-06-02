@@ -260,6 +260,7 @@ if [[ ${BASH_COMMAND} ]] && [[ -s "${timep_LOGPATH}.vars" ]]; then
     unset timep_IFS_PREV timep_A
     : >"${timep_LOGPATH}.vars"
     builtin trap '"'"'timep_EXIT_FLAG=true; :'"'"' EXIT
+    builtin trap '"'"'timep_RETURN_FLAG=true; :'"'"' RETURN
     ${timep_DEBUG} && { printf "\n\n------------------------------------\nAFTER SOURCING .vars FILE\n\n"; declare -p | grep -E "((timep_)|(BASH_COMMAND)|(BASH_SUBSHELL)|(BASHPID)|(LINENO)|(FUNCNAME))" | grep -vE "timep_((run)|(DEBUG))"; echo; } >&2
 fi
 if [[ "${timep_BASHPID_PREV}" != "${BASHPID}" ]] && (( timep_BASH_SUBSHELL_PREV < BASH_SUBSHELL )); then
@@ -438,7 +439,6 @@ timep_runFuncSrc+="(
     declare -a timep_STARTTIME timep_BASH_COMMAND timep_LINENO timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_NPIPE timep_A;
 
     set -T
-    set -b
 
     : & 2>/dev/null
 
