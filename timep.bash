@@ -202,7 +202,11 @@ _timep_getFuncSrc() {
         fi
     }
 
-    out="$(_timep_getFuncSrc0 "$1")"
+    if [[ "${timep_runType}" == 'f' ]] || declare -F "$1" &>/dev/null || ! [[ -f "$1" ]]; then
+        out="$(_timep_getFuncSrc0 "$1")"
+    else
+        out="$(<"$1")"
+    fi
     echo "$out"
 
     # feed the function definition through `bash --rpm-requires` to get dependencies,
@@ -484,6 +488,8 @@ timep_runFuncSrc+="(
     builtin trap - DEBUG EXIT RETURN;
 
 )"
+
+[[ "${timep_runType}" == 'f' ]] || _timep_getFuncSrc "${timep_TMPDIR}/main.bash" >>"${timep_TMPDIR}/functions.bash"
 
    # save script/function (with added debug trap) in new script file and make it executable
     echo "${timep_runFuncSrc}" >"${timep_TMPDIR}/main.bash"
