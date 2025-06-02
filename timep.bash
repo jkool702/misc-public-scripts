@@ -72,6 +72,7 @@ timep() (
         case "${1}" in
             -s|--shell)  timep_runType=s  ;;
             -f|--function)  timep_runType=f  ;;
+            -c|--command)  timep_runType=c  ;;
             --)  shift 1 && break  ;;
              *)  break  ;;
         esac
@@ -118,7 +119,19 @@ timep() (
     mkdir -p "${timep_TMPDIR}"/.log
 
     # determine if command being profiled is a shell script or not
-    [[ ${timep_runType} == [sf] ]] || {
+    if [[ "${timep_runType}" == [sfc] ]]; then
+        [[ "${timep_runType}" == 's' ]] && { 
+            timep_runCmdPath="$(type -p "$1")"
+            if [[ ${timep_runCmdPath} ]]; then
+            # type -p gave a path for this command. Resolve this path if we can.
+                if type realpath &>/dev/null; then
+                    timep_runCmdPath="$(realpath "${timep_runCmdPath}")"
+                elif type readlink &>/dev/null && [[ $(readlink "${timep_runCmdPath}") ]]; then
+                    timep_runCmdPath="$(readlink "${timep_runCmdPath}")"
+                fi
+            fi
+        }
+    else
         if declare -F "$1" &>/dev/null; then
             # command is a function, which takes precedence over a script
             timep_runType=f
@@ -140,21 +153,21 @@ timep() (
                     timep_runType=s
                 else
                 # for all other cases treat it as a shell function.
-                    timep_runType=f
+                    timep_runType=c
                 fi
             else
-            # type -p didnt give a path. Treat it as a shell function.
-                timep_runType=f
+            # type -p didnt give a path and isnt a function. Treat it as a raw command.
+                timep_runType=c
             fi
         fi
-    }
+    fi
 
 
 # helper function to get src code from functions
 _timep_getFuncSrc() {
     local out
 
-    getFuncSrc0() {
+    _timep_getFuncSrc0() {
         local m n p kk off
         local -a A
 
@@ -189,7 +202,7 @@ _timep_getFuncSrc() {
         fi
     }
 
-    out="$(getFuncSrc0 "$1")"
+    out="$(_timep_getFuncSrc0 "$1")"
     echo "$out"
 
     # feed the function definition through `bash --rpm-requires` to get dependencies,
@@ -253,7 +266,8 @@ if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
     timep_FUNCNAME_STR+=".${FUNCNAME[0]}"
     timep_NEXEC+=("0")
 fi
-if ${timep_NO_PREV_FLAG}; then
+
+if${timep_RETURN_FLAG} || ${timep_EXIT_FLAG} || ${timep_NO_PREV_FLAG}; then
     timep_NO_PREV_FLAG=false
 else
     [[ ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} ]] && {
@@ -393,6 +407,13 @@ trap() {
             # start of wrapper code
             timep_runFuncSrc="${timep_runCmd1}"$'\n'
         ;;
+        c)
+            printf -v timep_runCmd '%s ' "${@}"
+            timep_runCmd1='#!'"$(type -p bash)"
+
+            # start of wrapper code
+            timep_runFuncSrc="${timep_runCmd1}"$'\n'
+        ;;
         f)
             _timep_getFuncSrc "$1" >"${timep_TMPDIR}/functions.bash"
             chmod +x "${timep_TMPDIR}/functions.bash"
@@ -498,6 +519,14 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
            "${timep_TMPDIR}/main.bash" "${@}"
         else
            "${timep_TMPDIR}/main.bash" "${@}" <&0
+        fi
+    ;;
+    c)
+        # run the script (with added debug trap)
+        if [[ -t 0 ]]; then
+           "${timep_TMPDIR}/main.bash" 
+        else
+           "${timep_TMPDIR}/main.bash" <&0
         fi
     ;;
 esac
