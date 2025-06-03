@@ -274,7 +274,17 @@ timep_DEBUG_TRAP_STR[1]='
 ${timep_SKIP_DEBUG_TRAP_FLAG} || {
     timep_NPIPE[${timep_NESTING_LVL}]="${timep_NPIPE_CUR}"
     timep_ENDTIME=${timep_ENDTIME_CUR}
-    if [[ ${BASH_COMMAND} ]] && [[ -s "${timep_LOGPATH}.vars" ]]; then
+    if [[ "${timep_BG_PID_PREV}" != "${!}" ]]; then
+        timep_BG_PID_PREV="${!}"
+        printf '"'"'%s\t%s.%s\n'"'"' "${timep_NEXEC_STR}_${timep_NBG}" "${timep_BASHPID_STR}" "${!}" >>"${timep_TMPDIR}/.log/bg_pids"
+        (( timep_NBG++ ))
+        timep_BASH_COMMAND[-1]="<< background fork: $! (${timep_BASH_COMMAND[-1]}) >>"
+        echo "${timep_NBG}" >"${timep_LOGPATH_0}.nbg"
+    elif [[ -s "${timep_LOGPATH}.nbg" ]]; then
+        read -r timep_NBG <"${timep_LOGPATH}.nbg"
+        : >"${timep_LOGPATH}.nbg"
+    fi
+    if [[ ${BASH_COMMAND} ]] && [[ -s "${timep_LOGPATH}_${timep_NBG}.vars" ]]; then
         mapfile -t timep_A <"${timep_LOGPATH}.vars"
         timep_IFS_PREV="${IFS}"
         IFS=$'"'"'\n'"'"'
@@ -299,12 +309,6 @@ ${timep_SKIP_DEBUG_TRAP_FLAG} || {
     fi
     if [[ "${timep_BASHPID_PREV}" != "${BASHPID}" ]] && (( timep_BASH_SUBSHELL_PREV < BASH_SUBSHELL )); then
         timep_ENTER_SUBSHELL_FLAG=true
-    fi
-    if [[ "${timep_BG_PID_PREV}" != "${!}" ]]; then
-        timep_BG_PID_PREV="${!}"
-        printf '"'"'%s\t%s.%s\n'"'"' "${timep_NEXEC_STR}_${timep_NBG}" "${timep_BASHPID_STR}" "${!}" >>"${timep_TMPDIR}/.log/bg_pids"
-        (( timep_NBG++ ))
-        timep_BASH_COMMAND[-1]="<< background fork: $! (${timep_BASH_COMMAND[-1]}) >>"
     fi
     if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
         timep_FUNCNAME_A+=("${FUNCNAME[0]}")
@@ -334,7 +338,7 @@ ${timep_SKIP_DEBUG_TRAP_FLAG} || {
         timep_EXIT_FLAG=false
         timep_NO_PREV_FLAG=false
         timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< subshell >>"
-        declare -p timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_BASH_COMMAND timep_NPIPE timep_STARTTIME timep_LINENO timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NESTING_LVL timep_NESTING_LVL_0 timep_BASH_SUBSHELL_PREV timep_LOGPATH timep_LOGPATH_0 timep_NO_PREV_FLAG timep_NBG >"${timep_LOGPATH_0}.vars"
+        declare -p timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_BASH_COMMAND timep_NPIPE timep_STARTTIME timep_LINENO timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NESTING_LVL timep_NESTING_LVL_0 timep_BASH_SUBSHELL_PREV timep_LOGPATH timep_LOGPATH_0 timep_NO_PREV_FLAG timep_NBG >"${timep_LOGPATH_0}_${timep_NBG}.vars"
     else
         timep_LINENO_0="${LINENO}"
         timep_LINENO_1="${timep_LINENO[${timep_NESTING_LVL}]#*.}"
@@ -384,7 +388,7 @@ ${timep_SKIP_DEBUG_TRAP_FLAG} || {
             timep_NEXEC+=("0")
         done
         timep_BASH_COMMAND[-1]="${BASH_COMMAND@Q}"
-        builtin trap '"'"'timep_EXIT_FLAG=true; :'"'"' EXIT
+        builtin trap '"'${timep_EXIT_TRAP_STR//"'"/"'"'"'"'"'"'"'"}'"' EXIT
     fi
     timep_STARTTIME[${timep_NESTING_LVL}]=${EPOCHREALTIME}
 }
