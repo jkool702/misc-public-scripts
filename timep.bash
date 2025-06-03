@@ -279,7 +279,13 @@ ${timep_SKIP_DEBUG_TRAP_FLAG} || {
         printf '"'"'%s\t%s.%s\n'"'"' "${timep_NEXEC_STR}_${timep_NBG}" "${timep_BASHPID_STR}" "${!}" >>"${timep_TMPDIR}/.log/bg_pids"
         (( timep_NBG++ ))
         timep_BASH_COMMAND[-1]="<< background fork: $! (${timep_BASH_COMMAND[-1]}) >>"
-        echo "${timep_NBG}" >"${timep_LOGPATH_0}.nbg"
+        if [[ -s "${timep_LOGPATH}.nbg" ]]; then
+            read -r timep_NBG_0 <"${timep_LOGPATH}.nbg"
+            [[ "${timep_NBG}" == "${timep_NBG_0}" ]] && echo "${timep_NBG}" >"${timep_LOGPATH_0}.nbg"
+            unset timep_NBG_0
+        else
+            echo "${timep_NBG}" >"${timep_LOGPATH_0}.nbg"
+        fi
     elif [[ -s "${timep_LOGPATH}.nbg" ]]; then
         read -r timep_NBG <"${timep_LOGPATH}.nbg"
         : >"${timep_LOGPATH}.nbg"
@@ -467,7 +473,7 @@ trap() {
     chmod +x "${timep_TMPDIR}/functions.bash"
 timep_runFuncSrc+="(
 
-    declare timep_FUNCDEPTH_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_IFS_PREV timep_LOGPATH timep_LOGPATH_0 timep_ENDTIME timep_NESTING_LVL timep_NESTING_LVL_0 timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NO_PREV_FLAG timep_SKIP_DEBUG_TRAP_FLAG timep_ENTER_SUBSHELL_FLAG timep_TMPDIR timep_LINENO_0 timep_LINENO_1 timep_NBG;
+    declare timep_FUNCDEPTH_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_IFS_PREV timep_LOGPATH timep_LOGPATH_0 timep_ENDTIME timep_NESTING_LVL timep_NESTING_LVL_0 timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NO_PREV_FLAG timep_SKIP_DEBUG_TRAP_FLAG timep_ENTER_SUBSHELL_FLAG timep_TMPDIR timep_LINENO_0 timep_LINENO_1 timep_NBG timep_NBG_0;
     declare -a timep_STARTTIME timep_BASH_COMMAND timep_LINENO timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_NPIPE timep_A;
 
     set -T
