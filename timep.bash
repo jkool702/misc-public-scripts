@@ -235,11 +235,23 @@ timep_RETURN_TRAP_STR='
     (( timep_FUNCDEPTH_PREV-- ))
     unset "timep_FUNCNAME_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]"
     timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< function: ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} >>"
-    timep_NO_PREV_FLAG=true
     timep_SKIP_DEBUG_TRAP_FLAG=false
-    timep_NO_PREV_FLAG=false
+
 '
-timep_EXIT_TRAP_STR='timep_EXIT_FLAG=true; :'
+#    
+#    
+timep_EXIT_TRAP_STR='
+    timep_SKIP_DEBUG_TRAP_FLAG=true
+    timep_LOGPATH="${timep_LOGPATH%.[0-9]*}"
+    timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}"
+    timep_BASHPID_STR="${timep_BASHPID_STR%.[0-9]*}"
+    (( timep_NESTING_LVL-- ))
+    (( timep_BASH_SUBSHELL_PREV-- ))
+    unset "timep_BASHPID_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]" 
+    timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< subshell >>"
+    declare -p timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_BASH_COMMAND timep_NPIPE timep_STARTTIME timep_LINENO timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_FUNCDEPTH_PREV timep_NESTING_LVL timep_NESTING_LVL_0 timep_BASH_SUBSHELL_PREV timep_LOGPATH timep_LOGPATH_0 timep_NO_PREV_FLAG timep_NBG >"${timep_LOGPATH_0}_${timep_NBG}.vars"
+    timep_SKIP_DEBUG_TRAP_FLAG=false
+'
 
 # main timep DEBUG trap
 #
@@ -278,53 +290,66 @@ ${timep_SKIP_DEBUG_TRAP_FLAG} || {
         timep_BG_PID_PREV="${!}"
         printf '"'"'%s\t%s.%s\n'"'"' "${timep_NEXEC_STR}_${timep_NBG}" "${timep_BASHPID_STR}" "${!}" >>"${timep_TMPDIR}/.log/bg_pids"
         (( timep_NBG++ ))
-        timep_BASH_COMMAND[-1]="<< background fork: $! (${timep_BASH_COMMAND[-1]}) >>"
-        if [[ -s "${timep_LOGPATH}.nbg" ]]; then
-            read -r timep_NBG_0 <"${timep_LOGPATH}.nbg"
-            [[ "${timep_NBG}" == "${timep_NBG_0}" ]] && echo "${timep_NBG}" >"${timep_LOGPATH_0}.nbg"
+        if [[ -s "${timep_LOGPATH_0}.nbg" ]]; then
+            read -r timep_NBG_0 <"${timep_LOGPATH_0}.nbg"
+             (( timep_NBG == ( timep_NBG_0 + 1 ) )) && echo "${timep_NBG}" >"${timep_LOGPATH_0}.nbg"
             unset timep_NBG_0
         else
             echo "${timep_NBG}" >"${timep_LOGPATH_0}.nbg"
         fi
-    elif [[ -s "${timep_LOGPATH}.nbg" ]]; then
-        read -r timep_NBG <"${timep_LOGPATH}.nbg"
-        : >"${timep_LOGPATH}.nbg"
+        timep_BG_FLAG=true
+    else
+        timep_BG_FLAG=false        
+        if [[ -s "${timep_LOGPATH}.nbg" ]]; then
+            read -r timep_NBG <"${timep_LOGPATH}.nbg"
+            : >"${timep_LOGPATH}.nbg"
+        fi
+        if [[ -s "${timep_LOGPATH}_${timep_NBG}.vars" ]]; then
+            mapfile -t timep_A <"${timep_LOGPATH}_${timep_NBG}.vars"
+            timep_IFS_PREV="${IFS}"
+            IFS=$'"'"'\n'"'"'
+            eval "${timep_A[*]}"
+            IFS="${timep_IFS_PREV}"
+            unset timep_IFS_PREV timep_A
+            : >"${timep_LOGPATH_0}.vars"
+            builtin trap '"'${timep_EXIT_TRAP_STR//"'"/"'"'"'"'"'"'"'"}'"' EXIT
+            until (( BASH_SUBSHELL >= timep_BASH_SUBSHELL_PREV )); do
+                {
+                    printf '"'"'%s\t'"'"' "${timep_NPIPE[${timep_NESTING_LVL}]}" "${timep_STARTTIME[${timep_NESTING_LVL}]}" "${timep_ENDTIME}" "${timep_LINENO[${timep_NESTING_LVL}]}" "${timep_NEXEC_STR}_${timep_NBG}" "${timep_BASHPID_STR}" "${timep_FUNCNAME_STR}"
+                    printf '"'"'%s\n'"'"' "${timep_BASH_COMMAND[${timep_NESTING_LVL}]}"
+                } >>${timep_LOGPATH}
+                timep_LOGPATH="${timep_LOGPATH%.[0-9]*}"
+                timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}"
+                timep_BASHPID_STR="${timep_BASHPID_STR%.[0-9]*}"
+                (( timep_NESTING_LVL-- ))
+                (( timep_BASH_SUBSHELL_PREV-- ))
+                unset "timep_BASHPID_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]" 
+                timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< subshell >>"
+            done
+        fi
     fi
-    if [[ ${BASH_COMMAND} ]] && [[ -s "${timep_LOGPATH}_${timep_NBG}.vars" ]]; then
-        mapfile -t timep_A <"${timep_LOGPATH}.vars"
-        timep_IFS_PREV="${IFS}"
-        IFS=$'"'"'\n'"'"'
-        eval "${timep_A[*]}"
-        IFS="${timep_IFS_PREV}"
-        unset timep_IFS_PREV timep_A
-        : >"${timep_LOGPATH_0}.vars"
-        builtin trap '"'${timep_EXIT_TRAP_STR//"'"/"'"'"'"'"'"'"'"}'"' EXIT
-        until (( BASH_SUBSHELL >= timep_BASH_SUBSHELL_PREV )); do
-            {
-                printf '"'"'%s\t'"'"' "${timep_NPIPE[${timep_NESTING_LVL}]}" "${timep_STARTTIME[${timep_NESTING_LVL}]}" "${timep_ENDTIME}" "${timep_LINENO[${timep_NESTING_LVL}]}" "${timep_NEXEC_STR}_${timep_NBG}" "${timep_BASHPID_STR}" "${timep_FUNCNAME_STR}"
-                printf '"'"'%s\n'"'"' "${timep_BASH_COMMAND[${timep_NESTING_LVL}]}"
-            } >>${timep_LOGPATH}
-            timep_LOGPATH="${timep_LOGPATH%.[0-9]*}"
-            timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}"
-            timep_BASHPID_STR="${timep_BASHPID_STR%.[0-9]*}"
-            (( timep_NESTING_LVL-- ))
-            (( timep_BASH_SUBSHELL_PREV-- ))
-            unset "timep_BASHPID_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]" 
-            timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< subshell >>"
-        done
+    if ${timep_BG_FLAG}; then
+        (( timep_NEXEC[-1]++ ))
+        timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}.${timep_NEXEC[-1]}"
+        timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< background fork: $! ( ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} ) >>"
+        timep_BG_FLAG=false
     fi
+    (( timep_NEXEC_LAST_TMP = timep_NEXEC[-1] + 1 ))
     if [[ "${timep_BASHPID_PREV}" != "${BASHPID}" ]] && (( timep_BASH_SUBSHELL_PREV < BASH_SUBSHELL )); then
+        : >>"${timep_LOGPATH}.${timep_NEXEC_LAST_TMP}_subshell"
         timep_ENTER_SUBSHELL_FLAG=true
     fi
     if (( ${#FUNCNAME[@]} > timep_FUNCDEPTH_PREV )); then
-        timep_FUNCNAME_A+=("${FUNCNAME[0]}")
+        : >>"${timep_LOGPATH}.${timep_NEXEC_LAST_TMP}_function"
+        timep_ENTER_FUNCTION_FLAG=true
         timep_NO_PREV_FLAG=true
-        timep_FUNCDEPTH_PREV="${#FUNCNAME[@]}"
-        (( timep_NESTING_LVL++ ))
-        timep_NEXEC_STR+=".0"
-        timep_LOGPATH+=".${timep_NEXEC[-1]}"
-        timep_FUNCNAME_STR+=".${FUNCNAME[0]}"
-        timep_NEXEC+=("0")
+    elif (( ${#FUNCNAME[@]} < timep_FUNCDEPTH_PREV )); then
+        timep_LOGPATH="${timep_LOGPATH%.[0-9]*}"
+        timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}"
+        timep_FUNCNAME_STR="${timep_FUNCNAME_STR%.*}"
+        (( timep_NESTING_LVL-- ))
+        (( timep_FUNCDEPTH_PREV-- ))
+        unset "timep_FUNCNAME_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]"
     fi
     if ${timep_NO_PREV_FLAG}; then
         timep_NO_PREV_FLAG=false
@@ -334,31 +359,29 @@ ${timep_SKIP_DEBUG_TRAP_FLAG} || {
             printf '"'"'%s\n'"'"' "${timep_BASH_COMMAND[${timep_NESTING_LVL}]}"
         } >>${timep_LOGPATH}
     fi
-    if ${timep_EXIT_FLAG}; then
-        timep_LOGPATH="${timep_LOGPATH%.[0-9]*}"
-        timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}"
-        timep_BASHPID_STR="${timep_BASHPID_STR%.[0-9]*}"
-        (( timep_NESTING_LVL-- ))
-        (( timep_BASH_SUBSHELL_PREV-- ))
-        unset "timep_BASHPID_A[-1]" "timep_NEXEC[-1]" "timep_BASH_COMMAND[-1]" "timep_NPIPE[-1]" "timep_STARTTIME[-1]" "timep_LINENO[-1]" 
-        timep_EXIT_FLAG=false
-        timep_NO_PREV_FLAG=false
-        timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< subshell >>"
-        declare -p timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_BASH_COMMAND timep_NPIPE timep_STARTTIME timep_LINENO timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NESTING_LVL timep_NESTING_LVL_0 timep_BASH_SUBSHELL_PREV timep_LOGPATH timep_LOGPATH_0 timep_NO_PREV_FLAG timep_NBG >"${timep_LOGPATH_0}_${timep_NBG}.vars"
+    timep_LINENO_0="${LINENO}"
+    timep_LINENO_1="${timep_LINENO[${timep_NESTING_LVL}]#*.}"
+    if [[ "${timep_LINENO[${timep_NESTING_LVL}]%.*}" == "${LINENO}" ]]; then
+        (( timep_LINENO_1++ ))
     else
-        timep_LINENO_0="${LINENO}"
-        timep_LINENO_1="${timep_LINENO[${timep_NESTING_LVL}]#*.}"
-        if [[ "${timep_LINENO[${timep_NESTING_LVL}]%.*}" == "${LINENO}" ]]; then
-            (( timep_LINENO_1++ ))
-        else
-            timep_LINENO_1=0
-        fi
-        if ${timep_ENTER_SUBSHELL_FLAG}; then
-            timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< subshell >>"
-        else
-            timep_BASH_COMMAND[${timep_NESTING_LVL}]="${BASH_COMMAND@Q}"
-        fi
-        timep_LINENO[${timep_NESTING_LVL}]="${timep_LINENO_0}.${timep_LINENO_1}"
+        timep_LINENO_1=0
+    fi
+    if ${timep_ENTER_SUBSHELL_FLAG}; then
+        timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< subshell >>"  
+    elif ! ${timep_ENTER_FUNCTION_FLAG}; then
+        timep_BASH_COMMAND[${timep_NESTING_LVL}]="${BASH_COMMAND@Q}"
+    fi
+    timep_LINENO[${timep_NESTING_LVL}]="${timep_LINENO_0}.${timep_LINENO_1}"
+    if ${timep_ENTER_FUNCTION_FLAG}; then
+        timep_FUNCNAME_A+=("${FUNCNAME[0]}")
+        timep_FUNCDEPTH_PREV="${#FUNCNAME[@]}"
+        (( timep_NESTING_LVL++ ))
+        timep_NEXEC_STR+=".0"
+        timep_LOGPATH+=".${timep_NEXEC[-1]}"
+        timep_FUNCNAME_STR+=".${FUNCNAME[0]}"
+        timep_NEXEC+=("0")
+        timep_ENTER_FUNCTION_FLAG=false
+    else
         (( timep_NEXEC[-1]++ ))
         timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}.${timep_NEXEC[-1]}"
     fi
@@ -375,10 +398,10 @@ ${timep_SKIP_DEBUG_TRAP_FLAG} || {
             case "${timep_KK}" in
                 0) timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}]="${BASHPID}" ;;
                 1) timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}]="${PPID}" ;;
-                *) (( timep_BASH_SUBSHELL_DIFF0 = timep_BASH_SUBSHELL_DIFF + 1 )); IFS=" " read -r _ _ _ timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] _ </proc/${timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF0}]}/stat ;;
+                *) (( timep_BASH_SUBSHELL_DIFF_0 = timep_BASH_SUBSHELL_DIFF + 1 )); IFS=" " read -r _ _ _ timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] _ </proc/${timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF_0}]}/stat ;;
             esac
             (( timep_KK++ ))
-            unset timep_BASH_SUBSHELL_DIFF0
+            unset timep_BASH_SUBSHELL_DIFF_0
         done
         unset timep_BASH_SUBSHELL_DIFF
         for timep_KK in "${timep_BASHPID_ADD[@]}"; do
@@ -473,11 +496,10 @@ trap() {
     chmod +x "${timep_TMPDIR}/functions.bash"
 timep_runFuncSrc+="(
 
-    declare timep_FUNCDEPTH_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_IFS_PREV timep_LOGPATH timep_LOGPATH_0 timep_ENDTIME timep_NESTING_LVL timep_NESTING_LVL_0 timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NO_PREV_FLAG timep_SKIP_DEBUG_TRAP_FLAG timep_ENTER_SUBSHELL_FLAG timep_TMPDIR timep_LINENO_0 timep_LINENO_1 timep_NBG timep_NBG_0;
-    declare -a timep_STARTTIME timep_BASH_COMMAND timep_LINENO timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_NPIPE timep_A;
+    declare timep_FUNCDEPTH_PREV timep_BASHPID_PREV timep_BG_PID_PREV timep_IFS_PREV timep_LOGPATH timep_LOGPATH_0 timep_ENDTIME timep_NESTING_LVL timep_NESTING_LVL_0 timep_NEXEC_STR timep_BASHPID_STR timep_FUNCNAME_STR timep_NO_PREV_FLAG timep_SKIP_DEBUG_TRAP_FLAG timep_ENTER_SUBSHELL_FLAG timep_ENTER_FUNCTION_FLAG timep_BG_FLAG timep_TMPDIR timep_LINENO_0 timep_LINENO_1 timep_NBG timep_NBG_0 timep_BASH_SUBSHELL_DIFF timep_BASH_SUBSHELL_DIFF_0 timep_NEXEC_LAST_TMP;
+    declare -a timep_STARTTIME timep_BASH_COMMAND timep_LINENO timep_BASHPID_A timep_FUNCNAME_A timep_NEXEC timep_NPIPE timep_A timep_BASHPID_ADD;
 
     set -T
-    set -b
 
     : & 2>/dev/null
 
@@ -499,6 +521,8 @@ timep_runFuncSrc+="(
     timep_EXIT_FLAG=false
     timep_NO_PREV_FLAG=true
     timep_ENTER_SUBSHELL_FLAG=false
+    timep_ENTER_FUNCTION_FLAG=false
+    timep_BG_FLAG=false
 
     timep_NBG=0
     timep_NESTING_LVL=0
@@ -571,7 +595,9 @@ esac
 printf '\n\nThe %s being time profiled has finished running!\ntimep will now process the logged timing data.\ntimep will save the time profiles it generates in "%s"\n\n' "$([[ "${timep_runType}" == 's' ]] && echo 'script' || echo 'function')" "${timep_TMPDIR}" >&2
 unset IFS
 
-for nn in "${timep_TMPDIR}"/{*.bash,.log/*}; do printf '\n\n--------------------------------------\n%s\n\n' "$nn"; cat "$nn"; done 
+ ls -la "${timep_TMPDIR}"/.log/
+find "${timep_TMPDIR}"/.log/ -empty -exec rm {} +
+for nn in "${timep_TMPDIR}"/{*.bash,.log/*[0-9]}; do printf '\n\n--------------------------------------\n%s\n\n' "$nn"; cat "$nn"; done 
 
 
 # TO DO
