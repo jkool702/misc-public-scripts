@@ -329,9 +329,11 @@ ${timep_SKIP_DEBUG_TRAP_FLAG} || {
         fi
     fi
     if ${timep_BG_FLAG}; then
-        (( timep_NEXEC[-1]++ ))
-        timep_NEXEC_STR="${timep_NEXEC_STR%.[0-9]*}.${timep_NEXEC[-1]}"
-        timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< background fork: $! ( ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} ) >>"
+        [[ ${timep_BASH_COMMAND[${timep_NESTING_LVL}]} ]] && {
+            printf '"'"'%s\t'"'"' "${timep_NPIPE[${timep_NESTING_LVL}]}" "${timep_STARTTIME[${timep_NESTING_LVL}]}" "${timep_ENDTIME}" "${timep_LINENO[${timep_NESTING_LVL}]}" "${timep_NEXEC_STR}_${timep_NBG}" "${timep_BASHPID_STR}" "${timep_FUNCNAME_STR}"
+            printf '"'"'%s\n'"'"' "${timep_BASH_COMMAND[${timep_NESTING_LVL}]}"
+        } >>${timep_LOGPATH}
+            timep_BASH_COMMAND[${timep_NESTING_LVL}]="<< background fork: $! >>"
         timep_BG_FLAG=false
     fi
     (( timep_NEXEC_LAST_TMP = timep_NEXEC[-1] + 1 ))
@@ -597,7 +599,7 @@ unset IFS
 
  ls -la "${timep_TMPDIR}"/.log/
 find "${timep_TMPDIR}"/.log/ -empty -exec rm {} +
-for nn in "${timep_TMPDIR}"/{*.bash,.log/*[0-9]}; do printf '\n\n--------------------------------------\n%s\n\n' "$nn"; cat "$nn"; done 
+for nn in "${timep_TMPDIR}"/{*.bash,.log/*}; do printf '\n\n--------------------------------------\n%s\n\n' "$nn"; cat "$nn"; done 
 
 
 # TO DO
