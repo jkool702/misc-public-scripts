@@ -20,20 +20,20 @@ functions:
 
 post processing:
 
-1. pipelines: 
+pipelines: 
 
 take each log, version-sort them based on timep_NEXEC_STR_timep_NPIDWRAP.BASHPID, then read the lines in reverse order. the NPIPE on each log line represents the number of previous commands (including that one)  form the pipeline (if NPIPE=1 then it is only that command and as such isnt a pipeline). reading lines in reverse order means that if NPIPE=N it'll be that command + the next N-1 command. any pipeline elements containing brace groups with many commands will have that brace group logged as a single << subshell >> command at that nesting lvl. i.e., each pipeline element always gets a single log line at the current nesting lvl.
 
 Edge case: when a pipeline’s last element is a brace group ({ …; }), Bash actually spawns a subshell behind the scenes if you use lastpipe or shopt -s lastpipe. If you’re not relying on that feature, you’re safe; but if you do support lastpipe, you may see a pipeline whose final element is run in the parent rather than a subshell. In that case NPIPE can still be >1, but you’ll only see a single DEBUG for the brace‐group. You can detect it by checking for an << subshell >> at the end and lastpipe being set, and then treat it as “one pipeline element that happens in‐place.”
 NOTE: i may need to consider a special case where lastpipe is set and the last pipeline element is a curly brace group....this is the only time where 1 line per pipeline element might not be true. ill need to check that one.
 
-2. merging upward, summing runtime and collapsing loops - these will all sort of happen together. starting with the most deeply nested logs, i will:
+merging upward, summing runtime and collapsing loops - these will all sort of happen together. starting with the most deeply nested logs, i will:
 
-a) compute the runtime of each command from the start/end timestamps
-b) compute the total runtime from all commands at that nesting level
-c) look for repeated commands / loops and collapse them into a counter + total runtime. ill probably generate 2 "final output" logs - one with loops collapsed (that will be printed to the screen) and one without loops collapsed (in a file, in csse deeper analysis is needed)
-d) merge the log upward (unless it was the start oif a bg fork). still working out how exactly to do this, but considering leaving the original "marker line" in and then immediately below it insert the merged log with something like |--  prepended to the beginning of each line (unless the line already begins with "|-- ", then instead prepend "|   "
-e) repeat the process at the next higher nesting level, but for any subshells/function calls that were merged up use the summed runtime from the merged log instead of end_timestamp - start_timestamp. keep repeating until you hit the top level log.
+1. compute the runtime of each command from the start/end timestamps
+2. compute the total runtime from all commands at that nesting level
+3. look for repeated commands / loops and collapse them into a counter + total runtime. ill probably generate 2 "final output" logs - one with loops collapsed (that will be printed to the screen) and one without loops collapsed (in a file, in csse deeper analysis is needed)
+4. merge the log upward (unless it was the start oif a bg fork). still working out how exactly to do this, but considering leaving the original "marker line" in and then immediately below it insert the merged log with something like |--  prepended to the beginning of each line (unless the line already begins with "|-- ", then instead prepend "|   "
+5. repeat the process at the next higher nesting level, but for any subshells/function calls that were merged up use the summed runtime from the merged log instead of end_timestamp - start_timestamp. keep repeating until you hit the top level log.
 
 the resulting log might look a bit like
 
@@ -49,7 +49,7 @@ cmd 1
 cmd 3
 ```
 
-3. collapsing loops (logic from previous implementation):
+collapsing loops (logic from previous implementation):
 
-a) pull out the LINENO and BASH_COMMAND from each log line and run this combination through sort -u to gert unique lineno+command combinations
-b) loop through each unique lineno+command combination. for each unique combination, grep the log to find lines with both that lineno and that command. get a count of the number of grep matches, and pull the runtime out of each match and sum. then remove all but the 1st match from the log, and for that 1st match add the counter and  replace the runtime with the summed runtime.
+1. pull out the LINENO and BASH_COMMAND from each log line and run this combination through sort -u to gert unique lineno+command combinations
+2. loop through each unique lineno+command combination. for each unique combination, grep the log to find lines with both that lineno and that command. get a count of the number of grep matches, and pull the runtime out of each match and sum. then remove all but the 1st match from the log, and for that 1st match add the counter and  replace the runtime with the summed runtime.
