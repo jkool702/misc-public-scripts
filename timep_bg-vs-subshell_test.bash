@@ -1,7 +1,182 @@
 (
 
+set -T
+set -m
+
+read -r _ _ _ _ parent_pgid _ _ parent_tpid _ </proc/${BASHPID}/stat
+child_pgid=$parent_pgid
+child_tpid=$parent_tpid
+
+: &
+last_bg_pid=$!
+last_subshell=$BASH_SUBSHELL
+last_command=''
+subshell_pid=''
+next_is_simple_fork_flag=false
+this_is_simple_fork_flag=false
+
+trap 'wait' EXIT
+
+trap 'is_bg=false
+is_subshell=false
+cmd_type='"''"'
+if ${next_is_simple_fork_flag}; then
+  next_is_simple_fork_flag=false
+  this_is_simple_fork_flag=true
+else
+  this_is_simple_fork_flag=false
+fi
+if (( last_subshell == BASH_SUBSHELL )); then
+  (( last_bg_pid == $! )) || is_bg=true;
+else
+  is_subshell=true
+  subshell_pid=$BASHPID 
+  trap '"'"'wait'"'"' EXIT 
+  read -r _ _ _ _ child_pgid _ _ child_tpid _ </proc/${BASHPID}/stat
+  (( child_pgid == parent_tpid )) || (( child_pgid == child_tpid )) || {  (( child_pgid == parent_pgid )) && (( child_tpid == child_tpid )); } || is_bg=true
+fi
+if ${is_subshell} && ${is_bg}; then
+  (( child_pgid == BASHPID )) && (( child_tpid == parent_pgid )) && (( child_tpid == parent_tpid )) && next_is_simple_fork_flag=true
+    cmd_type="BACKGROUND FORK"
+elif ${is_subshell}; then
+  cmd_type="SUBSHELL"
+elif ${is_bg}; then
+  cmd_type="SIMPLE FORK"
+else
+  cmd_type="NORMAL COMMAND"
+fi
+if ${is_subshell}; then
+  printf '"'"'pp: %s   pt: %s   cp: %s   ct: %s   lbp: %s  bp: %s   BP: %s  BS: %s   lBS: %s   PP: %s    < pid: %s > is a %s\n'"'"' $parent_pgid $parent_tpid $child_pgid $child_tpid $last_bg_pid $! $BASHPID "$BASH_SUBSHELL" "$last_subshell" "${PPID:-\?}" "$BASHPID" "$cmd_type"
+  parent_pgid=$child_pgid
+  parent_tpid=$child_tpid
+  last_subshell="$BASH_SUBSHELL"
+elif [[ $last_command ]]; then
+  ${this_is_simple_fork_flag} && (( BASHPID < $! )) && cmd_type="SIMPLE FORK *"
+  printf '"'"'pp: %s   pt: %s   cp: %s   ct: %s   lbp: %s  bp: %s   BP: %s  BS: %s   lBS: %s   PP: %s    (%s): < %s > is a %s\n'"'"' $parent_pgid $parent_tpid $child_pgid $child_tpid $last_bg_pid $! $BASHPID "$BASH_SUBSHELL" "$last_subshell" "${PPID:-\?}" "$BASHPID" "${last_command@Q}" "$cmd_type"
+fi >&$fd
+last_command="$BASH_COMMAND"
+last_bg_pid=$!
+unset cmd_type
+' DEBUG
+
+echo 0
+{ echo 1; }
+( echo 2 )
+echo 3 &
+{ echo 4 & }
+{ echo 5; } &
+( echo 6 & )
+( echo 7 ) &
+( echo 8 )
+( echo 9 & ) &
+{ echo 9.1; echo 9.2 & } &
+{ echo 9.1a & echo 9.2a; } &
+{ echo 9.999; ( echo 9.3 & echo 9.4 ); echo 9.5; } &
+{ echo 10 & } &
+
+echo 11
+echo 12 &
+( echo 13 ) &
+( echo 14 )
+
+( echo a & ) &
+{ ( echo b ) & } &
 
 
+( ( ( echo A5 & ); { echo A4; } & echo A3; ) & echo A2 & echo A1)
+
+trap - DEBUG
+
+) {fd}>&2
+
+:<<'EOF'
+
+0
+pp: 1924   pt: 1924   cp: 1924   ct: 1924   lbp: 1929  bp: 1929   BP: 1928  BS: 1   lBS: 1   PP: 1923    (1928): < 'echo 0' > is a NORMAL COMMAND
+1
+pp: 1924   pt: 1924   cp: 1930   ct: 1930   lbp: 1929  bp: 1929   BP: 1930  BS: 2   lBS: 1   PP: 1923    < pid: 1930 > is a SUBSHELL
+2
+pp: 1930   pt: 1930   cp: 1930   ct: 1930   lbp: 1929  bp: 1929   BP: 1930  BS: 2   lBS: 2   PP: 1923    (1930): < 'echo 2' > is a NORMAL COMMAND
+pp: 1924   pt: 1924   cp: 1924   ct: 1924   lbp: 1929  bp: 1929   BP: 1928  BS: 1   lBS: 1   PP: 1923    (1928): < 'echo 1' > is a NORMAL COMMAND
+3
+pp: 1924   pt: 1924   cp: 1924   ct: 1924   lbp: 1929  bp: 1931   BP: 1928  BS: 1   lBS: 1   PP: 1923    (1928): < 'echo 3' > is a SIMPLE FORK
+4
+pp: 1924   pt: 1924   cp: 1933   ct: 1934   lbp: 1931  bp: 1932   BP: 1933  BS: 2   lBS: 1   PP: 1923    < pid: 1933 > is a BACKGROUND FORK
+5
+pp: 1924   pt: 1924   cp: 1934   ct: 1934   lbp: 1931  bp: 1933   BP: 1934  BS: 2   lBS: 1   PP: 1923    < pid: 1934 > is a SUBSHELL
+pp: 1933   pt: 1934   cp: 1933   ct: 1934   lbp: 1932  bp: 1932   BP: 1933  BS: 2   lBS: 2   PP: 1923    (1933): < 'echo 5' > is a NORMAL COMMAND
+6
+pp: 1934   pt: 1934   cp: 1934   ct: 1934   lbp: 1933  bp: 1935   BP: 1934  BS: 2   lBS: 2   PP: 1923    (1934): < 'echo 6' > is a SIMPLE FORK
+pp: 1924   pt: 1924   cp: 1936   ct: 1937   lbp: 1931  bp: 1933   BP: 1936  BS: 2   lBS: 1   PP: 1923    < pid: 1936 > is a BACKGROUND FORK
+7
+pp: 1924   pt: 1924   cp: 1937   ct: 1937   lbp: 1931  bp: 1936   BP: 1937  BS: 2   lBS: 1   PP: 1923    < pid: 1937 > is a SUBSHELL
+8
+pp: 1936   pt: 1937   cp: 1936   ct: 1937   lbp: 1933  bp: 1933   BP: 1936  BS: 2   lBS: 2   PP: 1923    (1936): < 'echo 7' > is a NORMAL COMMAND
+pp: 1937   pt: 1937   cp: 1937   ct: 1937   lbp: 1936  bp: 1936   BP: 1937  BS: 2   lBS: 2   PP: 1923    (1937): < 'echo 8' > is a NORMAL COMMAND
+pp: 1924   pt: 1924   cp: 1938   ct: 1924   lbp: 1931  bp: 1936   BP: 1938  BS: 2   lBS: 1   PP: 1923    < pid: 1938 > is a BACKGROUND FORK
+pp: 1924   pt: 1924   cp: 1939   ct: 1924   lbp: 1931  bp: 1938   BP: 1939  BS: 2   lBS: 1   PP: 1923    < pid: 1939 > is a BACKGROUND FORK
+9.1
+pp: 1924   pt: 1924   cp: 1940   ct: 1924   lbp: 1931  bp: 1939   BP: 1940  BS: 2   lBS: 1   PP: 1923    < pid: 1940 > is a BACKGROUND FORK
+pp: 1939   pt: 1924   cp: 1939   ct: 1924   lbp: 1938  bp: 1938   BP: 1939  BS: 2   lBS: 2   PP: 1923    (1939): < 'echo 9.1' > is a NORMAL COMMAND
+pp: 1938   pt: 1924   cp: 1938   ct: 1924   lbp: 1936  bp: 1942   BP: 1938  BS: 2   lBS: 2   PP: 1923    (1938): < 'echo 9' > is a SIMPLE FORK *
+pp: 1924   pt: 1924   cp: 1924   ct: 1924   lbp: 1931  bp: 1943   BP: 1928  BS: 1   lBS: 1   PP: 1923    (1928): < 'echo 4' > is a SIMPLE FORK
+11
+9
+pp: 1924   pt: 1924   cp: 1941   ct: 1924   lbp: 1931  bp: 1940   BP: 1941  BS: 2   lBS: 1   PP: 1923    < pid: 1941 > is a BACKGROUND FORK
+pp: 1924   pt: 1924   cp: 1924   ct: 1924   lbp: 1943  bp: 1943   BP: 1928  BS: 1   lBS: 1   PP: 1923    (1928): < 'echo 11' > is a NORMAL COMMAND
+9.999
+pp: 1924   pt: 1924   cp: 1943   ct: 1924   lbp: 1931  bp: 1941   BP: 1943  BS: 2   lBS: 1   PP: 1923    < pid: 1943 > is a BACKGROUND FORK
+pp: 1940   pt: 1924   cp: 1940   ct: 1924   lbp: 1939  bp: 1944   BP: 1940  BS: 2   lBS: 2   PP: 1923    (1940): < 'echo 9.1a' > is a SIMPLE FORK *
+9.2a
+pp: 1939   pt: 1924   cp: 1939   ct: 1924   lbp: 1938  bp: 1945   BP: 1939  BS: 2   lBS: 2   PP: 1923    (1939): < 'echo 9.2' > is a SIMPLE FORK
+9.1a
+pp: 1940   pt: 1924   cp: 1940   ct: 1924   lbp: 1944  bp: 1944   BP: 1940  BS: 2   lBS: 2   PP: 1923    (1940): < 'echo 9.2a' > is a NORMAL COMMAND
+9.2
+12
+pp: 1943   pt: 1924   cp: 1943   ct: 1924   lbp: 1941  bp: 1948   BP: 1943  BS: 2   lBS: 2   PP: 1923    (1943): < 'echo 10' > is a SIMPLE FORK *
+10
+pp: 1941   pt: 1924   cp: 1941   ct: 1924   lbp: 1940  bp: 1940   BP: 1946  BS: 3   lBS: 2   PP: 1923    < pid: 1946 > is a SUBSHELL
+pp: 1924   pt: 1924   cp: 1949   ct: 1950   lbp: 1943  bp: 1947   BP: 1949  BS: 2   lBS: 1   PP: 1923    < pid: 1949 > is a BACKGROUND FORK
+13
+pp: 1949   pt: 1950   cp: 1949   ct: 1950   lbp: 1947  bp: 1947   BP: 1949  BS: 2   lBS: 2   PP: 1923    (1949): < 'echo 13' > is a NORMAL COMMAND
+9.3
+pp: 1924   pt: 1924   cp: 1950   ct: 1941   lbp: 1943  bp: 1949   BP: 1950  BS: 2   lBS: 1   PP: 1923    < pid: 1950 > is a BACKGROUND FORK
+14
+pp: 1941   pt: 1924   cp: 1941   ct: 1924   lbp: 1940  bp: 1951   BP: 1946  BS: 3   lBS: 3   PP: 1923    (1946): < 'echo 9.3' > is a SIMPLE FORK
+9.4
+pp: 1941   pt: 1924   cp: 1941   ct: 1924   lbp: 1951  bp: 1951   BP: 1946  BS: 3   lBS: 3   PP: 1923    (1946): < 'echo 9.4' > is a NORMAL COMMAND
+pp: 1950   pt: 1941   cp: 1950   ct: 1941   lbp: 1949  bp: 1949   BP: 1950  BS: 2   lBS: 2   PP: 1923    (1950): < 'echo 14' > is a NORMAL COMMAND
+pp: 1941   pt: 1924   cp: 1941   ct: 1924   lbp: 1940  bp: 1940   BP: 1941  BS: 2   lBS: 2   PP: 1923    (1941): < 'echo 9.999' > is a NORMAL COMMAND
+9.5
+pp: 1941   pt: 1924   cp: 1941   ct: 1924   lbp: 1940  bp: 1940   BP: 1941  BS: 2   lBS: 2   PP: 1923    (1941): < 'echo 9.5' > is a NORMAL COMMAND
+pp: 1924   pt: 1924   cp: 1952   ct: 1924   lbp: 1943  bp: 1949   BP: 1952  BS: 2   lBS: 1   PP: 1923    < pid: 1952 > is a BACKGROUND FORK
+pp: 1924   pt: 1924   cp: 1953   ct: 1954   lbp: 1943  bp: 1952   BP: 1955  BS: 3   lBS: 1   PP: 1923    < pid: 1955 > is a BACKGROUND FORK
+pp: 1952   pt: 1924   cp: 1952   ct: 1924   lbp: 1949  bp: 1956   BP: 1952  BS: 2   lBS: 2   PP: 1923    (1952): < 'echo a' > is a SIMPLE FORK *
+b
+a
+pp: 1924   pt: 1924   cp: 1954   ct: 1954   lbp: 1943  bp: 1957   BP: 1954  BS: 2   lBS: 1   PP: 1923    < pid: 1954 > is a SUBSHELL
+pp: 1953   pt: 1954   cp: 1953   ct: 1954   lbp: 1952  bp: 1952   BP: 1955  BS: 3   lBS: 3   PP: 1923    (1955): < 'echo b' > is a NORMAL COMMAND
+A2
+pp: 1924   pt: 1924   cp: 1954   ct: 1954   lbp: 1943  bp: 1953   BP: 1958  BS: 4   lBS: 1   PP: 1923    < pid: 1958 > is a SUBSHELL
+pp: 1954   pt: 1954   cp: 1954   ct: 1954   lbp: 1957  bp: 1959   BP: 1954  BS: 2   lBS: 2   PP: 1923    (1954): < 'echo A2' > is a SIMPLE FORK
+A1
+pp: 1954   pt: 1954   cp: 1954   ct: 1954   lbp: 1959  bp: 1959   BP: 1954  BS: 2   lBS: 2   PP: 1923    (1954): < 'echo A1' > is a NORMAL COMMAND
+A5
+pp: 1954   pt: 1954   cp: 1954   ct: 1954   lbp: 1953  bp: 1960   BP: 1958  BS: 4   lBS: 4   PP: 1923    (1958): < 'echo A5' > is a SIMPLE FORK
+pp: 1924   pt: 1924   cp: 1954   ct: 1924   lbp: 1943  bp: 1961   BP: 1957  BS: 3   lBS: 1   PP: 1923    < pid: 1957 > is a BACKGROUND FORK
+A3
+pp: 1924   pt: 1924   cp: 1954   ct: 1924   lbp: 1943  bp: 1953   BP: 1961  BS: 4   lBS: 1   PP: 1923    < pid: 1961 > is a BACKGROUND FORK
+A4
+pp: 1954   pt: 1924   cp: 1954   ct: 1924   lbp: 1961  bp: 1961   BP: 1957  BS: 3   lBS: 3   PP: 1923    (1957): < 'echo A3' > is a NORMAL COMMAND
+pp: 1954   pt: 1924   cp: 1954   ct: 1924   lbp: 1953  bp: 1953   BP: 1961  BS: 4   lBS: 4   PP: 1923    (1961): < 'echo A4' > is a NORMAL COMMAND
+pp: 1924   pt: 1924   cp: 1924   ct: 1924   lbp: 1943  bp: 1953   BP: 1928  BS: 1   lBS: 1   PP: 1923    (1928): < 'echo 12' > is a SIMPLE FORK
+
+EOF
+
+
+########################################################
+
+(
 set -T
 set -m
 
