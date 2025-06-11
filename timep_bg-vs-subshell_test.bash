@@ -88,7 +88,6 @@ echo 12 &
 ( ( ( echo A5 & ); { echo A4; } & echo A3; ) & echo A2 & echo A1)
 
 trap - DEBUG
-wait
 
 ) {fd}>&2
 
