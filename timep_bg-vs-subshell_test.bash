@@ -8,6 +8,203 @@ child_pgid=$parent_pgid
 child_tpid=$parent_tpid
 
 : &
+
+last_pid=$BASHPID
+last_bg_pid=$!
+last_subshell=$BASH_SUBSHELL
+last_command=''
+subshell_pid=''
+next_is_simple_fork_flag=false
+this_is_simple_fork_flag=false
+
+trap 'wait' EXIT
+
+trap 'is_bg=false
+is_subshell=false
+cmd_type='"''"'
+if ${next_is_simple_fork_flag}; then
+  next_is_simple_fork_flag=false
+  this_is_simple_fork_flag=true
+else
+  this_is_simple_fork_flag=false
+fi
+if (( last_subshell == BASH_SUBSHELL )); then
+  (( last_bg_pid == $! )) || is_bg=true;
+else
+  is_subshell=true
+  subshell_pid=$BASHPID 
+  trap '"'"'wait'"'"' EXIT 
+  read -r _ _ _ _ child_pgid _ _ child_tpid _ </proc/${BASHPID}/stat
+  (( child_pgid == parent_tpid )) || (( child_pgid == child_tpid )) || {  (( child_pgid == parent_pgid )) && (( child_tpid == child_tpid )); } || is_bg=true
+fi
+if ${is_subshell} && ${is_bg}; then
+  (( child_pgid == BASHPID )) && (( child_tpid == parent_pgid )) && (( child_tpid == parent_tpid )) && next_is_simple_fork_flag=true
+    cmd_type="BACKGROUND FORK"
+elif ${is_subshell}; then
+  cmd_type="SUBSHELL"
+elif ${is_bg}; then
+  cmd_type="SIMPLE FORK"
+else
+  cmd_type="NORMAL COMMAND"
+fi
+if ${is_subshell}; then
+  printf '"'"'pp: %s   pt: %s   cp: %s   ct: %s   lbp: %s  bp: %s   BP: %s  BS: %s   lBS: %s   PP: %s    (%s): < pid: %s > is a %s\n'"'"' $parent_pgid $parent_tpid $child_pgid $child_tpid $last_bg_pid $! $BASHPID "$BASH_SUBSHELL" "$last_subshell" "${PPID:-\?}" "$last_pid" "$BASHPID" "$cmd_type"
+  parent_pgid=$child_pgid
+  parent_tpid=$child_tpid
+  last_subshell="$BASH_SUBSHELL"
+elif [[ $last_command ]]; then
+  ${this_is_simple_fork_flag} && (( BASHPID < $! )) && cmd_type="SIMPLE FORK *"
+  printf '"'"'pp: %s   pt: %s   cp: %s   ct: %s   lbp: %s  bp: %s   BP: %s  BS: %s   lBS: %s   PP: %s    (%s): < %s > is a %s\n'"'"' $parent_pgid $parent_tpid $child_pgid $child_tpid $last_bg_pid $! $BASHPID "$BASH_SUBSHELL" "$last_subshell" "${PPID:-\?}" "$BASHPID" "${last_command@Q}" "$cmd_type"
+fi >&$fd
+last_command="$BASH_COMMAND"
+last_bg_pid=$!
+last_pid=$BASHPID
+unset cmd_type
+' DEBUG
+
+echo 0
+{ echo 1; }
+( echo 2 )
+echo 3 &
+{ echo 4 & }
+{ echo 5; } &
+( echo 6 & )
+( echo 7 ) &
+( echo 8 )
+( echo 9 & ) &
+{ echo 9.1; echo 9.2 & } &
+{ echo 9.1a & echo 9.2a; } &
+( echo 9.1b; echo 9.2b & ) &
+( echo 9.1c & echo 9.2c; ) &
+{ echo 9.999; ( echo 9.3 & echo 9.4 ); echo 9.5; } &
+{ echo 10 & } &
+
+echo 11
+echo 12 &
+( echo 13 ) &
+( echo 14 )
+
+( echo a & ) &
+{ ( echo b ) & } &
+
+
+( ( ( echo A5 & ); { echo A4; } & echo A3; ) & echo A2 & echo A1)
+
+trap - DEBUG
+
+) {fd}>&2
+
+
+:<'EOF'
+
+0
+pp: 6388   pt: 6388   cp: 6388   ct: 6388   lbp: 6393  bp: 6393   BP: 6392  BS: 1   lBS: 1   PP: 6387    (6392): < 'echo 0' > is a NORMAL COMMAND
+1
+pp: 6388   pt: 6388   cp: 6394   ct: 6394   lbp: 6393  bp: 6393   BP: 6394  BS: 2   lBS: 1   PP: 6387    (6392): < pid: 6394 > is a SUBSHELL
+2
+pp: 6394   pt: 6394   cp: 6394   ct: 6394   lbp: 6393  bp: 6393   BP: 6394  BS: 2   lBS: 2   PP: 6387    (6394): < 'echo 2' > is a NORMAL COMMAND
+pp: 6388   pt: 6388   cp: 6388   ct: 6388   lbp: 6393  bp: 6393   BP: 6392  BS: 1   lBS: 1   PP: 6387    (6392): < 'echo 1' > is a NORMAL COMMAND
+3
+pp: 6388   pt: 6388   cp: 6388   ct: 6388   lbp: 6393  bp: 6395   BP: 6392  BS: 1   lBS: 1   PP: 6387    (6392): < 'echo 3' > is a SIMPLE FORK
+4
+pp: 6388   pt: 6388   cp: 6397   ct: 6398   lbp: 6395  bp: 6396   BP: 6397  BS: 2   lBS: 1   PP: 6387    (6392): < pid: 6397 > is a BACKGROUND FORK
+5
+pp: 6397   pt: 6398   cp: 6397   ct: 6398   lbp: 6396  bp: 6396   BP: 6397  BS: 2   lBS: 2   PP: 6387    (6397): < 'echo 5' > is a NORMAL COMMAND
+pp: 6388   pt: 6388   cp: 6398   ct: 6398   lbp: 6395  bp: 6397   BP: 6398  BS: 2   lBS: 1   PP: 6387    (6392): < pid: 6398 > is a SUBSHELL
+6
+pp: 6398   pt: 6398   cp: 6398   ct: 6398   lbp: 6397  bp: 6399   BP: 6398  BS: 2   lBS: 2   PP: 6387    (6398): < 'echo 6' > is a SIMPLE FORK
+pp: 6388   pt: 6388   cp: 6400   ct: 6401   lbp: 6395  bp: 6397   BP: 6400  BS: 2   lBS: 1   PP: 6387    (6392): < pid: 6400 > is a BACKGROUND FORK
+pp: 6388   pt: 6388   cp: 6401   ct: 6401   lbp: 6395  bp: 6400   BP: 6401  BS: 2   lBS: 1   PP: 6387    (6392): < pid: 6401 > is a SUBSHELL
+8
+7
+pp: 6401   pt: 6401   cp: 6401   ct: 6401   lbp: 6400  bp: 6400   BP: 6401  BS: 2   lBS: 2   PP: 6387    (6401): < 'echo 8' > is a NORMAL COMMAND
+pp: 6400   pt: 6401   cp: 6400   ct: 6401   lbp: 6397  bp: 6397   BP: 6400  BS: 2   lBS: 2   PP: 6387    (6400): < 'echo 7' > is a NORMAL COMMAND
+pp: 6388   pt: 6388   cp: 6403   ct: 6388   lbp: 6395  bp: 6402   BP: 6403  BS: 2   lBS: 1   PP: 6387    (6392): < pid: 6403 > is a BACKGROUND FORK
+pp: 6388   pt: 6388   cp: 6402   ct: 6388   lbp: 6395  bp: 6400   BP: 6402  BS: 2   lBS: 1   PP: 6387    (6392): < pid: 6402 > is a BACKGROUND FORK
+9.1
+pp: 6388   pt: 6388   cp: 6404   ct: 6388   lbp: 6395  bp: 6403   BP: 6404  BS: 2   lBS: 1   PP: 6387    (6392): < pid: 6404 > is a BACKGROUND FORK
+pp: 6403   pt: 6388   cp: 6403   ct: 6388   lbp: 6402  bp: 6402   BP: 6403  BS: 2   lBS: 2   PP: 6387    (6403): < 'echo 9.1' > is a NORMAL COMMAND
+pp: 6388   pt: 6388   cp: 6405   ct: 6388   lbp: 6395  bp: 6404   BP: 6405  BS: 2   lBS: 1   PP: 6387    (6392): < pid: 6405 > is a BACKGROUND FORK
+9.1b
+pp: 6405   pt: 6388   cp: 6405   ct: 6388   lbp: 6404  bp: 6404   BP: 6405  BS: 2   lBS: 2   PP: 6387    (6405): < 'echo 9.1b' > is a NORMAL COMMAND
+pp: 6388   pt: 6388   cp: 6406   ct: 6388   lbp: 6395  bp: 6405   BP: 6406  BS: 2   lBS: 1   PP: 6387    (6392): < pid: 6406 > is a BACKGROUND FORK
+pp: 6402   pt: 6388   cp: 6402   ct: 6388   lbp: 6400  bp: 6408   BP: 6402  BS: 2   lBS: 2   PP: 6387    (6402): < 'echo 9' > is a SIMPLE FORK *
+pp: 6404   pt: 6388   cp: 6404   ct: 6388   lbp: 6403  bp: 6410   BP: 6404  BS: 2   lBS: 2   PP: 6387    (6404): < 'echo 9.1a' > is a SIMPLE FORK *
+pp: 6388   pt: 6388   cp: 6407   ct: 6388   lbp: 6395  bp: 6406   BP: 6407  BS: 2   lBS: 1   PP: 6387    (6392): < pid: 6407 > is a BACKGROUND FORK
+9.2a
+9.999
+pp: 6403   pt: 6388   cp: 6403   ct: 6388   lbp: 6402  bp: 6411   BP: 6403  BS: 2   lBS: 2   PP: 6387    (6403): < 'echo 9.2' > is a SIMPLE FORK
+9.2b
+pp: 6404   pt: 6388   cp: 6404   ct: 6388   lbp: 6410  bp: 6410   BP: 6404  BS: 2   lBS: 2   PP: 6387    (6404): < 'echo 9.2a' > is a NORMAL COMMAND
+pp: 6405   pt: 6388   cp: 6405   ct: 6388   lbp: 6404  bp: 6412   BP: 6405  BS: 2   lBS: 2   PP: 6387    (6405): < 'echo 9.2b' > is a SIMPLE FORK
+9.1c
+pp: 6388   pt: 6388   cp: 6388   ct: 6388   lbp: 6395  bp: 6409   BP: 6392  BS: 1   lBS: 1   PP: 6387    (6392): < 'echo 4' > is a SIMPLE FORK
+pp: 6388   pt: 6388   cp: 6409   ct: 6388   lbp: 6395  bp: 6407   BP: 6409  BS: 2   lBS: 1   PP: 6387    (6392): < pid: 6409 > is a BACKGROUND FORK
+11
+pp: 6406   pt: 6388   cp: 6406   ct: 6388   lbp: 6405  bp: 6413   BP: 6406  BS: 2   lBS: 2   PP: 6387    (6406): < 'echo 9.1c' > is a SIMPLE FORK *
+9.2c
+pp: 6388   pt: 6388   cp: 6388   ct: 6388   lbp: 6409  bp: 6409   BP: 6392  BS: 1   lBS: 1   PP: 6387    (6392): < 'echo 11' > is a NORMAL COMMAND
+pp: 6406   pt: 6388   cp: 6406   ct: 6388   lbp: 6413  bp: 6413   BP: 6406  BS: 2   lBS: 2   PP: 6387    (6406): < 'echo 9.2c' > is a NORMAL COMMAND
+9.2
+10
+9
+pp: 6409   pt: 6388   cp: 6409   ct: 6388   lbp: 6407  bp: 6415   BP: 6409  BS: 2   lBS: 2   PP: 6387    (6409): < 'echo 10' > is a SIMPLE FORK *
+pp: 6407   pt: 6388   cp: 6407   ct: 6388   lbp: 6406  bp: 6406   BP: 6414  BS: 3   lBS: 2   PP: 6387    (6407): < pid: 6414 > is a SUBSHELL
+12
+9.1a
+9.3
+pp: 6388   pt: 6388   cp: 6418   ct: 6418   lbp: 6409  bp: 6417   BP: 6418  BS: 2   lBS: 1   PP: 6387    (6392): < pid: 6418 > is a SUBSHELL
+14
+pp: 6388   pt: 6388   cp: 6417   ct: 6418   lbp: 6409  bp: 6416   BP: 6417  BS: 2   lBS: 1   PP: 6387    (6392): < pid: 6417 > is a BACKGROUND FORK
+13
+pp: 6407   pt: 6388   cp: 6407   ct: 6388   lbp: 6406  bp: 6419   BP: 6414  BS: 3   lBS: 3   PP: 6387    (6414): < 'echo 9.3' > is a SIMPLE FORK
+9.4
+pp: 6418   pt: 6418   cp: 6418   ct: 6418   lbp: 6417  bp: 6417   BP: 6418  BS: 2   lBS: 2   PP: 6387    (6418): < 'echo 14' > is a NORMAL COMMAND
+pp: 6417   pt: 6418   cp: 6417   ct: 6418   lbp: 6416  bp: 6416   BP: 6417  BS: 2   lBS: 2   PP: 6387    (6417): < 'echo 13' > is a NORMAL COMMAND
+pp: 6407   pt: 6388   cp: 6407   ct: 6388   lbp: 6419  bp: 6419   BP: 6414  BS: 3   lBS: 3   PP: 6387    (6414): < 'echo 9.4' > is a NORMAL COMMAND
+pp: 6407   pt: 6388   cp: 6407   ct: 6388   lbp: 6406  bp: 6406   BP: 6407  BS: 2   lBS: 2   PP: 6387    (6407): < 'echo 9.999' > is a NORMAL COMMAND
+9.5
+pp: 6407   pt: 6388   cp: 6407   ct: 6388   lbp: 6406  bp: 6406   BP: 6407  BS: 2   lBS: 2   PP: 6387    (6407): < 'echo 9.5' > is a NORMAL COMMAND
+pp: 6388   pt: 6388   cp: 6420   ct: 6422   lbp: 6409  bp: 6417   BP: 6420  BS: 2   lBS: 1   PP: 6387    (6392): < pid: 6420 > is a BACKGROUND FORK
+a
+pp: 6388   pt: 6388   cp: 6422   ct: 6422   lbp: 6409  bp: 6424   BP: 6422  BS: 2   lBS: 1   PP: 6387    (6392): < pid: 6422 > is a SUBSHELL
+pp: 6388   pt: 6388   cp: 6421   ct: 6422   lbp: 6409  bp: 6420   BP: 6423  BS: 3   lBS: 1   PP: 6387    (6392): < pid: 6423 > is a BACKGROUND FORK
+pp: 6420   pt: 6422   cp: 6420   ct: 6422   lbp: 6417  bp: 6425   BP: 6420  BS: 2   lBS: 2   PP: 6387    (6420): < 'echo a' > is a SIMPLE FORK
+b
+pp: 6388   pt: 6388   cp: 6422   ct: 6422   lbp: 6409  bp: 6421   BP: 6426  BS: 4   lBS: 1   PP: 6387    (6392): < pid: 6426 > is a SUBSHELL
+pp: 6421   pt: 6422   cp: 6421   ct: 6422   lbp: 6420  bp: 6420   BP: 6423  BS: 3   lBS: 3   PP: 6387    (6423): < 'echo b' > is a NORMAL COMMAND
+A2
+pp: 6422   pt: 6422   cp: 6422   ct: 6422   lbp: 6424  bp: 6427   BP: 6422  BS: 2   lBS: 2   PP: 6387    (6422): < 'echo A2' > is a SIMPLE FORK
+A1
+A5
+pp: 6422   pt: 6422   cp: 6422   ct: 6422   lbp: 6421  bp: 6428   BP: 6426  BS: 4   lBS: 4   PP: 6387    (6426): < 'echo A5' > is a SIMPLE FORK
+pp: 6422   pt: 6422   cp: 6422   ct: 6422   lbp: 6427  bp: 6427   BP: 6422  BS: 2   lBS: 2   PP: 6387    (6422): < 'echo A1' > is a NORMAL COMMAND
+pp: 6388   pt: 6388   cp: 6422   ct: 6388   lbp: 6409  bp: 6429   BP: 6424  BS: 3   lBS: 1   PP: 6387    (6392): < pid: 6424 > is a BACKGROUND FORK
+A3
+pp: 6388   pt: 6388   cp: 6422   ct: 6388   lbp: 6409  bp: 6421   BP: 6429  BS: 4   lBS: 1   PP: 6387    (6392): < pid: 6429 > is a BACKGROUND FORK
+A4
+pp: 6422   pt: 6388   cp: 6422   ct: 6388   lbp: 6429  bp: 6429   BP: 6424  BS: 3   lBS: 3   PP: 6387    (6424): < 'echo A3' > is a NORMAL COMMAND
+pp: 6422   pt: 6388   cp: 6422   ct: 6388   lbp: 6421  bp: 6421   BP: 6429  BS: 4   lBS: 4   PP: 6387    (6429): < 'echo A4' > is a NORMAL COMMAND
+pp: 6388   pt: 6388   cp: 6388   ct: 6388   lbp: 6409  bp: 6421   BP: 6392  BS: 1   lBS: 1   PP: 6387    (6392): < 'echo 12' > is a SIMPLE FORK
+
+
+EOF
+
+
+
+######################################################
+
+
+(
+
+set -T
+set -m
+
+read -r _ _ _ _ parent_pgid _ _ parent_tpid _ </proc/${BASHPID}/stat
+child_pgid=$parent_pgid
+child_tpid=$parent_tpid
+
+: &
 last_bg_pid=$!
 last_subshell=$BASH_SUBSHELL
 last_command=''
