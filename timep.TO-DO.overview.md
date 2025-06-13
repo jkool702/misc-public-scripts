@@ -8,7 +8,7 @@ subshells + bg forks:
 4. anytime $! is detected as changing, write $! to the bg-pid.log file. this file will be utalized in post-processing to resolve ambiguous subshells/bg_forks
 5. everything is keyed on ${timep_NEXEC_STR}_${timep_NPIDWRAP}.${BASHPID}. timep_NPIDWRAP increments whenever a subshell/bg fork has a pid lower than the previous nesting lvl pid
 
-in the "normal command" code branch, add `(( BASHPID < timep_BASHPID_prev )) && ((timep_NPIDWRAP++))`
+note: timep_NPIDWRAP is initialized to 0; then in the debug trap, add `(( BASHPID < timep_BASHPID_prev )) && ((timep_NPIDWRAP++))`
 
 
 functions:
