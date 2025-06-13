@@ -3,13 +3,24 @@ high-level overview:
 subshells + bg forks:
 
 1. normal commands and simple forks of builtins will have their log line written the next time a debug trap fires at that nesting level. if there are subshells / bg forks (that dont fire a debug trap at that nesting lvl) first then they will write a file under .endtime which , if it exists, will be read and the min end time chosen for the command's ending timestamp
-2. the exit trap is set to `:` to ensure the final command in a subshell gets 1 debug trap firing after said command to log it
+2. the exit trap is set to `:` to ensure the final command in a subshell gets 1 debug trap firing after said command to log it (see code below)
 3. when entering a subshell or spawning a bg fork, the child process will append the endtime timestamp  to the previous command's .endtime file, then write a line in the parent's log indicating that at `timep_NEXEC_STR` a subshell/ bg fork / ambiguous (if it detects bg fork and `BASH_SUBSHELL` increases by 2+) was spawned with pid `${timep_NPIDWRAP}.${BASHPID}`. the start time for this line will be the "end time" recorded at the start of the current debug trap fire (which is the endtime for the command before the subshell / bg fork) + 0.000001 s, and its end time will be blank (to be filled in in post-processing as the endtime of the last command in the child + 0.000001 s). then re-set the exit trap, if its a bg fork increment timep_NBG, increment+nest  NEXEC and related variables. if bash_subshell increases by 2+, either read the pid chain from the .pidchain file or figure it out (using /proc) and then write it to the .pidchain file. finally write log header for new (currently empty) log at new nesting depth. then the 1st command is run, and the next debug trap logs  it as a normal command (or whatever it is)
 4. anytime `$!` is detected as changing, write `$!` to the bg-pid.log file. this file will be utalized in post-processing to resolve ambiguous subshells/bg_forks
 5. everything is keyed on `${timep_NEXEC_STR}_${timep_NPIDWRAP}.${BASHPID}`. `timep_NPIDWRAP` increments whenever a subshell/bg fork has a pid lower than the previous nesting lvl pid
 
 note: `timep_NPIDWRAP` is initialized to 0; then in the debug trap, add `(( BASHPID < timep_BASHPID_prev )) && ((timep_NPIDWRAP++))`
 
+endtime read code:
+
+```
+if [[ -s "${timep_TMPDIR}/.endtimes/${timep_NEXEC_STR}_${timep_NPIDWRAP}.${BASHPID}" ]]; then
+    {
+        while read -r -u $fd_endtime timep_ENDTIME0; do
+            (( ${timep_ENDTIME0//./} < $[timep_ENDTIME//./} )) && timep_ENDTIME="${timep_ENDTIME0}"
+        done
+    } {fd_endtime}<"${timep_TMPDIR}/.endtimes/${timep_NEXEC_STR}_${timep_NPIDWRAP}.${BASHPID}"
+fi
+```
 
 functions:
 
