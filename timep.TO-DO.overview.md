@@ -4,9 +4,11 @@ subshells + bg forks:
 
 1. normal commands and simple forks of builtins will have their log line written the next time a debug trap fires at that nesting level. if there are subshells / bg forks (that dont fire a debug trap at that nesting lvl) first then they will write a file under .endtime which , if it exists, will be read and the min end time chosen for the command's ending timestamp
 2. the exit trap is set to : to ensure the final command in a subshell gets 1 debug trap firing after said command to log it
-3. when entering a subshell or spawning a bg fork, the child process will append the endtime timestamp (recorded at the start of the current debug trap fire) to the previous command's .endtime file, then write a line in the parent's log indicating that at timep_NEXEC_STR a subshell/ bg fork / ambiguous (if it detects bg fork and BASH_SUBSHELL increases by 2+) was spawned with pid ${timep_NPIDWRAP}.${BASHPID}. then reset the exit trap, if its a bg fork increment timep_NBG, increment+nest  NEXEC and related variables. if bash_subshell increases by 2+, either read the pid chain from the .pidchain file or figure it out (using /proc) and then write it to the .pidchain file. finally write log header for new (currently empty) log at new nesting depth. then the 1st command is run, and the next debug trap logs  it as a normal command (or whatever it is)
+3. when entering a subshell or spawning a bg fork, the child process will append the endtime timestamp  to the previous command's .endtime file, then write a line in the parent's log indicating that at timep_NEXEC_STR a subshell/ bg fork / ambiguous (if it detects bg fork and BASH_SUBSHELL increases by 2+) was spawned with pid ${timep_NPIDWRAP}.${BASHPID}. the start time for this line will be the "end time" recorded at the start of the current debug trap fire (which is the endtime for the command before the subshell / bg fork) + 0.000001 s, and its end time will be blank (to be filled in in post-processing as the endtime of the last command in the child + 0.000001 s). then re-set the exit trap, if its a bg fork increment timep_NBG, increment+nest  NEXEC and related variables. if bash_subshell increases by 2+, either read the pid chain from the .pidchain file or figure it out (using /proc) and then write it to the .pidchain file. finally write log header for new (currently empty) log at new nesting depth. then the 1st command is run, and the next debug trap logs  it as a normal command (or whatever it is)
 4. anytime $! is detected as changing, write $! to the bg-pid.log file. this file will be utalized in post-processing to resolve ambiguous subshells/bg_forks
 5. everything is keyed on ${timep_NEXEC_STR}_${timep_NPIDWRAP}.${BASHPID}. timep_NPIDWRAP increments whenever a subshell/bg fork has a pid lower than the previous nesting lvl pid
+
+in the "normal command" code branch, add `(( BASHPID < timep_BASHPID_prev )) && ((timep_NPIDWRAP++))`
 
 
 functions:
@@ -20,6 +22,12 @@ functions:
 
 post processing:
 
+The following tasks will need tpo be done in the order shown. re-order, then merge pipelines, then merge upwards (with+without collapsing loops)
+
+reorder:
+
+due to a quirk with this logging method, subshells and bg forks will have their indicator line in the parent logged before the command immediately prooceeding the [group of back-to-back] subshell  bg fork commands. the 1st pos-processing step will be to reorder the logs by version-sorting each of them (independently) based on their ${timep_NEXEC_STR}_${timep_NPIDWRAP}.${BASHPID}
+
 pipelines: 
 
 take each log, version-sort them based on timep_NEXEC_STR_timep_NPIDWRAP.BASHPID, then read the lines in reverse order. the NPIPE on each log line represents the number of previous commands (including that one)  form the pipeline (if NPIPE=1 then it is only that command and as such isnt a pipeline). reading lines in reverse order means that if NPIPE=N it'll be that command + the next N-1 command. any pipeline elements containing brace groups with many commands will have that brace group logged as a single << subshell >> command at that nesting lvl. i.e., each pipeline element always gets a single log line at the current nesting lvl.
@@ -29,9 +37,9 @@ NOTE: i may need to consider a special case where lastpipe is set and the last p
 
 merging upward, summing runtime and collapsing loops - these will all sort of happen together. starting with the most deeply nested logs, i will:
 
-1. compute the runtime of each command from the start/end timestamps
-2. compute the total runtime from all commands at that nesting level
-3. look for repeated commands / loops and collapse them into a counter + total runtime. ill probably generate 2 "final output" logs - one with loops collapsed (that will be printed to the screen) and one without loops collapsed (in a file, in csse deeper analysis is needed)
+1. set the "end time" of the subshell / bg fork marker (in the parent) as the endtime of the final command in the child log + 0.000001 s
+2. compute the runtime of each command from the start/end timestamps and sum to compute the total runtime from all commands at that nesting level
+3. look for repeated commands / loops and collapse them into a counter + total runtime. ill probably generate 2 "final output" logs - one with loops collapsed (that will be printed to the screen) and one without loops collapsed (in a file, in case deeper analysis is needed). See "**collapsing loops" section below for implementation details.
 4. merge the log upward (unless it was the start oif a bg fork). still working out how exactly to do this, but considering leaving the original "marker line" in and then immediately below it insert the merged log with something like |--  prepended to the beginning of each line (unless the line already begins with "|-- ", then instead prepend "|   "
 5. repeat the process at the next higher nesting level, but for any subshells/function calls that were merged up use the summed runtime from the merged log instead of end_timestamp - start_timestamp. keep repeating until you hit the top level log.
 
@@ -49,7 +57,7 @@ cmd 1
 cmd 3
 ```
 
-collapsing loops (logic from previous implementation):
+**collapsing loops (logic from previous implementation):
 
-1. pull out the LINENO and BASH_COMMAND from each log line and run this combination through sort -u to gert unique lineno+command combinations
+1. pull out the LINENO and BASH_COMMAND from each log line and run this combination through sort -u to get unique lineno+command combinations
 2. loop through each unique lineno+command combination. for each unique combination, grep the log to find lines with both that lineno and that command. get a count of the number of grep matches, and pull the runtime out of each match and sum. then remove all but the 1st match from the log, and for that 1st match add the counter and  replace the runtime with the summed runtime.
