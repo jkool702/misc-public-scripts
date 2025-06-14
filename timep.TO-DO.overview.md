@@ -1,5 +1,7 @@
 high-level overview:
 
+#####################################################################################
+
 subshells + bg forks:
 
 1. normal commands and simple forks of builtins will have their log line written the next time a debug trap fires at that nesting level. if there are subshells / bg forks (that dont fire a debug trap at that nesting lvl) first then they will write a file under .endtime which , if it exists, will be read and the min end time chosen for the command's ending timestamp
@@ -22,6 +24,8 @@ if [[ -s "${timep_TMPDIR}/.endtimes/${timep_NEXEC_STR}_${timep_NPIDWRAP}.${BASHP
 fi
 ```
 
+#####################################################################################
+
 functions:
 
 1. the initial debug trap that fires in the parent will log the previous (before the function) command and record the function invocation (to be logged later in the parent's log)
@@ -30,10 +34,29 @@ functions:
 4. on function exit, the return trap will first set the flag variable that disables the debug trap (when will generate 1 debug trap firing before the debug trap is disabled....this initial fire will log the last command from the function). the return trap will then (with the debug trap disabled) write the endtime from the final function command to the .endtime file 1 nesting level up (corresponding to the "saved in the timep_* variables but not yet logged" function call log line in the parent). it will then remove 1 nesting level off the end of all the nesting/funcdepth variables. finally, it will unset the variable that disables the debug trap (which wont make the debug trap fire, but will make it fire for the next command run)
 5. the next command (after the function returns) at the parent's nesting level will pickup the correct endtime from the file written during the return trap, then log the line for the function call at the parent's nesting level
 
+#####################################################################################
+
+NOTE: differences in subshell vs function logging.
+
+say you have a sequence of command A, subshell/function B, command C, command D. Within subshell/function B you have commands B1, B2, ..., BN
+
+subshell: you get debug traps just before A, B1, B2, ..., BN, <exit_trap>, C, D
+
+The debug trap for B1 adds the endtime for A in its .endtime file and writes the log line for subshell B in the parent (without a endtime specified), and nests all required variables 1 level deper. Then B2's debug trap logs B1. ... . The debug trap fire for the exit trap logs BN. And the debug trap fire for C reads in the endtime for A (choosing the lowest if multiple endtimes are present) and logs A. THE LOG FOR A WILL BE WRITTEN OUT OF ORDER...This will be fixed in post processing. Finally the debug trap for D logs C.
+
+function: you get debug traps A, B, B0, B1, B2, ..., BN, <return_trap>, C, D
+
+note: B and B0 both list the function name as the BASH_COMMAND. B is run in the parent, B0 is run in the child.
+
+The debug trap for B logs A. The debug trap for B0 nests all required variables 1 level deeper, but does not write any log lines. The debug trap for B1 logs B0, then B2's debug trap logs B1. ... . The debug trap fire for the return trap logs BN. And the debug trap fire for C logs B (the "function indicator line" in the parent). Finally the debug trap for D logs C.
+
+In both cases the last thing that fires a debug trap before the subshell/function is logged by the next debug trap (at the parent scope) after the subshell/function, with endtime preserved via the .endtime file (when needed)
+
+#####################################################################################
 
 post processing:
 
-The following tasks will need tpo be done in the order shown. re-order, then merge pipelines, then merge upwards (with+without collapsing loops)
+The following tasks will need to be done in the order shown. re-order, then merge pipelines, then merge upwards (with+without collapsing loops)
 
 reorder:
 
