@@ -19,6 +19,395 @@ subshell_pid=''
 next_is_simple_fork_flag=false
 this_is_simple_fork_flag=false
 
+trap() {
+    skip_debug=true
+    local trapStr trapType
+
+    if [[ "${1}" == -[lp] ]]; then
+        builtin trap "${@}"
+        return
+    else
+        [[ "${1}" == '--' ]] && shift 1
+        trapStr="${1%\;}"$'\n'
+        shift 1
+        if [[ "${trapStr}" == '-'$'\n' ]] || [[ "$trapStr" == $'\n' ]]; then
+            trapStr=''
+        fi
+    fi
+
+    for trapType in "${@}"; do
+        case "${trapType}" in
+            EXIT)    builtin trap ':' EXIT ;;
+            RETURN)  builtin trap ':' RETURN ;;
+            *)       eval "builtin trap ${trapStr@Q} ${trapType}" ;;
+        esac
+    done
+        skip_debug=false
+}
+
+export -f trap
+
+
+skip_debug=false
+
+builtin trap 'wait -f' EXIT RETURN
+
+ff() { echo "${*}"; }
+gg() { echo "$*"; ff "$@"; }
+
+builtin trap 'npipe0=${#PIPESTATUS[@]}
+${skip_debug} || [[ "${BASH_COMMAND}" == trap* ]] || {
+npipe=$npipe0
+is_bg=false
+is_subshell=false
+cmd_type='"''"'
+if ${next_is_simple_fork_flag}; then
+  next_is_simple_fork_flag=false
+  this_is_simple_fork_flag=true
+else
+  this_is_simple_fork_flag=false
+fi
+if (( last_subshell == BASH_SUBSHELL )); then
+  (( last_bg_pid == $! )) || is_bg=true
+else
+  is_subshell=true
+  subshell_pid=$BASHPID 
+  builtin trap '"'"'wait -f'"'"' EXIT 
+  read -r _ _ _ _ child_pgid _ _ child_tpid _ </proc/${BASHPID}/stat
+  (( child_pgid == parent_tpid )) || (( child_pgid == child_tpid )) || {  (( child_pgid == parent_pgid )) && (( child_tpid == parent_tpid )); } || is_bg=true
+fi
+if ${is_subshell} && ${is_bg}; then
+  (( child_pgid == BASHPID )) && (( child_tpid == parent_pgid )) && (( child_tpid == parent_tpid )) && next_is_simple_fork_flag=true
+  cmd_type="BACKGROUND FORK"
+elif ${is_subshell}; then
+  cmd_type="SUBSHELL"
+elif ${is_bg}; then
+  cmd_type="SIMPLE FORK"
+elif ${is_func}; then
+  cmd_type="FUNCTION"
+  is_func=false
+else
+  cmd_type="NORMAL COMMAND"
+fi
+${is_subshell} || ${is_bg} || (( ${#FUNCNAME[@]} <= last_funcdepth )) || is_func=true
+if ${is_subshell}; then
+  printf '"'"'pp: %s   pt: %s   cp: %s   ct: %s   lbp: %s  bp: %s   BP: %s  BS: %s   lBS: %s   fd: %s    lfd: %s    PP: %s    np: %s    (%s): < pid: %s > is a %s\n'"'"' $parent_pgid $parent_tpid $child_pgid $child_tpid $last_bg_pid $! $BASHPID "$BASH_SUBSHELL" "$last_subshell" ${#FUNCNAME[@]} $last_funcdepth "${PPID:-\?}" $npipe "$last_pid" "$BASHPID" "$cmd_type"
+  parent_pgid=$child_pgid
+  parent_tpid=$child_tpid
+  last_subshell="$BASH_SUBSHELL"
+elif [[ $last_command ]] && (( ${#FUNCNAME[@]} == last_funcdepth )) then
+  ${this_is_simple_fork_flag} && (( BASHPID < $! )) && cmd_type="SIMPLE FORK *"
+  printf '"'"'pp: %s   pt: %s   cp: %s   ct: %s   lbp: %s  bp: %s   BP: %s  BS: %s   lBS: %s   fd: %s    lfd: %s    PP: %s    np: %s    (%s): < %s > is a %s\n'"'"' $parent_pgid $parent_tpid $child_pgid $child_tpid $last_bg_pid $! $BASHPID "$BASH_SUBSHELL" "$last_subshell" ${#FUNCNAME[@]} $last_funcdepth "${PPID:-\?}" $npipe "$BASHPID" "${last_command@Q}" "$cmd_type"
+fi >&$fd
+last_command="$BASH_COMMAND"
+last_bg_pid=$!
+last_pid=$BASHPID
+last_funcdepth=${#FUNCNAME[@]}
+}' DEBUG
+
+echo 0
+{ echo 1; }
+( echo 2 )
+echo 3 &
+{ echo 4 & }
+{ echo 5; } &
+( echo 6 & )
+( echo 7 ) &
+( echo 8 )
+( echo 9 & ) &
+{ echo 9.1; echo 9.2 & } &
+{ echo 9.1a & echo 9.2a; } &
+( echo 9.1b; echo 9.2b & ) &
+( echo 9.1c & echo 9.2c; ) &
+{ echo 9.999; ( echo 9.3 & echo 9.4 ); echo 9.5; } &
+{ echo 10 & } &
+
+echo 11
+echo 12 &
+( echo 13 ) &
+( echo 14 )
+
+ff 15
+gg 16
+
+( echo a & ) &
+{ ( echo b ) & } &
+
+
+( ( ( echo A5 & ); { echo A4; } & echo A3; ) & echo A2 & echo A1 )
+
+
+cat <<EOF | grep foo | sed 's/o/O/g' | wc -l
+foo
+bar
+baz
+EOF
+
+echo "today is $(date +%Y-%m-%d)"
+x=$( (echo nested; echo subshell) | grep sub )
+
+diff <(ls /) <(ls /tmp)
+grep pattern <(sed 's/^/>>/' > /dev/null)
+
+coproc CO { for i in {1..3}; do echo “$i”; sleep .01; done; }
+while read -r n <&${CO[0]}; do printf "got %s\n" "$n"; done
+
+let “x = 5 + 6”
+arr=( one two three ); echo ${arr[@]}
+for ((i=0;i<3;i++)); do echo “$i”; done
+
+hh() {
+  trap 'echo in-ff-EXIT' EXIT
+  echo before
+  (
+    trap 'echo in-sub-EXIT' EXIT
+    echo in subshell
+  )
+  echo after
+}
+
+
+cmd="echo inside-eval"
+eval "$cmd"
+eval "eval \"$cmd\""
+
+trap 'echo got USR1; sleep .01' USR1
+kill -USR1 $$
+echo after-signal
+
+for i in {1..3}; do
+  while read x; do
+    if (( x % 2 == 0 )); then
+      echo even "$x"
+    else
+      ( echo odd "$x" )
+    fi
+  done < <(seq 1 5)
+done
+
+hh
+trap - DEBUG
+
+) {fd}>&2
+
+
+:<<'EOF'
+
+0
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 748  bp: 748   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo 0' > is a NORMAL COMMAND
+1
+pp: 743   pt: 743   cp: 749   ct: 749   lbp: 748  bp: 748   BP: 749  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 749 > is a SUBSHELL
+2
+pp: 749   pt: 749   cp: 749   ct: 749   lbp: 748  bp: 748   BP: 749  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (749): < 'echo 2' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 748  bp: 748   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo 1' > is a NORMAL COMMAND
+3
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 748  bp: 750   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo 3' > is a SIMPLE FORK
+4
+pp: 743   pt: 743   cp: 752   ct: 753   lbp: 750  bp: 751   BP: 752  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 752 > is a BACKGROUND FORK
+5
+pp: 743   pt: 743   cp: 753   ct: 753   lbp: 750  bp: 752   BP: 753  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 753 > is a SUBSHELL
+pp: 752   pt: 753   cp: 752   ct: 753   lbp: 751  bp: 751   BP: 752  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (752): < 'echo 5' > is a NORMAL COMMAND
+6
+pp: 753   pt: 753   cp: 753   ct: 753   lbp: 752  bp: 754   BP: 753  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (753): < 'echo 6' > is a SIMPLE FORK
+pp: 743   pt: 743   cp: 755   ct: 756   lbp: 750  bp: 752   BP: 755  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 755 > is a BACKGROUND FORK
+7
+pp: 743   pt: 743   cp: 756   ct: 756   lbp: 750  bp: 755   BP: 756  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 756 > is a SUBSHELL
+8
+pp: 755   pt: 756   cp: 755   ct: 756   lbp: 752  bp: 752   BP: 755  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (755): < 'echo 7' > is a NORMAL COMMAND
+pp: 756   pt: 756   cp: 756   ct: 756   lbp: 755  bp: 755   BP: 756  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (756): < 'echo 8' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 757   ct: 743   lbp: 750  bp: 755   BP: 757  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 757 > is a BACKGROUND FORK
+pp: 743   pt: 743   cp: 761   ct: 743   lbp: 750  bp: 760   BP: 761  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 761 > is a BACKGROUND FORK
+pp: 743   pt: 743   cp: 762   ct: 743   lbp: 750  bp: 761   BP: 762  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 762 > is a BACKGROUND FORK
+pp: 743   pt: 743   cp: 758   ct: 743   lbp: 750  bp: 757   BP: 758  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 758 > is a BACKGROUND FORK
+pp: 743   pt: 743   cp: 763   ct: 743   lbp: 750  bp: 762   BP: 763  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 763 > is a BACKGROUND FORK
+pp: 743   pt: 743   cp: 759   ct: 743   lbp: 750  bp: 758   BP: 759  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 759 > is a BACKGROUND FORK
+9.999
+pp: 743   pt: 743   cp: 760   ct: 743   lbp: 750  bp: 759   BP: 760  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 760 > is a BACKGROUND FORK
+9.1b
+pp: 757   pt: 743   cp: 757   ct: 743   lbp: 755  bp: 764   BP: 757  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (757): < 'echo 9' > is a SIMPLE FORK *
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 750  bp: 763   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo 4' > is a SIMPLE FORK
+9.1
+11
+pp: 761   pt: 743   cp: 761   ct: 743   lbp: 760  bp: 765   BP: 761  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (761): < 'echo 9.1c' > is a SIMPLE FORK *
+9.2c
+pp: 760   pt: 743   cp: 760   ct: 743   lbp: 759  bp: 759   BP: 760  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (760): < 'echo 9.1b' > is a NORMAL COMMAND
+pp: 758   pt: 743   cp: 758   ct: 743   lbp: 757  bp: 757   BP: 758  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (758): < 'echo 9.1' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 763  bp: 763   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo 11' > is a NORMAL COMMAND
+pp: 761   pt: 743   cp: 761   ct: 743   lbp: 765  bp: 765   BP: 761  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (761): < 'echo 9.2c' > is a NORMAL COMMAND
+9
+pp: 760   pt: 743   cp: 760   ct: 743   lbp: 759  bp: 769   BP: 760  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (760): < 'echo 9.2b' > is a SIMPLE FORK
+9.1c
+9.1a
+pp: 762   pt: 743   cp: 762   ct: 773   lbp: 761  bp: 761   BP: 766  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (762): < pid: 766 > is a BACKGROUND FORK
+pp: 759   pt: 743   cp: 759   ct: 743   lbp: 758  bp: 767   BP: 759  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (759): < 'echo 9.1a' > is a SIMPLE FORK *
+9.2a
+pp: 758   pt: 743   cp: 758   ct: 743   lbp: 757  bp: 770   BP: 758  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (758): < 'echo 9.2' > is a SIMPLE FORK
+pp: 763   pt: 743   cp: 763   ct: 743   lbp: 762  bp: 768   BP: 763  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (763): < 'echo 10' > is a SIMPLE FORK *
+pp: 762   pt: 773   cp: 762   ct: 773   lbp: 761  bp: 774   BP: 766  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 742    np: 1    (766): < 'echo 9.3' > is a SIMPLE FORK
+12
+10
+pp: 743   pt: 743   cp: 773   ct: 762   lbp: 763  bp: 772   BP: 773  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 773 > is a BACKGROUND FORK
+9.4
+9.2b
+14
+pp: 759   pt: 743   cp: 759   ct: 743   lbp: 767  bp: 767   BP: 759  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (759): < 'echo 9.2a' > is a NORMAL COMMAND
+pp: 762   pt: 773   cp: 762   ct: 773   lbp: 774  bp: 774   BP: 766  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 742    np: 1    (766): < 'echo 9.4' > is a NORMAL COMMAND
+pp: 773   pt: 762   cp: 773   ct: 762   lbp: 772  bp: 772   BP: 773  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (773): < 'echo 14' > is a NORMAL COMMAND
+9.2
+9.3
+pp: 762   pt: 743   cp: 762   ct: 743   lbp: 761  bp: 761   BP: 762  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (762): < 'echo 9.999' > is a NORMAL COMMAND
+9.5
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 763  bp: 772   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo 12' > is a SIMPLE FORK
+pp: 762   pt: 743   cp: 762   ct: 743   lbp: 761  bp: 761   BP: 762  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (762): < 'echo 9.5' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 772   ct: 743   lbp: 763  bp: 771   BP: 772  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 772 > is a BACKGROUND FORK
+13
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 772  bp: 772   BP: 747  BS: 1   lBS: 1   fd: 2    lfd: 2    PP: 742    np: 1    (747): < 'ff 15' > is a FUNCTION
+15
+pp: 772   pt: 743   cp: 772   ct: 743   lbp: 771  bp: 771   BP: 772  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (772): < 'echo 13' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 772  bp: 772   BP: 747  BS: 1   lBS: 1   fd: 2    lfd: 2    PP: 742    np: 1    (747): < 'echo "${*}"' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 772  bp: 772   BP: 747  BS: 1   lBS: 1   fd: 2    lfd: 2    PP: 742    np: 1    (747): < 'gg 16' > is a FUNCTION
+16
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 772  bp: 772   BP: 747  BS: 1   lBS: 1   fd: 2    lfd: 2    PP: 742    np: 1    (747): < 'echo "$*"' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 772  bp: 772   BP: 747  BS: 1   lBS: 1   fd: 3    lfd: 3    PP: 742    np: 1    (747): < 'ff "$@"' > is a FUNCTION
+16
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 772  bp: 772   BP: 747  BS: 1   lBS: 1   fd: 3    lfd: 3    PP: 742    np: 1    (747): < 'echo "${*}"' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 775   ct: 777   lbp: 772  bp: 772   BP: 775  BS: 2   lBS: 1   fd: 0    lfd: 2    PP: 742    np: 1    (747): < pid: 775 > is a BACKGROUND FORK
+a
+pp: 743   pt: 743   cp: 776   ct: 777   lbp: 772  bp: 775   BP: 778  BS: 3   lBS: 1   fd: 0    lfd: 2    PP: 742    np: 1    (747): < pid: 778 > is a BACKGROUND FORK
+b
+pp: 775   pt: 777   cp: 775   ct: 777   lbp: 772  bp: 780   BP: 775  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (775): < 'echo a' > is a SIMPLE FORK
+pp: 743   pt: 743   cp: 777   ct: 777   lbp: 772  bp: 779   BP: 777  BS: 2   lBS: 1   fd: 0    lfd: 2    PP: 742    np: 1    (747): < pid: 777 > is a SUBSHELL
+pp: 776   pt: 777   cp: 776   ct: 777   lbp: 775  bp: 775   BP: 778  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 742    np: 1    (778): < 'echo b' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 777   ct: 777   lbp: 772  bp: 776   BP: 781  BS: 4   lBS: 1   fd: 0    lfd: 2    PP: 742    np: 1    (747): < pid: 781 > is a SUBSHELL
+pp: 777   pt: 777   cp: 777   ct: 777   lbp: 779  bp: 782   BP: 777  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (777): < 'echo A2' > is a SIMPLE FORK
+A1
+A5
+pp: 777   pt: 777   cp: 777   ct: 777   lbp: 782  bp: 782   BP: 777  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (777): < 'echo A1' > is a NORMAL COMMAND
+pp: 777   pt: 777   cp: 777   ct: 777   lbp: 776  bp: 783   BP: 781  BS: 4   lBS: 4   fd: 0    lfd: 0    PP: 742    np: 1    (781): < 'echo A5' > is a SIMPLE FORK
+A2
+pp: 743   pt: 743   cp: 777   ct: 743   lbp: 772  bp: 784   BP: 779  BS: 3   lBS: 1   fd: 0    lfd: 2    PP: 742    np: 1    (747): < pid: 779 > is a BACKGROUND FORK
+A3
+pp: 743   pt: 743   cp: 777   ct: 743   lbp: 772  bp: 776   BP: 784  BS: 4   lBS: 1   fd: 0    lfd: 2    PP: 742    np: 1    (747): < pid: 784 > is a BACKGROUND FORK
+A4
+pp: 777   pt: 743   cp: 777   ct: 743   lbp: 784  bp: 784   BP: 779  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 742    np: 1    (779): < 'echo A3' > is a NORMAL COMMAND
+pp: 777   pt: 743   cp: 777   ct: 743   lbp: 776  bp: 776   BP: 784  BS: 4   lBS: 4   fd: 0    lfd: 0    PP: 742    np: 1    (784): < 'echo A4' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 776  bp: 776   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < $'cat <<EOF\nfoo\nbar\nbaz\nEOF\n' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 776  bp: 776   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'grep foo' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 776  bp: 776   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'sed '\''s/o/O/g'\''' > is a NORMAL COMMAND
+1
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 776  bp: 776   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 4    (747): < 'wc -l' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 776  bp: 776   BP: 789  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 4    (747): < pid: 789 > is a SUBSHELL
+today is 2025-06-14
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 776  bp: 776   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo "today is $(date +%Y-%m-%d)"' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 776  bp: 776   BP: 790  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 790 > is a SUBSHELL
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 776  bp: 776   BP: 791  BS: 3   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 791 > is a SUBSHELL
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 776  bp: 776   BP: 791  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 742    np: 1    (791): < 'echo nested' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 776  bp: 776   BP: 791  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 742    np: 1    (791): < 'echo subshell' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 776  bp: 776   BP: 790  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 2    (790): < 'grep sub' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 776  bp: 776   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'x=$( ( echo nested; echo subshell ) | grep sub)' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 776  bp: 776   BP: 793  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 793 > is a SUBSHELL
+pp: 743   pt: 743   cp: 743   ct: 795   lbp: 776  bp: 793   BP: 794  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 794 > is a SUBSHELL
+1,22d0
+< bin
+< boot
+< dev
+< etc
+< home
+< lib
+< lib32
+< lib64
+< lib.usr-is-merged
+< media
+< mnt
+< opt
+< proc
+< root
+< run
+< sbin
+< script
+< srv
+< sys
+< tmp
+< usr
+< var
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 776  bp: 794   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'diff <(ls /) <(ls /tmp)' > is a SIMPLE FORK
+pp: 743   pt: 743   cp: 743   ct: 797   lbp: 794  bp: 794   BP: 796  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 796 > is a SUBSHELL
+sed: read error on stdin: Input/output error
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 794  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'grep pattern <(sed '\''s/^/>>/'\'' > /dev/null)' > is a SIMPLE FORK
+pp: 743   pt: 743   cp: 798   ct: 743   lbp: 794  bp: 796   BP: 798  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 798 > is a BACKGROUND FORK
+pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'for i in {1..3}' > is a NORMAL COMMAND
+pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'echo “$i”' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
+got “1”
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
+pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'sleep .01' > is a NORMAL COMMAND
+pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'for i in {1..3}' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
+pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'echo “$i”' > is a NORMAL COMMAND
+got “2”
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
+pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'sleep .01' > is a NORMAL COMMAND
+pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'for i in {1..3}' > is a NORMAL COMMAND
+pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'echo “$i”' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
+got “3”
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
+pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'sleep .01' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
+main.bash: line 155: let: “x: syntax error: operand expected (error token is "“x")
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'let “x = 5 + 6”' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'arr=(one two three)' > is a NORMAL COMMAND
+one two three
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo ${arr[@]}' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < '((i=0))' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < '((i<3))' > is a NORMAL COMMAND
+“0”
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo “$i”' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < '((i++))' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < '((i<3))' > is a NORMAL COMMAND
+“1”
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo “$i”' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < '((i++))' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < '((i<3))' > is a NORMAL COMMAND
+“2”
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo “$i”' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < '((i++))' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < '((i<3))' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'cmd="echo inside-eval"' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'eval "$cmd"' > is a NORMAL COMMAND
+inside-eval
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo inside-eval' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'eval "eval \"$cmd\""' > is a NORMAL COMMAND
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'eval "echo inside-eval"' > is a NORMAL COMMAND
+inside-eval
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 2    lfd: 2    PP: 742    np: 1    (747): < 'skip_debug=true' > is a FUNCTION
+
+EOF
+
+
+#################################################################################
+
+(
+
+set -T
+set -m
+
+read -r _ _ _ _ parent_pgid _ _ parent_tpid _ </proc/${BASHPID}/stat
+child_pgid=$parent_pgid
+child_tpid=$parent_tpid
+
+: &
+
+last_pid=$BASHPID
+last_bg_pid=$!
+last_subshell=$BASH_SUBSHELL
+last_command=()
+last_funcdepth=${#FUNCNAME[@]}
+last_command[$last_funcdepth]=''
+subshell_pid=''
+next_is_simple_fork_flag=false
+this_is_simple_fork_flag=false
+
 trap 'wait -f' EXIT RETURN
 
 ff() { echo "${*}"; }
