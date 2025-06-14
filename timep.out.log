@@ -1,0 +1,233 @@
+0
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25304  bp: 25304   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo 0' > is a NORMAL COMMAND
+1
+pp: 25302   pt: 25302   cp: 25305   ct: 25305   lbp: 25304  bp: 25304   BP: 25305  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25305 > is a SUBSHELL
+2
+pp: 25305   pt: 25305   cp: 25305   ct: 25305   lbp: 25304  bp: 25304   BP: 25305  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25305): < 'echo 2' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25304  bp: 25304   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo 1' > is a NORMAL COMMAND
+3
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25304  bp: 25306   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo 3' > is a SIMPLE FORK
+4
+pp: 25302   pt: 25302   cp: 25308   ct: 25309   lbp: 25306  bp: 25307   BP: 25308  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25308 > is a BACKGROUND FORK
+5
+pp: 25302   pt: 25302   cp: 25309   ct: 25309   lbp: 25306  bp: 25308   BP: 25309  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25309 > is a SUBSHELL
+pp: 25308   pt: 25309   cp: 25308   ct: 25309   lbp: 25307  bp: 25307   BP: 25308  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25308): < 'echo 5' > is a NORMAL COMMAND
+6
+pp: 25309   pt: 25309   cp: 25309   ct: 25309   lbp: 25308  bp: 25310   BP: 25309  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25309): < 'echo 6' > is a SIMPLE FORK
+pp: 25302   pt: 25302   cp: 25311   ct: 25312   lbp: 25306  bp: 25308   BP: 25311  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25311 > is a BACKGROUND FORK
+7
+pp: 25311   pt: 25312   cp: 25311   ct: 25312   lbp: 25308  bp: 25308   BP: 25311  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25311): < 'echo 7' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25312   ct: 25312   lbp: 25306  bp: 25311   BP: 25312  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25312 > is a SUBSHELL
+8
+pp: 25312   pt: 25312   cp: 25312   ct: 25312   lbp: 25311  bp: 25311   BP: 25312  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25312): < 'echo 8' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25313   ct: 25302   lbp: 25306  bp: 25311   BP: 25313  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25313 > is a BACKGROUND FORK
+pp: 25302   pt: 25302   cp: 25314   ct: 25302   lbp: 25306  bp: 25313   BP: 25314  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25314 > is a BACKGROUND FORK
+9.1
+pp: 25314   pt: 25302   cp: 25314   ct: 25302   lbp: 25313  bp: 25313   BP: 25314  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25314): < 'echo 9.1' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25315   ct: 25302   lbp: 25306  bp: 25314   BP: 25315  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25315 > is a BACKGROUND FORK
+pp: 25302   pt: 25302   cp: 25316   ct: 25302   lbp: 25306  bp: 25315   BP: 25316  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25316 > is a BACKGROUND FORK
+9
+9.1b
+pp: 25316   pt: 25302   cp: 25316   ct: 25302   lbp: 25315  bp: 25315   BP: 25316  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25316): < 'echo 9.1b' > is a NORMAL COMMAND
+pp: 25313   pt: 25302   cp: 25313   ct: 25302   lbp: 25311  bp: 25318   BP: 25313  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25313): < 'echo 9' > is a SIMPLE FORK *
+9.1a
+9.2
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25306  bp: 25320   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo 4' > is a SIMPLE FORK
+11
+pp: 25315   pt: 25302   cp: 25315   ct: 25302   lbp: 25314  bp: 25322   BP: 25315  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25315): < 'echo 9.1a' > is a SIMPLE FORK *
+9.2a
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25320  bp: 25320   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo 11' > is a NORMAL COMMAND
+pp: 25314   pt: 25302   cp: 25314   ct: 25302   lbp: 25313  bp: 25321   BP: 25314  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25314): < 'echo 9.2' > is a SIMPLE FORK
+9.2b
+pp: 25302   pt: 25302   cp: 25317   ct: 25302   lbp: 25306  bp: 25316   BP: 25317  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25317 > is a BACKGROUND FORK
+pp: 25315   pt: 25302   cp: 25315   ct: 25302   lbp: 25322  bp: 25322   BP: 25315  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25315): < 'echo 9.2a' > is a NORMAL COMMAND
+pp: 25316   pt: 25302   cp: 25316   ct: 25302   lbp: 25315  bp: 25323   BP: 25316  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25316): < 'echo 9.2b' > is a SIMPLE FORK
+9.1c
+12
+pp: 25302   pt: 25302   cp: 25320   ct: 25327   lbp: 25306  bp: 25319   BP: 25320  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25320 > is a BACKGROUND FORK
+pp: 25302   pt: 25302   cp: 25319   ct: 25327   lbp: 25306  bp: 25317   BP: 25319  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25319 > is a BACKGROUND FORK
+9.999
+pp: 25302   pt: 25302   cp: 25326   ct: 25327   lbp: 25320  bp: 25324   BP: 25326  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25326 > is a BACKGROUND FORK
+pp: 25317   pt: 25302   cp: 25317   ct: 25302   lbp: 25316  bp: 25325   BP: 25317  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25317): < 'echo 9.1c' > is a SIMPLE FORK *
+13
+9.2c
+pp: 25326   pt: 25327   cp: 25326   ct: 25327   lbp: 25324  bp: 25324   BP: 25326  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25326): < 'echo 13' > is a NORMAL COMMAND
+10
+pp: 25317   pt: 25302   cp: 25317   ct: 25302   lbp: 25325  bp: 25325   BP: 25317  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25317): < 'echo 9.2c' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25327   ct: 25327   lbp: 25320  bp: 25326   BP: 25327  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25327 > is a SUBSHELL
+14
+pp: 25327   pt: 25327   cp: 25327   ct: 25327   lbp: 25326  bp: 25326   BP: 25327  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25327): < 'echo 14' > is a NORMAL COMMAND
+pp: 25320   pt: 25327   cp: 25320   ct: 25327   lbp: 25319  bp: 25328   BP: 25320  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25320): < 'echo 10' > is a SIMPLE FORK
+pp: 25319   pt: 25327   cp: 25319   ct: 25327   lbp: 25317  bp: 25317   BP: 25329  BS: 4   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25319): < pid: 25329 > is a SUBSHELL
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25320  bp: 25326   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo 12' > is a SIMPLE FORK
+9.3
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25326  bp: 25326   BP: 25302  BS: 2   lBS: 2   fd: 1    lfd: 1    PP: 25105    np: 1    (25302): < 'ff 15' > is a FUNCTION
+15
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25326  bp: 25326   BP: 25302  BS: 2   lBS: 2   fd: 1    lfd: 1    PP: 25105    np: 1    (25302): < 'echo "${*}"' > is a NORMAL COMMAND
+pp: 25319   pt: 25327   cp: 25319   ct: 25327   lbp: 25317  bp: 25330   BP: 25329  BS: 4   lBS: 4   fd: 0    lfd: 0    PP: 25105    np: 1    (25329): < 'echo 9.3' > is a SIMPLE FORK
+9.4
+pp: 25319   pt: 25327   cp: 25319   ct: 25327   lbp: 25330  bp: 25330   BP: 25329  BS: 4   lBS: 4   fd: 0    lfd: 0    PP: 25105    np: 1    (25329): < 'echo 9.4' > is a NORMAL COMMAND
+pp: 25319   pt: 25327   cp: 25319   ct: 25327   lbp: 25317  bp: 25317   BP: 25319  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25319): < 'echo 9.999' > is a NORMAL COMMAND
+9.5
+pp: 25319   pt: 25327   cp: 25319   ct: 25327   lbp: 25317  bp: 25317   BP: 25319  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25319): < 'echo 9.5' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25326  bp: 25326   BP: 25302  BS: 2   lBS: 2   fd: 1    lfd: 1    PP: 25105    np: 1    (25302): < 'gg 16' > is a FUNCTION
+16
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25326  bp: 25326   BP: 25302  BS: 2   lBS: 2   fd: 1    lfd: 1    PP: 25105    np: 1    (25302): < 'echo "$*"' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25326  bp: 25326   BP: 25302  BS: 2   lBS: 2   fd: 2    lfd: 2    PP: 25105    np: 1    (25302): < 'ff "$@"' > is a FUNCTION
+16
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25326  bp: 25326   BP: 25302  BS: 2   lBS: 2   fd: 2    lfd: 2    PP: 25105    np: 1    (25302): < 'echo "${*}"' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25331   ct: 25333   lbp: 25326  bp: 25326   BP: 25331  BS: 3   lBS: 2   fd: 0    lfd: 1    PP: 25105    np: 1    (25302): < pid: 25331 > is a BACKGROUND FORK
+a
+pp: 25302   pt: 25302   cp: 25332   ct: 25333   lbp: 25326  bp: 25331   BP: 25334  BS: 4   lBS: 2   fd: 0    lfd: 1    PP: 25105    np: 1    (25302): < pid: 25334 > is a BACKGROUND FORK
+b
+pp: 25332   pt: 25333   cp: 25332   ct: 25333   lbp: 25331  bp: 25331   BP: 25334  BS: 4   lBS: 4   fd: 0    lfd: 0    PP: 25105    np: 1    (25334): < 'echo b' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25333   ct: 25333   lbp: 25326  bp: 25335   BP: 25333  BS: 3   lBS: 2   fd: 0    lfd: 1    PP: 25105    np: 1    (25302): < pid: 25333 > is a SUBSHELL
+pp: 25331   pt: 25333   cp: 25331   ct: 25333   lbp: 25326  bp: 25336   BP: 25331  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25331): < 'echo a' > is a SIMPLE FORK
+pp: 25302   pt: 25302   cp: 25333   ct: 25333   lbp: 25326  bp: 25332   BP: 25337  BS: 5   lBS: 2   fd: 0    lfd: 1    PP: 25105    np: 1    (25302): < pid: 25337 > is a SUBSHELL
+A2
+A5
+pp: 25333   pt: 25333   cp: 25333   ct: 25333   lbp: 25335  bp: 25338   BP: 25333  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25333): < 'echo A2' > is a SIMPLE FORK
+A1
+pp: 25333   pt: 25333   cp: 25333   ct: 25333   lbp: 25338  bp: 25338   BP: 25333  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25333): < 'echo A1' > is a NORMAL COMMAND
+pp: 25333   pt: 25333   cp: 25333   ct: 25333   lbp: 25332  bp: 25339   BP: 25337  BS: 5   lBS: 5   fd: 0    lfd: 0    PP: 25105    np: 1    (25337): < 'echo A5' > is a SIMPLE FORK
+pp: 25302   pt: 25302   cp: 25333   ct: 25333   lbp: 25326  bp: 25340   BP: 25335  BS: 4   lBS: 2   fd: 0    lfd: 1    PP: 25105    np: 1    (25302): < pid: 25335 > is a SUBSHELL
+A3
+pp: 25302   pt: 25302   cp: 25333   ct: 25333   lbp: 25326  bp: 25332   BP: 25340  BS: 5   lBS: 2   fd: 0    lfd: 1    PP: 25105    np: 1    (25302): < pid: 25340 > is a SUBSHELL
+A4
+pp: 25333   pt: 25333   cp: 25333   ct: 25333   lbp: 25340  bp: 25340   BP: 25335  BS: 4   lBS: 4   fd: 0    lfd: 0    PP: 25105    np: 1    (25335): < 'echo A3' > is a NORMAL COMMAND
+pp: 25333   pt: 25333   cp: 25333   ct: 25333   lbp: 25332  bp: 25332   BP: 25340  BS: 5   lBS: 5   fd: 0    lfd: 0    PP: 25105    np: 1    (25340): < 'echo A4' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < $'cat <<EOF\nfoo\nbar\nbaz\nEOF\n' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'grep --color=auto foo' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'sed '\''s/o/O/g'\''' > is a NORMAL COMMAND
+1
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 4    (25302): < 'wc -l' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25345  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 4    (25302): < pid: 25345 > is a SUBSHELL
+today is 2025-06-14
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo "today is $(date +%Y-%m-%d)"' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25346  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25346 > is a SUBSHELL
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25347  BS: 4   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25347 > is a SUBSHELL
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25347  BS: 4   lBS: 4   fd: 0    lfd: 0    PP: 25105    np: 1    (25347): < 'echo nested' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25347  BS: 4   lBS: 4   fd: 0    lfd: 0    PP: 25105    np: 1    (25347): < 'echo subshell' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25346  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 2    (25346): < 'grep --color=auto sub' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'x=$( ( echo nested; echo subshell ) | grep sub)' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25351   lbp: 25332  bp: 25332   BP: 25349  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25349 > is a SUBSHELL
+pp: 25302   pt: 25302   cp: 25302   ct: 25351   lbp: 25332  bp: 25349   BP: 25350  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25350 > is a SUBSHELL
+1,47c1,20
+< 0
+< afs
+< bin
+< boot
+< BUILD
+< DATA
+< dev
+< efi
+< efi_BACKUP
+< etc
+< fio
+< forkrun_loadables.c
+< home
+< lib
+< lib64
+< livemedia.log
+< llama-cpp-b3561-1.fc41.src.rpm
+< LLMs
+< localrepo
+< media
+< mnt
+< mySplit.speedtest.bash
+< opt
+< overlay
+< overlay_tmpfs
+< proc
+< program.log
+< root
+< rootfs.img
+< RPMS
+< run
+< sbin
+< SPECS
+< SRPMS
+< srv
+< sys
+< sysroot
+< tmp
+< TMP
+< upper
+< usr
+< usr_new
+< usr.~signed~
+< var
+< vars
+< work
+< zfs-rpm
+---
+> plasma-csd-generator.kcFfoP
+> sddm-auth-933f42a0-8b8b-4847-bdad-9a592139be01
+> sddm--cdJEqE
+> snap-private-tmp
+> ssh-XXXXXXdOF8p3
+> ssh-XXXXXXN2JIs4
+> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-abrtd.service-sqrK3r
+> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-chronyd.service-Jfs7iN
+> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-colord.service-DXriYO
+> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-dbus-broker.service-uobaYo
+> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-irqbalance.service-reAwt3
+> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-ModemManager.service-1qiMJE
+> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-polkit.service-lgjTkI
+> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-power-profiles-daemon.service-lWWQhZ
+> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-rtkit-daemon.service-CmK4r0
+> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-switcheroo-control.service-bIZCxB
+> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-systemd-logind.service-Cc4hLL
+> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-systemd-oomd.service-SYgQ6N
+> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-systemd-resolved.service-WkHWSz
+> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-upower.service-9QV9GK
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25350   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'diff <(ls /) <(ls /tmp)' > is a SIMPLE FORK
+pp: 25302   pt: 25302   cp: 25302   ct: 25353   lbp: 25350  bp: 25350   BP: 25352  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25352 > is a SUBSHELL
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25350  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'grep --color=auto pattern <(sed '\''s/^/>>/'\'' > /dev/null)' > is a SIMPLE FORK
+pp: 25302   pt: 25302   cp: 25354   ct: 25302   lbp: 25350  bp: 25352   BP: 25354  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25354 > is a BACKGROUND FORK
+pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'for i in {1..3}' > is a NORMAL COMMAND
+pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'echo “$i”' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
+got “1”
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
+pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'sleep .01' > is a NORMAL COMMAND
+pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'for i in {1..3}' > is a NORMAL COMMAND
+pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'echo “$i”' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
+got “2”
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
+pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'sleep .01' > is a NORMAL COMMAND
+pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'for i in {1..3}' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
+pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'echo “$i”' > is a NORMAL COMMAND
+got “3”
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
+pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'sleep .01' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
+bash: let: “x: syntax error: operand expected (error token is "“x")
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'let “x = 5 + 6”' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'arr=(one two three)' > is a NORMAL COMMAND
+one two three
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo ${arr[@]}' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < '((i=0))' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < '((i<3))' > is a NORMAL COMMAND
+“0”
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo “$i”' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < '((i++))' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < '((i<3))' > is a NORMAL COMMAND
+“1”
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo “$i”' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < '((i++))' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < '((i<3))' > is a NORMAL COMMAND
+“2”
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo “$i”' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < '((i++))' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < '((i<3))' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'cmd="echo inside-eval"' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'eval "$cmd"' > is a NORMAL COMMAND
+inside-eval
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo inside-eval' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'eval "eval \"$cmd\""' > is a NORMAL COMMAND
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'eval "echo inside-eval"' > is a NORMAL COMMAND
+inside-eval
+pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 1    lfd: 1    PP: 25105    np: 1    (25302): < 'skip_debug=true' > is a FUNCTION
