@@ -149,12 +149,12 @@ x=$( (echo nested; echo subshell) | grep sub )
 diff <(ls /) <(ls /tmp)
 grep pattern <(sed 's/^/>>/' > /dev/null)
 
-coproc CO { for i in {1..3}; do echo “$i”; sleep .01; done; }
+coproc CO { for i in {1..3}; do echo "$i"; sleep .01; done; }
 while read -r n <&${CO[0]}; do printf "got %s\n" "$n"; done
 
-let “x = 5 + 6”
+let "x = 5 + 6"
 arr=( one two three ); echo ${arr[@]}
-for ((i=0;i<3;i++)); do echo “$i”; done
+for ((i=0;i<3;i++)); do echo "$i"; done
 
 hh() {
   trap 'echo in-ff-EXIT' EXIT
@@ -336,41 +336,41 @@ sed: read error on stdin: Input/output error
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 794  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'grep pattern <(sed '\''s/^/>>/'\'' > /dev/null)' > is a SIMPLE FORK
 pp: 743   pt: 743   cp: 798   ct: 743   lbp: 794  bp: 796   BP: 798  BS: 2   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < pid: 798 > is a BACKGROUND FORK
 pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'for i in {1..3}' > is a NORMAL COMMAND
-pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'echo “$i”' > is a NORMAL COMMAND
+pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'echo "$i"' > is a NORMAL COMMAND
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
-got “1”
+got "1"
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
 pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'sleep .01' > is a NORMAL COMMAND
 pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'for i in {1..3}' > is a NORMAL COMMAND
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
-pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'echo “$i”' > is a NORMAL COMMAND
-got “2”
+pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'echo "$i"' > is a NORMAL COMMAND
+got "2"
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
 pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'sleep .01' > is a NORMAL COMMAND
 pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'for i in {1..3}' > is a NORMAL COMMAND
-pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'echo “$i”' > is a NORMAL COMMAND
+pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'echo "$i"' > is a NORMAL COMMAND
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
-got “3”
+got "3"
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
 pp: 798   pt: 743   cp: 798   ct: 743   lbp: 796  bp: 796   BP: 798  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 742    np: 1    (798): < 'sleep .01' > is a NORMAL COMMAND
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
-main.bash: line 155: let: “x: syntax error: operand expected (error token is "“x")
-pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'let “x = 5 + 6”' > is a NORMAL COMMAND
+main.bash: line 155: let: "x: syntax error: operand expected (error token is ""x")
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'let "x = 5 + 6"' > is a NORMAL COMMAND
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'arr=(one two three)' > is a NORMAL COMMAND
 one two three
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo ${arr[@]}' > is a NORMAL COMMAND
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < '((i=0))' > is a NORMAL COMMAND
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < '((i<3))' > is a NORMAL COMMAND
-“0”
-pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo “$i”' > is a NORMAL COMMAND
+"0"
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo "$i"' > is a NORMAL COMMAND
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < '((i++))' > is a NORMAL COMMAND
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < '((i<3))' > is a NORMAL COMMAND
-“1”
-pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo “$i”' > is a NORMAL COMMAND
+"1"
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo "$i"' > is a NORMAL COMMAND
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < '((i++))' > is a NORMAL COMMAND
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < '((i<3))' > is a NORMAL COMMAND
-“2”
-pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo “$i”' > is a NORMAL COMMAND
+"2"
+pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'echo "$i"' > is a NORMAL COMMAND
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < '((i++))' > is a NORMAL COMMAND
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < '((i<3))' > is a NORMAL COMMAND
 pp: 743   pt: 743   cp: 743   ct: 743   lbp: 798  bp: 798   BP: 747  BS: 1   lBS: 1   fd: 0    lfd: 0    PP: 742    np: 1    (747): < 'cmd="echo inside-eval"' > is a NORMAL COMMAND
