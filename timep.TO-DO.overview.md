@@ -42,15 +42,17 @@ say you have a sequence of command A, subshell/function B, command C, command D.
 
 subshell: you get debug traps just before A, B1, B2, ..., BN, <exit_trap>, C, D
 
-The debug trap for B1 adds the endtime for A in its .endtime file and writes the log line for subshell B in the parent (without a endtime specified), and nests all required variables 1 level deper. Then B2's debug trap logs B1. ... . The debug trap fire for the exit trap logs BN. And the debug trap fire for C reads in the endtime for A (choosing the lowest if multiple endtimes are present) and logs A. THE LOG FOR A WILL BE WRITTEN OUT OF ORDER...This will be fixed in post processing. Finally the debug trap for D logs C.
+The debug trap for B1 adds the endtime for A in its .endtime file and writes the log line for subshell B in the parent (without a endtime specified), and nests all required variables 1 level deper. Then B2's debug trap logs B1. ... . The debug trap fire for the exit trap logs BN. And the debug trap fire for C reads in the endtime for A (which, from its view, is the previous command) choosing the lowest endtime if multiple endtimes are present and logs A. THE LOG FOR A WILL BE WRITTEN OUT OF ORDER...This will be fixed in post processing. Finally the debug trap for D logs C.
+
+if C is a subshell too, then from its point of view A is still the previous command. So it appends another endtime for A in A's .endtime file (that wont be used since it wont be the minimum endtime). then the rest of the subshell proceeds as before. then D reads in the endtime for A (which, from its view, is the previous command) choosing the lowest endtime out of the multiple endtimes that are present, and logs A
 
 function: you get debug traps A, B, B0, B1, B2, ..., BN, <return_trap>, C, D
 
 note: B and B0 both list the function name as the BASH_COMMAND. B is run in the parent, B0 is run in the child.
 
-The debug trap for B logs A. The debug trap for B0 nests all required variables 1 level deeper, but does not write any log lines. The debug trap for B1 logs B0, then B2's debug trap logs B1. ... . The debug trap fire for the return trap logs BN. And the debug trap fire for C logs B (the "function indicator line" in the parent). Finally the debug trap for D logs C.
+The debug trap for B logs A. The debug trap for B0 nests all required variables 1 level deeper, but does not write any log lines. The debug trap for B1 logs B0, then B2's debug trap logs B1. ... . The debug trap fire for the return trap logs BN and then reduces nesting level in all required variables by 1. And the debug trap fire for C logs B (the "function indicator line" in the parent). Finally the debug trap for D logs C.
 
-In both cases the last thing that fires a debug trap before the subshell/function is logged by the next debug trap (at the parent scope) after the subshell/function, with endtime preserved via the .endtime file (when needed)
+In both cases the last thing that fires a debug trap before the subshell/function is logged by the next debug trap (at the parent scope) after the subshell/function, with endtime preserved via the .endtime file (when needed). this ensures that each command and each indicator line in the parent is logged exactly once with the correct start and end times. the downside is that the last connand before a subshell is logged out of order, but this is easily fixed in post-processing.
 
 #####################################################################################
 
