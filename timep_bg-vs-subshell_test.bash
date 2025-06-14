@@ -12,6 +12,237 @@ child_tpid=$parent_tpid
 last_pid=$BASHPID
 last_bg_pid=$!
 last_subshell=$BASH_SUBSHELL
+last_command=()
+last_funcdepth=${#FUNCNAME[@]}
+last_command[$last_funcdepth]=''
+subshell_pid=''
+next_is_simple_fork_flag=false
+this_is_simple_fork_flag=false
+
+trap 'wait' EXIT RETURN
+
+ff() { echo "${*}"; }
+gg() { ff "$@"; }
+
+trap 'is_bg=false
+is_subshell=false
+is_func=false
+cmd_type='"''"'
+if ${next_is_simple_fork_flag}; then
+  next_is_simple_fork_flag=false
+  this_is_simple_fork_flag=true
+else
+  this_is_simple_fork_flag=false
+fi
+if (( last_subshell == BASH_SUBSHELL )); then
+  if (( last_bg_pid == $! )); then
+    (( ${#FUNCNAME[@]} <= last_funcdepth )) || is_func=true
+  else
+    is_bg=true;
+  fi
+else
+  is_subshell=true
+  subshell_pid=$BASHPID 
+  trap '"'"'wait'"'"' EXIT 
+  read -r _ _ _ _ child_pgid _ _ child_tpid _ </proc/${BASHPID}/stat
+  (( child_pgid == parent_tpid )) || (( child_pgid == child_tpid )) || {  (( child_pgid == parent_pgid )) && (( child_tpid == parent_tpid )); } || is_bg=true
+fi
+if ${is_subshell} && ${is_bg}; then
+  (( child_pgid == BASHPID )) && (( child_tpid == parent_pgid )) && (( child_tpid == parent_tpid )) && next_is_simple_fork_flag=true
+  cmd_type="BACKGROUND FORK"
+elif ${is_subshell}; then
+  cmd_type="SUBSHELL"
+elif ${is_bg}; then
+  cmd_type="SIMPLE FORK"
+elif ${is_func}; then
+  cmd_type="FUNCTION"
+else
+  cmd_type="NORMAL COMMAND"
+fi
+if ${is_subshell}; then
+  printf '"'"'pp: %s   pt: %s   cp: %s   ct: %s   lbp: %s  bp: %s   BP: %s  BS: %s   lBS: %s   PP: %s    (%s): < pid: %s > is a %s\n'"'"' $parent_pgid $parent_tpid $child_pgid $child_tpid $last_bg_pid $! $BASHPID "$BASH_SUBSHELL" "$last_subshell" "${PPID:-\?}" "$last_pid" "$BASHPID" "$cmd_type"
+  parent_pgid=$child_pgid
+  parent_tpid=$child_tpid
+  last_subshell="$BASH_SUBSHELL"
+elif [[ $last_command ]]; then
+  ${this_is_simple_fork_flag} && (( BASHPID < $! )) && cmd_type="SIMPLE FORK *"
+  printf '"'"'pp: %s   pt: %s   cp: %s   ct: %s   lbp: %s  bp: %s   BP: %s  BS: %s   lBS: %s   PP: %s    (%s): < %s > is a %s\n'"'"' $parent_pgid $parent_tpid $child_pgid $child_tpid $last_bg_pid $! $BASHPID "$BASH_SUBSHELL" "$last_subshell" "${PPID:-\?}" "$BASHPID" "${last_command@Q}" "$cmd_type"
+fi >&$fd
+last_command="$BASH_COMMAND"
+last_bg_pid=$!
+last_pid=$BASHPID
+last_funcdepth=${#FUNCNAME[@]}
+' DEBUG
+
+echo 0
+{ echo 1; }
+( echo 2 )
+echo 3 &
+{ echo 4 & }
+{ echo 5; } &
+( echo 6 & )
+( echo 7 ) &
+( echo 8 )
+( echo 9 & ) &
+{ echo 9.1; echo 9.2 & } &
+{ echo 9.1a & echo 9.2a; } &
+( echo 9.1b; echo 9.2b & ) &
+( echo 9.1c & echo 9.2c; ) &
+{ echo 9.999; ( echo 9.3 & echo 9.4 ); echo 9.5; } &
+{ echo 10 & } &
+
+echo 11
+echo 12 &
+( echo 13 ) &
+( echo 14 )
+
+ff 15
+gg 16
+
+( echo a & ) &
+{ ( echo b ) & } &
+
+
+( ( ( echo A5 & ); { echo A4; } & echo A3; ) & echo A2 & echo A1)
+    
+trap - DEBUG
+
+) {fd}>&2
+
+:<<'EOF'
+
+0
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10319  bp: 10319   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'echo 0' > is a NORMAL COMMAND
+1
+pp: 10314   pt: 10314   cp: 10320   ct: 10320   lbp: 10319  bp: 10319   BP: 10320  BS: 2   lBS: 1   PP: 10313    (10318): < pid: 10320 > is a SUBSHELL
+2
+pp: 10320   pt: 10320   cp: 10320   ct: 10320   lbp: 10319  bp: 10319   BP: 10320  BS: 2   lBS: 2   PP: 10313    (10320): < 'echo 2' > is a NORMAL COMMAND
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10319  bp: 10319   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'echo 1' > is a NORMAL COMMAND
+3
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10319  bp: 10321   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'echo 3' > is a SIMPLE FORK
+4
+pp: 10314   pt: 10314   cp: 10323   ct: 10324   lbp: 10321  bp: 10322   BP: 10323  BS: 2   lBS: 1   PP: 10313    (10318): < pid: 10323 > is a BACKGROUND FORK
+5
+pp: 10314   pt: 10314   cp: 10324   ct: 10324   lbp: 10321  bp: 10323   BP: 10324  BS: 2   lBS: 1   PP: 10313    (10318): < pid: 10324 > is a SUBSHELL
+pp: 10323   pt: 10324   cp: 10323   ct: 10324   lbp: 10322  bp: 10322   BP: 10323  BS: 2   lBS: 2   PP: 10313    (10323): < 'echo 5' > is a NORMAL COMMAND
+6
+pp: 10324   pt: 10324   cp: 10324   ct: 10324   lbp: 10323  bp: 10325   BP: 10324  BS: 2   lBS: 2   PP: 10313    (10324): < 'echo 6' > is a SIMPLE FORK
+pp: 10314   pt: 10314   cp: 10326   ct: 10327   lbp: 10321  bp: 10323   BP: 10326  BS: 2   lBS: 1   PP: 10313    (10318): < pid: 10326 > is a BACKGROUND FORK
+7
+pp: 10314   pt: 10314   cp: 10327   ct: 10327   lbp: 10321  bp: 10326   BP: 10327  BS: 2   lBS: 1   PP: 10313    (10318): < pid: 10327 > is a SUBSHELL
+8
+pp: 10326   pt: 10327   cp: 10326   ct: 10327   lbp: 10323  bp: 10323   BP: 10326  BS: 2   lBS: 2   PP: 10313    (10326): < 'echo 7' > is a NORMAL COMMAND
+pp: 10327   pt: 10327   cp: 10327   ct: 10327   lbp: 10326  bp: 10326   BP: 10327  BS: 2   lBS: 2   PP: 10313    (10327): < 'echo 8' > is a NORMAL COMMAND
+pp: 10314   pt: 10314   cp: 10328   ct: 10314   lbp: 10321  bp: 10326   BP: 10328  BS: 2   lBS: 1   PP: 10313    (10318): < pid: 10328 > is a BACKGROUND FORK
+pp: 10314   pt: 10314   cp: 10329   ct: 10314   lbp: 10321  bp: 10328   BP: 10329  BS: 2   lBS: 1   PP: 10313    (10318): < pid: 10329 > is a BACKGROUND FORK
+9.1
+9
+pp: 10314   pt: 10314   cp: 10330   ct: 10314   lbp: 10321  bp: 10329   BP: 10330  BS: 2   lBS: 1   PP: 10313    (10318): < pid: 10330 > is a BACKGROUND FORK
+pp: 10329   pt: 10314   cp: 10329   ct: 10314   lbp: 10328  bp: 10328   BP: 10329  BS: 2   lBS: 2   PP: 10313    (10329): < 'echo 9.1' > is a NORMAL COMMAND
+pp: 10328   pt: 10314   cp: 10328   ct: 10314   lbp: 10326  bp: 10333   BP: 10328  BS: 2   lBS: 2   PP: 10313    (10328): < 'echo 9' > is a SIMPLE FORK *
+pp: 10314   pt: 10314   cp: 10331   ct: 10314   lbp: 10321  bp: 10330   BP: 10331  BS: 2   lBS: 1   PP: 10313    (10318): < pid: 10331 > is a BACKGROUND FORK
+9.1b
+pp: 10314   pt: 10314   cp: 10332   ct: 10314   lbp: 10321  bp: 10331   BP: 10332  BS: 2   lBS: 1   PP: 10313    (10318): < pid: 10332 > is a BACKGROUND FORK
+9.1a
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10321  bp: 10335   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'echo 4' > is a SIMPLE FORK
+pp: 10331   pt: 10314   cp: 10331   ct: 10314   lbp: 10330  bp: 10330   BP: 10331  BS: 2   lBS: 2   PP: 10313    (10331): < 'echo 9.1b' > is a NORMAL COMMAND
+11
+pp: 10330   pt: 10314   cp: 10330   ct: 10314   lbp: 10329  bp: 10336   BP: 10330  BS: 2   lBS: 2   PP: 10313    (10330): < 'echo 9.1a' > is a SIMPLE FORK *
+pp: 10329   pt: 10314   cp: 10329   ct: 10314   lbp: 10328  bp: 10337   BP: 10329  BS: 2   lBS: 2   PP: 10313    (10329): < 'echo 9.2' > is a SIMPLE FORK
+9.1c
+9.2a
+pp: 10314   pt: 10314   cp: 10335   ct: 10314   lbp: 10321  bp: 10334   BP: 10335  BS: 2   lBS: 1   PP: 10313    (10318): < pid: 10335 > is a BACKGROUND FORK
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10335  bp: 10335   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'echo 11' > is a NORMAL COMMAND
+9.2
+9.2b
+pp: 10330   pt: 10314   cp: 10330   ct: 10314   lbp: 10336  bp: 10336   BP: 10330  BS: 2   lBS: 2   PP: 10313    (10330): < 'echo 9.2a' > is a NORMAL COMMAND
+pp: 10332   pt: 10314   cp: 10332   ct: 10314   lbp: 10331  bp: 10338   BP: 10332  BS: 2   lBS: 2   PP: 10313    (10332): < 'echo 9.1c' > is a SIMPLE FORK *
+9.2c
+10
+pp: 10331   pt: 10314   cp: 10331   ct: 10314   lbp: 10330  bp: 10339   BP: 10331  BS: 2   lBS: 2   PP: 10313    (10331): < 'echo 9.2b' > is a SIMPLE FORK
+pp: 10332   pt: 10314   cp: 10332   ct: 10314   lbp: 10338  bp: 10338   BP: 10332  BS: 2   lBS: 2   PP: 10313    (10332): < 'echo 9.2c' > is a NORMAL COMMAND
+pp: 10335   pt: 10314   cp: 10335   ct: 10314   lbp: 10334  bp: 10340   BP: 10335  BS: 2   lBS: 2   PP: 10313    (10335): < 'echo 10' > is a SIMPLE FORK *
+12
+pp: 10314   pt: 10314   cp: 10334   ct: 10343   lbp: 10321  bp: 10332   BP: 10334  BS: 2   lBS: 1   PP: 10313    (10318): < pid: 10334 > is a BACKGROUND FORK
+9.999
+pp: 10314   pt: 10314   cp: 10342   ct: 10343   lbp: 10335  bp: 10341   BP: 10342  BS: 2   lBS: 1   PP: 10313    (10318): < pid: 10342 > is a BACKGROUND FORK
+13
+pp: 10314   pt: 10314   cp: 10343   ct: 10343   lbp: 10335  bp: 10342   BP: 10343  BS: 2   lBS: 1   PP: 10313    (10318): < pid: 10343 > is a SUBSHELL
+14
+pp: 10342   pt: 10343   cp: 10342   ct: 10343   lbp: 10341  bp: 10341   BP: 10342  BS: 2   lBS: 2   PP: 10313    (10342): < 'echo 13' > is a NORMAL COMMAND
+pp: 10343   pt: 10343   cp: 10343   ct: 10343   lbp: 10342  bp: 10342   BP: 10343  BS: 2   lBS: 2   PP: 10313    (10343): < 'echo 14' > is a NORMAL COMMAND
+pp: 10334   pt: 10343   cp: 10334   ct: 10343   lbp: 10332  bp: 10332   BP: 10344  BS: 3   lBS: 2   PP: 10313    (10334): < pid: 10344 > is a SUBSHELL
+9.3
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10335  bp: 10342   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'echo 12' > is a SIMPLE FORK
+pp: 10334   pt: 10343   cp: 10334   ct: 10343   lbp: 10332  bp: 10345   BP: 10344  BS: 3   lBS: 3   PP: 10313    (10344): < 'echo 9.3' > is a SIMPLE FORK
+9.4
+pp: 10334   pt: 10343   cp: 10334   ct: 10343   lbp: 10345  bp: 10345   BP: 10344  BS: 3   lBS: 3   PP: 10313    (10344): < 'echo 9.4' > is a NORMAL COMMAND
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10342  bp: 10342   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'ff 15' > is a FUNCTION
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10342  bp: 10342   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'ff 15' > is a NORMAL COMMAND
+15
+pp: 10334   pt: 10343   cp: 10334   ct: 10343   lbp: 10332  bp: 10332   BP: 10334  BS: 2   lBS: 2   PP: 10313    (10334): < 'echo 9.999' > is a NORMAL COMMAND
+9.5
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10342  bp: 10342   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'echo "${*}"' > is a NORMAL COMMAND
+pp: 10334   pt: 10343   cp: 10334   ct: 10343   lbp: 10332  bp: 10332   BP: 10334  BS: 2   lBS: 2   PP: 10313    (10334): < 'echo 9.5' > is a NORMAL COMMAND
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10342  bp: 10342   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'echo "${*}"' > is a NORMAL COMMAND
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10342  bp: 10342   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'gg 16' > is a FUNCTION
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10342  bp: 10342   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'gg 16' > is a NORMAL COMMAND
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10342  bp: 10342   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'ff "$@"' > is a FUNCTION
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10342  bp: 10342   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'ff "$@"' > is a NORMAL COMMAND
+16
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10342  bp: 10342   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'echo "${*}"' > is a NORMAL COMMAND
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10342  bp: 10342   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'echo "${*}"' > is a NORMAL COMMAND
+pp: 10314   pt: 10314   cp: 10346   ct: 10348   lbp: 10342  bp: 10342   BP: 10346  BS: 2   lBS: 1   PP: 10313    (10318): < pid: 10346 > is a BACKGROUND FORK
+a
+pp: 10314   pt: 10314   cp: 10347   ct: 10348   lbp: 10342  bp: 10346   BP: 10349  BS: 3   lBS: 1   PP: 10313    (10318): < pid: 10349 > is a BACKGROUND FORK
+b
+pp: 10346   pt: 10348   cp: 10346   ct: 10348   lbp: 10342  bp: 10351   BP: 10346  BS: 2   lBS: 2   PP: 10313    (10346): < 'echo a' > is a SIMPLE FORK
+pp: 10314   pt: 10314   cp: 10348   ct: 10348   lbp: 10342  bp: 10350   BP: 10348  BS: 2   lBS: 1   PP: 10313    (10318): < pid: 10348 > is a SUBSHELL
+pp: 10347   pt: 10348   cp: 10347   ct: 10348   lbp: 10346  bp: 10346   BP: 10349  BS: 3   lBS: 3   PP: 10313    (10349): < 'echo b' > is a NORMAL COMMAND
+pp: 10314   pt: 10314   cp: 10348   ct: 10348   lbp: 10342  bp: 10347   BP: 10352  BS: 4   lBS: 1   PP: 10313    (10318): < pid: 10352 > is a SUBSHELL
+A2
+pp: 10348   pt: 10348   cp: 10348   ct: 10348   lbp: 10350  bp: 10353   BP: 10348  BS: 2   lBS: 2   PP: 10313    (10348): < 'echo A2' > is a SIMPLE FORK
+A1
+A5
+pp: 10348   pt: 10348   cp: 10348   ct: 10348   lbp: 10353  bp: 10353   BP: 10348  BS: 2   lBS: 2   PP: 10313    (10348): < 'echo A1' > is a NORMAL COMMAND
+pp: 10348   pt: 10348   cp: 10348   ct: 10348   lbp: 10347  bp: 10354   BP: 10352  BS: 4   lBS: 4   PP: 10313    (10352): < 'echo A5' > is a SIMPLE FORK
+pp: 10314   pt: 10314   cp: 10348   ct: 10314   lbp: 10342  bp: 10355   BP: 10350  BS: 3   lBS: 1   PP: 10313    (10318): < pid: 10350 > is a BACKGROUND FORK
+A3
+pp: 10314   pt: 10314   cp: 10348   ct: 10314   lbp: 10342  bp: 10347   BP: 10355  BS: 4   lBS: 1   PP: 10313    (10318): < pid: 10355 > is a BACKGROUND FORK
+A4
+pp: 10348   pt: 10314   cp: 10348   ct: 10314   lbp: 10355  bp: 10355   BP: 10350  BS: 3   lBS: 3   PP: 10313    (10350): < 'echo A3' > is a NORMAL COMMAND
+pp: 10348   pt: 10314   cp: 10348   ct: 10314   lbp: 10347  bp: 10347   BP: 10355  BS: 4   lBS: 4   PP: 10313    (10355): < 'echo A4' > is a NORMAL COMMAND
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10342  bp: 10347   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < 'echo "${*}"' > is a SIMPLE FORK
+pp: 10314   pt: 10314   cp: 10314   ct: 10314   lbp: 10347  bp: 10347   BP: 10318  BS: 1   lBS: 1   PP: 10313    (10318): < ':' > is a NORMAL COMMAND
+
+
+
+EOF
+
+
+
+
+
+
+
+
+
+##################################################
+
+(
+
+set -T
+set -m
+
+read -r _ _ _ _ parent_pgid _ _ parent_tpid _ </proc/${BASHPID}/stat
+child_pgid=$parent_pgid
+child_tpid=$parent_tpid
+
+: &
+
+last_pid=$BASHPID
+last_bg_pid=$!
+last_subshell=$BASH_SUBSHELL
 last_command=''
 subshell_pid=''
 next_is_simple_fork_flag=false
