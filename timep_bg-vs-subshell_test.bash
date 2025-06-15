@@ -83,6 +83,124 @@ elif ${is_subshell}; then
   cmd_type="SUBSHELL"
 elif ${is_bg}; then
   cmd_type="SIMPLE FORK"
+elif (( ${#FUNCNAME[@]} > last_funcdepth )); then
+  cmd_type="FUNCTION"
+  last_funcdepth=${#FUNCNAME[@]}
+else
+  last_funcdepth=${#FUNCNAME[@]}
+  cmd_type="NORMAL COMMAND"
+fi
+if ${is_subshell}; then
+  printf '"'"'pp: %s   pt: %s   cp: %s   ct: %s   lbp: %s  bp: %s   BP: %s  BS: %s   lBS: %s   fd: %s    lfd: %s    PP: %s    np: %s    (%s): < pid: %s > is a %s\n'"'"' $parent_pgid $parent_tpid $child_pgid $child_tpid $last_bg_pid $! $BASHPID "$BASH_SUBSHELL" "$last_subshell" ${#FUNCNAME[@]} $last_funcdepth "${PPID:-\?}" $npipe "$last_pid" "$BASHPID" "$cmd_type"
+  parent_pgid=$child_pgid
+  parent_tpid=$child_tpid
+  last_subshell="$BASH_SUBSHELL"
+elif [[ $last_command ]]; then
+  ${this_is_simple_fork_flag} && (( BASHPID < $! )) && cmd_type="SIMPLE FORK *"
+  printf '"'"'pp: %s   pt: %s   cp: %s   ct: %s   lbp: %s  bp: %s   BP: %s  BS: %s   lBS: %s   fd: %s    lfd: %s    PP: %s    np: %s    (%s): < %s > is a %s\n'"'"' $parent_pgid $parent_tpid $child_pgid $child_tpid $last_bg_pid $! $BASHPID "$BASH_SUBSHELL" "$last_subshell" ${#FUNCNAME[@]} $last_funcdepth "${PPID:-\?}" $npipe "$BASHPID" "${last_command@Q}" "$cmd_type"
+fi >&$fd
+last_command="$BASH_COMMAND"
+last_bg_pid=$!
+last_pid=$BASHPID
+}' DEBUG
+
+:
+
+{ echo ; } &
+{ ( echo A & ); echo B; } &
+
+:
+    
+trap - DEBUG EXIT RETURN
+
+) {fd}>&2
+
+
+(
+
+set -T
+set -m
+
+read -r _ _ _ _ parent_pgid _ _ parent_tpid _ </proc/${BASHPID}/stat
+child_pgid=$parent_pgid
+child_tpid=$parent_tpid
+
+: &
+
+last_pid=$BASHPID
+last_bg_pid=$!
+last_subshell=$BASH_SUBSHELL
+last_command=()
+last_funcdepth=${#FUNCNAME[@]}
+last_command[$last_funcdepth]=''
+subshell_pid=''
+next_is_simple_fork_flag=false
+this_is_simple_fork_flag=false
+
+trap() {
+    skip_debug=true
+    local trapStr trapType
+
+    if [[ "${1}" == -[lp] ]]; then
+        builtin trap "${@}"
+        return
+    else
+        [[ "${1}" == '--' ]] && shift 1
+        trapStr="${1%\;}"$'\n'
+        shift 1
+        if [[ "${trapStr}" == '-'$'\n' ]] || [[ "$trapStr" == $'\n' ]]; then
+            trapStr=''
+        fi
+    fi
+
+    for trapType in "${@}"; do
+        case "${trapType}" in
+            EXIT)    builtin trap ':' EXIT ;;
+            RETURN)  builtin trap ':' RETURN ;;
+            *)       eval "builtin trap ${trapStr@Q} ${trapType}" ;;
+        esac
+    done
+        skip_debug=false
+}
+
+export -f trap
+
+
+skip_debug=false
+
+builtin trap 'wait -f' EXIT RETURN
+
+ff() { echo "${*}"; }
+gg() { echo "$*"; ff "$@"; }
+
+builtin trap 'npipe0=${#PIPESTATUS[@]}
+${skip_debug} || [[ "${BASH_COMMAND}" == trap* ]] || {
+npipe=$npipe0
+is_bg=false
+is_subshell=false
+cmd_type='"''"'
+if ${next_is_simple_fork_flag}; then
+  next_is_simple_fork_flag=false
+  this_is_simple_fork_flag=true
+else
+  this_is_simple_fork_flag=false
+fi
+if (( last_subshell == BASH_SUBSHELL )); then
+  (( last_bg_pid == $! )) || is_bg=true
+else
+  is_subshell=true
+  subshell_pid=$BASHPID 
+  builtin trap '"'"'wait -f'"'"' EXIT 
+  read -r _ _ _ _ child_pgid _ _ child_tpid _ </proc/${BASHPID}/stat
+  (( child_pgid == parent_tpid )) || (( child_pgid == child_tpid )) || {  (( child_pgid == parent_pgid )) && (( child_tpid == parent_tpid )); } || is_bg=true
+fi
+if ${is_subshell} && ${is_bg}; then
+  (( child_pgid == BASHPID )) && (( child_tpid == parent_pgid )) && (( child_tpid == parent_tpid )) && next_is_simple_fork_flag=true
+  cmd_type="BACKGROUND FORK"
+elif ${is_subshell}; then
+  cmd_type="SUBSHELL"
+elif ${is_bg}; then
+  cmd_type="SIMPLE FORK"
 elif ${is_func}; then
   cmd_type="FUNCTION"
   is_func=false
