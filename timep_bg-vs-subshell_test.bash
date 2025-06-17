@@ -3,6 +3,450 @@
 set -T
 set -m
 
+: &
+
+read -r _ _ _ _ parent_pgid _ _ parent_tpid _ </proc/${BASHPID}/stat
+child_pgid=$parent_pgid
+child_tpid=$parent_tpid
+
+last_pid=$BASHPID
+last_bg_pid=$!
+last_subshell=$BASH_SUBSHELL
+subshell_pid=''
+
+next_is_simple_fork_flag=false
+this_is_simple_fork_flag=false
+skip_debug=false
+no_print_flag=false
+is_func1=false
+
+last_command=()
+npipe=()
+starttime=()
+
+fnest=(${#FUNCNAME[@]})
+fnest_cur=${#FUNCNAME[@]}
+
+last_command[${fnest_cur}]=''
+npipe[${fnest_cur}]='0'
+starttime[${fnest_cur}]="${EPOCHREALTIME}"
+
+trap() {
+    local trapStr trapType
+
+    if [[ "${1}" == -[lp] ]]; then
+        builtin trap "${@}"
+        return
+    else
+        [[ "${1}" == '--' ]] && shift 1
+        trapStr="${1%\;}"$'\n'
+        shift 1
+        if [[ "${trapStr}" == '-'$'\n' ]] || [[ "$trapStr" == $'\n' ]]; then
+            trapStr=''
+        fi
+    fi
+
+    for trapType in "${@}"; do
+        case "${trapType}" in
+            EXIT)    builtin trap ':' EXIT ;;
+            RETURN)  builtin trap  'skip_debug=true
+unset "fnest[-1]" "last_command[${fnest_cur}]" "npipe[${fnest_cur}]"
+fnest_cur="${fnest[-1]}"
+skip_debug=false' RETURN ;;
+            *)       eval "builtin trap ${trapStr@Q} ${trapType}" ;;
+        esac
+    done
+}
+
+export -f trap
+
+builtin trap ':' EXIT 
+builtin trap 'skip_debug=true
+unset "fnest[-1]" "last_command[${fnest_cur}]" "npipe[${fnest_cur}]"
+fnest_cur="${fnest[-1]}"
+skip_debug=false' RETURN
+
+builtin trap 'npipe0=${#PIPESTATUS[@]}
+endtime0="${EPOCHREALTIME}"
+[[ "${BASH_COMMAND}" == trap* ]] && {
+  skip_debug=true
+  (( fnest_cur == ${#FUNCNAME[@]} )) && {
+    fnest_cur=${#FUNCNAME[@]}
+    fnest+=("${#FUNCNAME[@]}")
+    last_command+=('')
+  }
+}
+${skip_debug} || {
+npipe[${fnest_cur}]=${npipe0}
+endtime=${endtime0}
+is_bg=false
+is_subshell=false
+is_func=false
+cmd_type='"''"'
+if ${next_is_simple_fork_flag}; then
+  next_is_simple_fork_flag=false
+  this_is_simple_fork_flag=true
+else
+  this_is_simple_fork_flag=false
+fi
+if (( last_subshell == BASH_SUBSHELL )); then
+  if (( last_bg_pid == $! )); then
+    (( fnest_cur >= ${#FUNCNAME[@]} )) || {
+      no_print_flag=true
+      is_func=true
+      fnest+=("${#FUNCNAME[@]}")
+    }
+  else
+    is_bg=true
+  fi
+else
+  is_subshell=true
+  subshell_pid=$BASHPID 
+  builtin trap '"'"':'"'"' EXIT 
+  read -r _ _ _ _ child_pgid _ _ child_tpid _ </proc/${BASHPID}/stat
+  (( child_pgid == parent_tpid )) || (( child_pgid == child_tpid )) || {  (( child_pgid == parent_pgid )) && (( child_tpid == parent_tpid )); } || is_bg=true
+fi
+if ${is_subshell} && ${is_bg}; then
+  (( child_pgid == BASHPID )) && (( child_tpid == parent_pgid )) && (( child_tpid == parent_tpid )) && next_is_simple_fork_flag=true
+  cmd_type="BACKGROUND FORK"
+elif ${is_subshell}; then
+  cmd_type="SUBSHELL"
+elif [[ "${last_command[${fnest_cur}]}" == " (F) "* ]]; then
+  cmd_type="FUNCTION (P)"
+  last_command[${fnest_cur}]="${last_command[${fnest_cur}]# (F) }"
+elif ${is_bg}; then
+  cmd_type="SIMPLE FORK"
+elif ${is_func1}; then
+  cmd_type="FUNCTION (C)"
+  is_func1=false
+else
+  cmd_type="NORMAL COMMAND"
+fi
+if ${is_subshell}; then
+  ${no_print_flag} || printf '"'"'np: %s  %s  %s  (%s.%s)  (%s.%s):  < pid: %s ( <-- %s )> is a %s\n'"'"' "${npipe[${fnest_cur}]}" "${starttime[${fnest_cur}]}" "${endtime}" "${fnest_cur}" "${FUNCNAME[0]:-main}" "${BASHPID}" "${BASH_SUBSHELL}" "$BASHPID" "$last_pid" "$cmd_type"
+  parent_pgid=$child_pgid
+  parent_tpid=$child_tpid
+  last_subshell="$BASH_SUBSHELL"
+elif [[ ${last_command[${fnest_cur}]} ]]; then
+  ${this_is_simple_fork_flag} && (( BASHPID < $! )) && cmd_type="SIMPLE FORK *"
+  ${no_print_flag} || printf '"'"'np: %s  %s  %s  (%s.%s)  (%s.%s):  < %s > is a %s\n'"'"' "${npipe[${fnest_cur}]}" "${starttime[${fnest_cur}]}" "${endtime}" "${fnest_cur}" "${FUNCNAME[0]:-main}" "${BASHPID}" "${BASH_SUBSHELL}" "${last_command[${fnest_cur}]@Q}" "$cmd_type"
+fi >&$fd
+if ${is_func}; then
+  last_command[${fnest_cur}]=" (F) $BASH_COMMAND"
+  npipe[${#FUNCNAME[@]}]="${npipe[${fnest_cur}]}"
+  fnest_cur="${#FUNCNAME[@]}"
+  last_command[${fnest_cur}]="$BASH_COMMAND"
+  no_print_flag=false
+  is_func1=true
+else
+  last_command[${fnest_cur}]="$BASH_COMMAND"
+fi
+last_bg_pid=$!
+last_pid=$BASHPID
+starttime[${fnest_cur}]="${EPOCHREALTIME}"
+}' DEBUG
+
+{ echo ; } &
+{ ( echo A & ); echo B; } &
+
+echo 0
+{ echo 1; }
+( echo 2 )
+echo 3 &
+{ echo 4 & }
+{ echo 5; } &
+( echo 6 & )
+( echo 7 ) &
+( echo 8 )
+( echo 9 & ) &
+{ echo 9.1; echo 9.2 & } &
+{ echo 9.1a & echo 9.2a; } &
+( echo 9.1b; echo 9.2b & ) &
+( echo 9.1c & echo 9.2c; ) &
+{ echo 9.999; ( echo 9.3 & echo 9.4 ); echo 9.5; } &
+{ echo 10 & } &
+
+echo 11
+echo 12 &
+( echo 13 ) &
+( echo 14 )
+
+ff() { echo "${*}"; }
+gg() { echo "$*"; ff "$@"; }
+
+ff 15
+gg 16
+
+( echo a & ) &
+{ ( echo b ) & } &
+
+( ( ( echo A5 & ); { echo A4; } & echo A3; ) & echo A2 & echo A1 )
+
+
+cat <<EOF | grep foo | sed 's/o/O/g' | wc -l
+foo
+bar
+baz
+EOF
+
+echo "today is $(date +%Y-%m-%d)"
+x=$( (echo nested; echo subshell) | grep sub )
+
+diff <(ls /) <(ls /tmp)
+grep pattern <(sed 's/^/>>/' > /dev/null)
+
+coproc CO { for i in {1..3}; do echo "$i"; sleep .01; done; }
+while read -r n <&${CO[0]}; do printf "got %s\n" "$n"; done
+
+let "x = 5 + 6"
+arr=( one two three ); echo ${arr[@]}
+for ((i=0;i<3;i++)); do echo "$i"; done
+
+hh() {
+  trap 'echo in-ff-EXIT' EXIT
+  echo before
+  (
+    trap 'echo in-sub-EXIT' EXIT
+    echo in subshell
+  )
+  echo after
+}
+
+
+cmd="echo inside-eval"
+eval "$cmd"
+eval "eval \"$cmd\""
+
+trap 'echo got USR1; sleep .01' USR1
+kill -USR1 $$
+echo after-signal
+
+for i in {1..3}; do
+  while read x; do
+    if (( x % 2 == 0 )); then
+      echo even "$x"
+    else
+      ( echo odd "$x" )
+    fi
+  done < <(seq 1 5)
+done
+    
+builtin trap - DEBUG EXIT RETURN
+
+) {fd}>&2
+
+
+:<<'EOF'
+0
+np: 1  1750180273.893317  1750180273.893765  (0.main)  (1460.2):  < pid: 1460 ( <-- 1458 )> is a BACKGROUND FORK
+
+np: 1  1750180273.894127  1750180273.894161  (0.main)  (1458.1):  < 'echo 0' > is a NORMAL COMMAND
+1
+np: 1  1750180273.894258  1750180273.894305  (0.main)  (1460.2):  < 'echo' > is a NORMAL COMMAND
+np: 1  1750180273.893317  1750180273.894172  (0.main)  (1462.3):  < pid: 1462 ( <-- 1458 )> is a BACKGROUND FORK
+A
+np: 1  1750180273.894458  1750180273.894805  (0.main)  (1463.2):  < pid: 1463 ( <-- 1458 )> is a BACKGROUND FORK
+2
+np: 1  1750180273.895140  1750180273.895171  (0.main)  (1463.2):  < 'echo 2' > is a NORMAL COMMAND
+np: 1  1750180273.894718  1750180273.895024  (0.main)  (1462.3):  < 'echo A' > is a SIMPLE FORK
+np: 1  1750180273.894458  1750180273.895599  (0.main)  (1458.1):  < 'echo 1' > is a NORMAL COMMAND
+np: 1  1750180273.893317  1750180273.895702  (0.main)  (1461.2):  < pid: 1461 ( <-- 1458 )> is a BACKGROUND FORK
+B
+3
+np: 1  1750180273.896148  1750180273.896189  (0.main)  (1461.2):  < 'echo B' > is a NORMAL COMMAND
+np: 1  1750180273.895941  1750180273.896241  (0.main)  (1458.1):  < 'echo 3' > is a SIMPLE FORK
+4
+np: 1  1750180273.896584  1750180273.897080  (0.main)  (1467.2):  < pid: 1467 ( <-- 1458 )> is a BACKGROUND FORK
+5
+np: 1  1750180273.896584  1750180273.897182  (0.main)  (1468.2):  < pid: 1468 ( <-- 1458 )> is a SUBSHELL
+np: 1  1750180273.897444  1750180273.897479  (0.main)  (1467.2):  < 'echo 5' > is a NORMAL COMMAND
+6
+np: 1  1750180273.897485  1750180273.897694  (0.main)  (1468.2):  < 'echo 6' > is a SIMPLE FORK
+np: 1  1750180273.896584  1750180273.898418  (0.main)  (1470.2):  < pid: 1470 ( <-- 1458 )> is a BACKGROUND FORK
+7
+np: 1  1750180273.896584  1750180273.898515  (0.main)  (1471.2):  < pid: 1471 ( <-- 1458 )> is a SUBSHELL
+8
+np: 1  1750180273.898700  1750180273.898739  (0.main)  (1470.2):  < 'echo 7' > is a NORMAL COMMAND
+np: 1  1750180273.898815  1750180273.898847  (0.main)  (1471.2):  < 'echo 8' > is a NORMAL COMMAND
+np: 1  1750180273.896584  1750180273.899553  (0.main)  (1472.2):  < pid: 1472 ( <-- 1458 )> is a BACKGROUND FORK
+np: 1  1750180273.896584  1750180273.899646  (0.main)  (1473.2):  < pid: 1473 ( <-- 1458 )> is a BACKGROUND FORK
+9.1
+np: 1  1750180273.896584  1750180273.899825  (0.main)  (1474.2):  < pid: 1474 ( <-- 1458 )> is a BACKGROUND FORK
+np: 1  1750180273.900057  1750180273.900096  (0.main)  (1473.2):  < 'echo 9.1' > is a NORMAL COMMAND
+np: 1  1750180273.896584  1750180273.899997  (0.main)  (1475.2):  < pid: 1475 ( <-- 1458 )> is a BACKGROUND FORK
+9.1b
+np: 1  1750180273.896584  1750180273.900101  (0.main)  (1476.2):  < pid: 1476 ( <-- 1458 )> is a BACKGROUND FORK
+np: 1  1750180273.899979  1750180273.900239  (0.main)  (1472.2):  < 'echo 9' > is a SIMPLE FORK *
+np: 1  1750180273.896584  1750180273.900317  (0.main)  (1458.1):  < 'echo 4' > is a SIMPLE FORK
+11
+np: 1  1750180273.896584  1750180273.900286  (0.main)  (1477.2):  < pid: 1477 ( <-- 1458 )> is a BACKGROUND FORK
+9.999
+np: 1  1750180273.900476  1750180273.900518  (0.main)  (1475.2):  < 'echo 9.1b' > is a NORMAL COMMAND
+9
+np: 1  1750180273.900295  1750180273.900598  (0.main)  (1474.2):  < 'echo 9.1a' > is a SIMPLE FORK *
+9.2a
+np: 1  1750180273.900661  1750180273.900703  (0.main)  (1458.1):  < 'echo 11' > is a NORMAL COMMAND
+9.1a
+9.2
+9.1c
+np: 1  1750180273.900934  1750180273.900985  (0.main)  (1474.2):  < 'echo 9.2a' > is a NORMAL COMMAND
+np: 1  1750180273.900421  1750180273.900717  (0.main)  (1473.2):  < 'echo 9.2' > is a SIMPLE FORK
+np: 1  1750180273.900544  1750180273.900776  (0.main)  (1476.2):  < 'echo 9.1c' > is a SIMPLE FORK *
+np: 1  1750180273.900738  1750180273.901282  (0.main)  (1483.3):  < pid: 1483 ( <-- 1477 )> is a BACKGROUND FORK
+9.2c
+np: 1  1750180273.900840  1750180273.901462  (0.main)  (1475.2):  < 'echo 9.2b' > is a SIMPLE FORK
+12
+np: 1  1750180273.896584  1750180273.901689  (0.main)  (1479.2):  < pid: 1479 ( <-- 1458 )> is a BACKGROUND FORK
+np: 1  1750180273.901436  1750180273.901775  (0.main)  (1476.2):  < 'echo 9.2c' > is a NORMAL COMMAND
+np: 1  1750180273.901020  1750180273.901702  (0.main)  (1486.2):  < pid: 1486 ( <-- 1458 )> is a BACKGROUND FORK
+13
+np: 1  1750180273.901693  1750180273.901931  (0.main)  (1483.3):  < 'echo 9.3' > is a SIMPLE FORK
+np: 1  1750180273.901020  1750180273.901819  (0.main)  (1487.2):  < pid: 1487 ( <-- 1458 )> is a BACKGROUND FORK
+9.4
+14
+9.3
+np: 1  1750180273.902143  1750180273.902254  (0.main)  (1486.2):  < 'echo 13' > is a NORMAL COMMAND
+np: 1  1750180273.902288  1750180273.902334  (0.main)  (1487.2):  < 'echo 14' > is a NORMAL COMMAND
+10
+np: 1  1750180273.902278  1750180273.902318  (0.main)  (1483.3):  < 'echo 9.4' > is a NORMAL COMMAND
+np: 1  1750180273.902081  1750180273.902396  (0.main)  (1479.2):  < 'echo 10' > is a SIMPLE FORK
+9.2b
+np: 1  1750180273.901020  1750180273.902805  (0.main)  (1458.1):  < 'echo 12' > is a SIMPLE FORK
+np: 1  1750180273.900738  1750180273.902912  (0.main)  (1477.2):  < 'echo 9.999' > is a NORMAL COMMAND
+9.5
+np: 1  1750180273.903278  1750180273.903321  (0.main)  (1477.2):  < 'echo 9.5' > is a NORMAL COMMAND
+np: 1  1750180273.903600  1750180273.903634  (2.ff)  (1458.1):  < 'ff 15' > is a FUNCTION (C)
+15
+np: 1  1750180273.903943  1750180273.903976  (2.ff)  (1458.1):  < 'echo "${*}"' > is a NORMAL COMMAND
+np: 1  1750180273.903208  1750180273.904870  (0.main)  (1458.1):  < 'ff 15' > is a FUNCTION (P)
+np: 1  1750180273.905298  1750180273.905319  (2.gg)  (1458.1):  < 'gg 16' > is a FUNCTION (C)
+16
+np: 1  1750180273.905597  1750180273.905634  (2.gg)  (1458.1):  < 'echo "$*"' > is a NORMAL COMMAND
+np: 1  1750180273.906263  1750180273.906295  (3.ff)  (1458.1):  < 'ff "$@"' > is a FUNCTION (C)
+16
+np: 1  1750180273.906497  1750180273.906539  (3.ff)  (1458.1):  < 'echo "${*}"' > is a NORMAL COMMAND
+np: 1  1750180273.905927  1750180273.907563  (2.gg)  (1458.1):  < 'ff "$@"' > is a FUNCTION (P)
+np: 1  1750180273.905074  1750180273.908810  (0.main)  (1490.2):  < pid: 1490 ( <-- 1458 )> is a BACKGROUND FORK
+a
+np: 1  1750180273.905074  1750180273.909210  (0.main)  (1492.2):  < pid: 1492 ( <-- 1458 )> is a SUBSHELL
+np: 1  1750180273.905074  1750180273.909237  (0.main)  (1493.3):  < pid: 1493 ( <-- 1458 )> is a BACKGROUND FORK
+b
+np: 1  1750180273.909197  1750180273.909477  (0.main)  (1490.2):  < 'echo a' > is a SIMPLE FORK
+A2
+np: 1  1750180273.905074  1750180273.909501  (0.main)  (1495.4):  < pid: 1495 ( <-- 1458 )> is a SUBSHELL
+np: 1  1750180273.909719  1750180273.909772  (0.main)  (1493.3):  < 'echo b' > is a NORMAL COMMAND
+np: 1  1750180273.909616  1750180273.909883  (0.main)  (1492.2):  < 'echo A2' > is a SIMPLE FORK
+A5
+A1
+np: 1  1750180273.910247  1750180273.910296  (0.main)  (1492.2):  < 'echo A1' > is a NORMAL COMMAND
+np: 1  1750180273.909979  1750180273.910269  (0.main)  (1495.4):  < 'echo A5' > is a SIMPLE FORK
+np: 1  1750180273.905074  1750180273.910726  (0.main)  (1458.1):  < 'gg 16' > is a FUNCTION (P)
+np: 1  1750180273.905074  1750180273.911161  (0.main)  (1494.3):  < pid: 1494 ( <-- 1458 )> is a BACKGROUND FORK
+A3
+np: 1  1750180273.911046  1750180273.911310  (0.main)  (1458.1):  < $'cat <<EOF\nfoo\nbar\nbaz\nEOF\n' > is a NORMAL COMMAND
+np: 1  1750180273.905074  1750180273.911159  (0.main)  (1499.4):  < pid: 1499 ( <-- 1458 )> is a BACKGROUND FORK
+A4
+np: 1  1750180273.911549  1750180273.911584  (0.main)  (1494.3):  < 'echo A3' > is a NORMAL COMMAND
+np: 1  1750180273.911636  1750180273.911686  (0.main)  (1499.4):  < 'echo A4' > is a NORMAL COMMAND
+np: 1  1750180273.911585  1750180273.911812  (0.main)  (1458.1):  < 'grep foo' > is a NORMAL COMMAND
+np: 1  1750180273.912124  1750180273.912393  (0.main)  (1458.1):  < 'sed '\''s/o/O/g'\''' > is a NORMAL COMMAND
+1
+np: 4  1750180273.912624  1750180273.913943  (0.main)  (1458.1):  < 'wc -l' > is a NORMAL COMMAND
+np: 4  1750180273.914328  1750180273.914724  (0.main)  (1504.2):  < pid: 1504 ( <-- 1458 )> is a SUBSHELL
+today is 2025-06-17
+np: 1  1750180273.914328  1750180273.915954  (0.main)  (1458.1):  < 'echo "today is $(date +%Y-%m-%d)"' > is a NORMAL COMMAND
+np: 1  1750180273.916405  1750180273.916982  (0.main)  (1505.2):  < pid: 1505 ( <-- 1458 )> is a SUBSHELL
+np: 1  1750180273.916405  1750180273.917044  (0.main)  (1506.3):  < pid: 1506 ( <-- 1458 )> is a SUBSHELL
+np: 1  1750180273.917546  1750180273.917636  (0.main)  (1506.3):  < 'echo nested' > is a NORMAL COMMAND
+np: 1  1750180273.917904  1750180273.917973  (0.main)  (1506.3):  < 'echo subshell' > is a NORMAL COMMAND
+np: 2  1750180273.917453  1750180273.918990  (0.main)  (1505.2):  < 'grep sub' > is a NORMAL COMMAND
+np: 1  1750180273.916405  1750180273.919724  (0.main)  (1458.1):  < 'x=$( ( echo nested; echo subshell ) | grep sub)' > is a NORMAL COMMAND
+np: 1  1750180273.920093  1750180273.920450  (0.main)  (1508.2):  < pid: 1508 ( <-- 1458 )> is a SUBSHELL
+np: 1  1750180273.920093  1750180273.920690  (0.main)  (1509.2):  < pid: 1509 ( <-- 1458 )> is a SUBSHELL
+1,22c1,2
+< bin
+< boot
+< dev
+< etc
+< home
+< lib
+< lib32
+< lib64
+< lib.usr-is-merged
+< media
+< mnt
+< opt
+< proc
+< root
+< run
+< sbin
+< script
+< srv
+< sys
+< tmp
+< usr
+< var
+---
+> hsperfdata_root
+> hsperfdata_runner29
+np: 1  1750180273.920093  1750180273.923606  (0.main)  (1458.1):  < 'diff <(ls /) <(ls /tmp)' > is a SIMPLE FORK
+np: 1  1750180273.923971  1750180273.924426  (0.main)  (1511.2):  < pid: 1511 ( <-- 1458 )> is a SUBSHELL
+np: 1  1750180273.923971  1750180273.925944  (0.main)  (1458.1):  < 'grep pattern <(sed '\''s/^/>>/'\'' > /dev/null)' > is a SIMPLE FORK
+np: 1  1750180273.923971  1750180273.926023  (0.main)  (1513.2):  < pid: 1513 ( <-- 1458 )> is a BACKGROUND FORK
+np: 1  1750180273.926707  1750180273.926751  (0.main)  (1513.2):  < 'for i in {1..3}' > is a NORMAL COMMAND
+np: 1  1750180273.927025  1750180273.927185  (0.main)  (1513.2):  < 'echo "$i"' > is a NORMAL COMMAND
+np: 1  1750180273.926396  1750180273.927099  (0.main)  (1458.1):  < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
+got 1
+np: 1  1750180273.927629  1750180273.927678  (0.main)  (1458.1):  < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
+np: 1  1750180273.927603  1750180273.938856  (0.main)  (1513.2):  < 'sleep .01' > is a NORMAL COMMAND
+np: 1  1750180273.939137  1750180273.939163  (0.main)  (1513.2):  < 'for i in {1..3}' > is a NORMAL COMMAND
+np: 1  1750180273.939420  1750180273.939464  (0.main)  (1513.2):  < 'echo "$i"' > is a NORMAL COMMAND
+np: 1  1750180273.928023  1750180273.939499  (0.main)  (1458.1):  < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
+got 2
+np: 1  1750180273.939861  1750180273.939921  (0.main)  (1458.1):  < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
+np: 1  1750180273.939722  1750180273.950681  (0.main)  (1513.2):  < 'sleep .01' > is a NORMAL COMMAND
+np: 1  1750180273.950974  1750180273.951015  (0.main)  (1513.2):  < 'for i in {1..3}' > is a NORMAL COMMAND
+np: 1  1750180273.951270  1750180273.951313  (0.main)  (1513.2):  < 'echo "$i"' > is a NORMAL COMMAND
+np: 1  1750180273.940284  1750180273.951347  (0.main)  (1458.1):  < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
+got 3
+np: 1  1750180273.951690  1750180273.951738  (0.main)  (1458.1):  < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
+np: 1  1750180273.951653  1750180273.962673  (0.main)  (1513.2):  < 'sleep .01' > is a NORMAL COMMAND
+np: 1  1750180273.952098  1750180273.963202  (0.main)  (1458.1):  < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
+np: 1  1750180273.963482  1750180273.963511  (0.main)  (1458.1):  < 'let "x = 5 + 6"' > is a NORMAL COMMAND
+np: 1  1750180273.963727  1750180273.963771  (0.main)  (1458.1):  < 'arr=(one two three)' > is a NORMAL COMMAND
+one two three
+np: 1  1750180273.964036  1750180273.964078  (0.main)  (1458.1):  < 'echo ${arr[@]}' > is a NORMAL COMMAND
+np: 1  1750180273.964383  1750180273.964422  (0.main)  (1458.1):  < '((i=0))' > is a NORMAL COMMAND
+np: 1  1750180273.964680  1750180273.964704  (0.main)  (1458.1):  < '((i<3))' > is a NORMAL COMMAND
+0
+np: 1  1750180273.964963  1750180273.965012  (0.main)  (1458.1):  < 'echo "$i"' > is a NORMAL COMMAND
+np: 1  1750180273.965330  1750180273.965368  (0.main)  (1458.1):  < '((i++))' > is a NORMAL COMMAND
+np: 1  1750180273.965631  1750180273.965656  (0.main)  (1458.1):  < '((i<3))' > is a NORMAL COMMAND
+1
+np: 1  1750180273.965856  1750180273.965885  (0.main)  (1458.1):  < 'echo "$i"' > is a NORMAL COMMAND
+np: 1  1750180273.966175  1750180273.966200  (0.main)  (1458.1):  < '((i++))' > is a NORMAL COMMAND
+np: 1  1750180273.966491  1750180273.966528  (0.main)  (1458.1):  < '((i<3))' > is a NORMAL COMMAND
+2
+np: 1  1750180273.966777  1750180273.966806  (0.main)  (1458.1):  < 'echo "$i"' > is a NORMAL COMMAND
+np: 1  1750180273.967008  1750180273.967040  (0.main)  (1458.1):  < '((i++))' > is a NORMAL COMMAND
+np: 1  1750180273.967362  1750180273.967399  (0.main)  (1458.1):  < '((i<3))' > is a NORMAL COMMAND
+np: 1  1750180273.967703  1750180273.967728  (0.main)  (1458.1):  < 'cmd="echo inside-eval"' > is a NORMAL COMMAND
+np: 1  1750180273.968006  1750180273.968047  (0.main)  (1458.1):  < 'eval "$cmd"' > is a NORMAL COMMAND
+inside-eval
+np: 1  1750180273.968381  1750180273.968413  (0.main)  (1458.1):  < 'echo inside-eval' > is a NORMAL COMMAND
+np: 1  1750180273.968710  1750180273.968757  (0.main)  (1458.1):  < 'eval "eval \"$cmd\""' > is a NORMAL COMMAND
+np: 1  1750180273.968997  1750180273.969029  (0.main)  (1458.1):  < 'eval "echo inside-eval"' > is a NORMAL COMMAND
+inside-eval
+
+EOF
+
+##################################################################################
+
+(
+
+set -T
+set -m
+
 read -r _ _ _ _ parent_pgid _ _ parent_tpid _ </proc/${BASHPID}/stat
 child_pgid=$parent_pgid
 child_tpid=$parent_tpid
