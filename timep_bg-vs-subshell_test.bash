@@ -131,15 +131,15 @@ else
   cmd_type="NORMAL COMMAND"
 fi
 if ${is_subshell}; then
-  ${no_print_flag} || printf '"'"'[log%s.%s_%s.%s] np: %s  %s  %s  (%s.%s)  (%s.%s):  < pid: %s ( <-- %s ) > is a %s\n'"'"' "${nexec0}" "${nexecA[-1]}" "${npidwrap}" "${BASHPID}" "${npipe[${fnest_cur}]}" "${starttime[${fnest_cur}]}" "${endtime}" "${fnest_cur}" "${FUNCNAME[0]:-main}" "${BASHPID}" "${BASH_SUBSHELL}" "$BASHPID" "$last_pid" "$cmd_type" >&${fd}
-  nexec0+=".${nexecA[-1]}-${npidwrap}-${BASHPID}"
+  ${no_print_flag} || printf '"'"'[log%s.%s] np: %s  %s  %s  (%s.%s)  (%s.%s):  < pid: %s ( <-- %s ) > is a %s\n'"'"' "${nexec0}" "${nexecA[-1]}" "${npipe[${fnest_cur}]}" "${starttime[${fnest_cur}]}" "${endtime}" "${fnest_cur}" "${FUNCNAME[0]:-main}" "${BASHPID}" "${BASH_SUBSHELL}" "$BASHPID" "$last_pid" "$cmd_type" >&${fd}
+  nexec0+=".${nexecA[-1]}_${npidwrap}-${BASHPID}"
   nexecA+=(0)
   parent_pgid="$child_pgid"
   parent_tpid="$child_tpid"
   last_subshell="$BASH_SUBSHELL"
 elif [[ ${last_command[${fnest_cur}]} ]]; then
   ${this_is_simple_fork_flag} && (( BASHPID < $! )) && cmd_type="SIMPLE FORK *"
-  ${no_print_flag} || printf '"'"'[log%s.%s_%s.%s] np: %s  %s  %s  (%s.%s)  (%s.%s):  < %s > is a %s\n'"'"' "${nexec0}" "${nexecA[-1]}" "${npidwrap}" "${BASHPID}" "${npipe[${fnest_cur}]}" "${starttime[${fnest_cur}]}" "${endtime}" "${fnest_cur}" "${FUNCNAME[0]:-main}" "${BASHPID}" "${BASH_SUBSHELL}" "${last_command[${fnest_cur}]@Q}" "$cmd_type"  >&${fd}
+  ${no_print_flag} || printf '"'"'[log%s.%s] np: %s  %s  %s  (%s.%s)  (%s.%s):  < %s > is a %s\n'"'"' "${nexec0}" "${nexecA[-1]}" "${npipe[${fnest_cur}]}" "${starttime[${fnest_cur}]}" "${endtime}" "${fnest_cur}" "${FUNCNAME[0]:-main}" "${BASHPID}" "${BASH_SUBSHELL}" "${last_command[${fnest_cur}]@Q}" "$cmd_type"  >&${fd}
   (( nexecA[-1]++ ))
 fi 
 if ${is_func}; then
@@ -249,135 +249,136 @@ builtin trap - DEBUG EXIT RETURN
 ) {fd}>&2
 
 
+
 :<<'EOF'
 
 0
-[log.0_0.2067] np: 1  1750262867.214198  1750262867.214849  (0.main)  (2067.2):  < pid: 2067 ( <-- 2065 ) > is a BACKGROUND FORK
-[log.0_0.2065] np: 1  1750262867.215085  1750262867.215134  (0.main)  (2065.1):  < 'echo 0' > is a NORMAL COMMAND
+[log.0] np: 1  1750267277.640778  1750267277.641228  (0.main)  (2606.2):  < pid: 2606 ( <-- 2604 ) > is a BACKGROUND FORK
 
+[log.0] np: 1  1750267277.641421  1750267277.641483  (0.main)  (2604.1):  < 'echo 0' > is a NORMAL COMMAND
 1
-[log.0-0-2067.0_0.2067] np: 1  1750262867.215443  1750262867.215483  (0.main)  (2067.2):  < 'echo' > is a NORMAL COMMAND
-[log.0_0.2069] np: 1  1750262867.214198  1750262867.215223  (0.main)  (2069.3):  < pid: 2069 ( <-- 2065 ) > is a BACKGROUND FORK
+[log.0] np: 1  1750267277.640778  1750267277.641465  (0.main)  (2608.3):  < pid: 2608 ( <-- 2604 ) > is a BACKGROUND FORK
+[log.0_0-2606.0] np: 1  1750267277.641674  1750267277.641744  (0.main)  (2606.2):  < 'echo' > is a NORMAL COMMAND
 A
-[log.1_0.2070] np: 1  1750262867.215461  1750262867.215939  (0.main)  (2070.2):  < pid: 2070 ( <-- 2065 ) > is a BACKGROUND FORK
+[log.0_0-2608.0] np: 1  1750267277.641895  1750267277.642152  (0.main)  (2608.3):  < 'echo A' > is a SIMPLE FORK
+[log.1] np: 1  1750267277.641824  1750267277.642166  (0.main)  (2609.2):  < pid: 2609 ( <-- 2604 ) > is a SUBSHELL
 2
-[log.0-0-2069.0_0.2069] np: 1  1750262867.215823  1750262867.216193  (0.main)  (2069.3):  < 'echo A' > is a SIMPLE FORK
-[log.1-0-2070.0_0.2070] np: 1  1750262867.216373  1750262867.216435  (0.main)  (2070.2):  < 'echo 2' > is a NORMAL COMMAND
-[log.1_0.2065] np: 1  1750262867.215461  1750262867.216989  (0.main)  (2065.1):  < 'echo 1' > is a NORMAL COMMAND
-[log.0_0.2068] np: 1  1750262867.214198  1750262867.216919  (0.main)  (2068.2):  < pid: 2068 ( <-- 2065 ) > is a BACKGROUND FORK
+[log.1_0-2609.0] np: 1  1750267277.642573  1750267277.642628  (0.main)  (2609.2):  < 'echo 2' > is a NORMAL COMMAND
+[log.0] np: 1  1750267277.640778  1750267277.642739  (0.main)  (2607.2):  < pid: 2607 ( <-- 2604 ) > is a BACKGROUND FORK
 B
-[log.0-0-2068.0_0.2068] np: 1  1750262867.217327  1750262867.217372  (0.main)  (2068.2):  < 'echo B' > is a NORMAL COMMAND
+[log.0_0-2607.0] np: 1  1750267277.643241  1750267277.643288  (0.main)  (2607.2):  < 'echo B' > is a NORMAL COMMAND
+[log.1] np: 1  1750267277.641824  1750267277.643273  (0.main)  (2604.1):  < 'echo 1' > is a NORMAL COMMAND
 3
-[log.2_0.2065] np: 1  1750262867.217238  1750262867.217597  (0.main)  (2065.1):  < 'echo 3' > is a SIMPLE FORK
+[log.2] np: 1  1750267277.643595  1750267277.643852  (0.main)  (2604.1):  < 'echo 3' > is a SIMPLE FORK
 4
-[log.3_0.2074] np: 1  1750262867.218022  1750262867.218665  (0.main)  (2074.2):  < pid: 2074 ( <-- 2065 ) > is a BACKGROUND FORK
+[log.3] np: 1  1750267277.644200  1750267277.644638  (0.main)  (2613.2):  < pid: 2613 ( <-- 2604 ) > is a BACKGROUND FORK
 5
-[log.3_0.2075] np: 1  1750262867.218022  1750262867.218824  (0.main)  (2075.2):  < pid: 2075 ( <-- 2065 ) > is a SUBSHELL
-[log.3-0-2074.0_0.2074] np: 1  1750262867.219074  1750262867.219135  (0.main)  (2074.2):  < 'echo 5' > is a NORMAL COMMAND
+[log.3] np: 1  1750267277.644200  1750267277.644790  (0.main)  (2614.2):  < pid: 2614 ( <-- 2604 ) > is a SUBSHELL
+[log.3_0-2613.0] np: 1  1750267277.645036  1750267277.645083  (0.main)  (2613.2):  < 'echo 5' > is a NORMAL COMMAND
 6
-[log.3-0-2075.0_0.2075] np: 1  1750262867.219236  1750262867.219527  (0.main)  (2075.2):  < 'echo 6' > is a SIMPLE FORK
-[log.3_0.2077] np: 1  1750262867.218022  1750262867.220780  (0.main)  (2077.2):  < pid: 2077 ( <-- 2065 ) > is a BACKGROUND FORK
+[log.3_0-2614.0] np: 1  1750267277.645267  1750267277.645461  (0.main)  (2614.2):  < 'echo 6' > is a SIMPLE FORK
+[log.3] np: 1  1750267277.644200  1750267277.646236  (0.main)  (2616.2):  < pid: 2616 ( <-- 2604 ) > is a BACKGROUND FORK
+[log.3] np: 1  1750267277.644200  1750267277.646360  (0.main)  (2617.2):  < pid: 2617 ( <-- 2604 ) > is a SUBSHELL
 7
-[log.3-0-2077.0_0.2077] np: 1  1750262867.221220  1750262867.221283  (0.main)  (2077.2):  < 'echo 7' > is a NORMAL COMMAND
-[log.3_0.2078] np: 1  1750262867.218022  1750262867.221100  (0.main)  (2078.2):  < pid: 2078 ( <-- 2065 ) > is a SUBSHELL
 8
-[log.3-0-2078.0_0.2078] np: 1  1750262867.221665  1750262867.221718  (0.main)  (2078.2):  < 'echo 8' > is a NORMAL COMMAND
-[log.3_0.2080] np: 1  1750262867.218022  1750262867.223022  (0.main)  (2080.2):  < pid: 2080 ( <-- 2065 ) > is a BACKGROUND FORK
+[log.3_0-2617.0] np: 1  1750267277.646666  1750267277.646703  (0.main)  (2617.2):  < 'echo 8' > is a NORMAL COMMAND
+[log.3_0-2616.0] np: 1  1750267277.646633  1750267277.646678  (0.main)  (2616.2):  < 'echo 7' > is a NORMAL COMMAND
+[log.3] np: 1  1750267277.644200  1750267277.647421  (0.main)  (2618.2):  < pid: 2618 ( <-- 2604 ) > is a BACKGROUND FORK
+[log.3] np: 1  1750267277.644200  1750267277.647536  (0.main)  (2619.2):  < pid: 2619 ( <-- 2604 ) > is a BACKGROUND FORK
 9.1
-[log.3_0.2079] np: 1  1750262867.218022  1750262867.223034  (0.main)  (2079.2):  < pid: 2079 ( <-- 2065 ) > is a BACKGROUND FORK
-[log.3_0.2081] np: 1  1750262867.218022  1750262867.223222  (0.main)  (2081.2):  < pid: 2081 ( <-- 2065 ) > is a BACKGROUND FORK
-[log.3-0-2080.0_0.2080] np: 1  1750262867.223487  1750262867.223537  (0.main)  (2080.2):  < 'echo 9.1' > is a NORMAL COMMAND
-[log.3_0.2082] np: 1  1750262867.218022  1750262867.223561  (0.main)  (2082.2):  < pid: 2082 ( <-- 2065 ) > is a BACKGROUND FORK
-9.1b
-[log.3_0.2083] np: 1  1750262867.218022  1750262867.223746  (0.main)  (2083.2):  < pid: 2083 ( <-- 2065 ) > is a BACKGROUND FORK
-[log.3_0.2065] np: 1  1750262867.218022  1750262867.223993  (0.main)  (2065.1):  < 'echo 4' > is a SIMPLE FORK
-11
-[log.3_0.2084] np: 1  1750262867.218022  1750262867.223948  (0.main)  (2084.2):  < pid: 2084 ( <-- 2065 ) > is a BACKGROUND FORK
-9.999
-[log.3-0-2082.0_0.2082] np: 1  1750262867.224214  1750262867.224269  (0.main)  (2082.2):  < 'echo 9.1b' > is a NORMAL COMMAND
-[log.3-0-2079.0_0.2079] np: 1  1750262867.223699  1750262867.224227  (0.main)  (2079.2):  < 'echo 9' > is a SIMPLE FORK *
-[log.3-0-2081.0_0.2081] np: 1  1750262867.223815  1750262867.224248  (0.main)  (2081.2):  < 'echo 9.1a' > is a SIMPLE FORK *
-9.2a
-[log.3-0-2080.1_0.2080] np: 1  1750262867.223929  1750262867.224325  (0.main)  (2080.2):  < 'echo 9.2' > is a SIMPLE FORK
-[log.4_0.2065] np: 1  1750262867.224433  1750262867.224478  (0.main)  (2065.1):  < 'echo 11' > is a NORMAL COMMAND
-[log.3-0-2081.1_0.2081] np: 1  1750262867.224663  1750262867.224714  (0.main)  (2081.2):  < 'echo 9.2a' > is a NORMAL COMMAND
-9.2b
-[log.3-0-2083.0_0.2083] np: 1  1750262867.224374  1750262867.224826  (0.main)  (2083.2):  < 'echo 9.1c' > is a SIMPLE FORK *
-9.2c
 9
+[log.3] np: 1  1750267277.644200  1750267277.647697  (0.main)  (2620.2):  < pid: 2620 ( <-- 2604 ) > is a BACKGROUND FORK
+[log.3_0-2619.0] np: 1  1750267277.647895  1750267277.647935  (0.main)  (2619.2):  < 'echo 9.1' > is a NORMAL COMMAND
+[log.3_0-2618.0] np: 1  1750267277.647748  1750267277.647991  (0.main)  (2618.2):  < 'echo 9' > is a SIMPLE FORK *
+[log.3] np: 1  1750267277.644200  1750267277.647881  (0.main)  (2621.2):  < pid: 2621 ( <-- 2604 ) > is a BACKGROUND FORK
+[log.3] np: 1  1750267277.644200  1750267277.647992  (0.main)  (2622.2):  < pid: 2622 ( <-- 2604 ) > is a BACKGROUND FORK
+9.1b
+[log.3] np: 1  1750267277.644200  1750267277.648162  (0.main)  (2604.1):  < 'echo 4' > is a SIMPLE FORK
+11
+[log.3_0-2620.0] np: 1  1750267277.648231  1750267277.648476  (0.main)  (2620.2):  < 'echo 9.1a' > is a SIMPLE FORK *
+[log.3_0-2621.0] np: 1  1750267277.648444  1750267277.648491  (0.main)  (2621.2):  < 'echo 9.1b' > is a NORMAL COMMAND
+[log.3_0-2619.1] np: 1  1750267277.648253  1750267277.648510  (0.main)  (2619.2):  < 'echo 9.2' > is a SIMPLE FORK
+[log.3] np: 1  1750267277.644200  1750267277.648420  (0.main)  (2624.2):  < pid: 2624 ( <-- 2604 ) > is a BACKGROUND FORK
+9.2a
+9.999
+[log.4] np: 1  1750267277.648585  1750267277.648637  (0.main)  (2604.1):  < 'echo 11' > is a NORMAL COMMAND
+[log.3_0-2622.0] np: 1  1750267277.648472  1750267277.648712  (0.main)  (2622.2):  < 'echo 9.1c' > is a SIMPLE FORK *
+9.2c
 9.1a
-[log.3_0.2085] np: 1  1750262867.218022  1750262867.225101  (0.main)  (2085.2):  < pid: 2085 ( <-- 2065 ) > is a BACKGROUND FORK
-[log.3-0-2083.1_0.2083] np: 1  1750262867.225249  1750262867.225305  (0.main)  (2083.2):  < 'echo 9.2c' > is a NORMAL COMMAND
-12
 9.2
-9.1c
+[log.3] np: 1  1750267277.644200  1750267277.648785  (0.main)  (2625.2):  < pid: 2625 ( <-- 2604 ) > is a BACKGROUND FORK
+[log.3_0-2620.1] np: 1  1750267277.648881  1750267277.648931  (0.main)  (2620.2):  < 'echo 9.2a' > is a NORMAL COMMAND
+[log.3_0-2622.1] np: 1  1750267277.649112  1750267277.649161  (0.main)  (2622.2):  < 'echo 9.2c' > is a NORMAL COMMAND
 10
-[log.3-0-2082.1_0.2082] np: 1  1750262867.224613  1750262867.225055  (0.main)  (2082.2):  < 'echo 9.2b' > is a SIMPLE FORK
-[log.3-0-2085.0_0.2085] np: 1  1750262867.225647  1750262867.226028  (0.main)  (2085.2):  < 'echo 10' > is a SIMPLE FORK *
-[log.5_0.2093] np: 1  1750262867.224855  1750262867.226130  (0.main)  (2093.2):  < pid: 2093 ( <-- 2065 ) > is a BACKGROUND FORK
+9.2b
+12
+[log.3_0-2621.1] np: 1  1750267277.648887  1750267277.649168  (0.main)  (2621.2):  < 'echo 9.2b' > is a SIMPLE FORK
+9.1c
+[log.3_0-2625.0] np: 1  1750267277.649252  1750267277.649499  (0.main)  (2625.2):  < 'echo 10' > is a SIMPLE FORK *
+[log.5] np: 1  1750267277.649018  1750267277.649748  (0.main)  (2632.2):  < pid: 2632 ( <-- 2604 ) > is a BACKGROUND FORK
+[log.5] np: 1  1750267277.649018  1750267277.649769  (0.main)  (2634.2):  < pid: 2634 ( <-- 2604 ) > is a SUBSHELL
 13
-[log.3-0-2084.0_0.2090] np: 1  1750262867.224534  1750262867.225784  (0.main)  (2090.3):  < pid: 2090 ( <-- 2084 ) > is a BACKGROUND FORK
-[log.5-0-2093.0_0.2093] np: 1  1750262867.226736  1750262867.226800  (0.main)  (2093.2):  < 'echo 13' > is a NORMAL COMMAND
-[log.5_0.2094] np: 1  1750262867.224855  1750262867.226700  (0.main)  (2094.2):  < pid: 2094 ( <-- 2065 ) > is a SUBSHELL
 14
+[log.3_0-2624.0] np: 1  1750267277.648922  1750267277.649983  (0.main)  (2630.3):  < pid: 2630 ( <-- 2624 ) > is a BACKGROUND FORK
+[log.5_0-2634.0] np: 1  1750267277.650256  1750267277.650311  (0.main)  (2634.2):  < 'echo 14' > is a NORMAL COMMAND
+[log.5_0-2632.0] np: 1  1750267277.650256  1750267277.650311  (0.main)  (2632.2):  < 'echo 13' > is a NORMAL COMMAND
 9.3
-[log.5-0-2094.0_0.2094] np: 1  1750262867.227271  1750262867.227338  (0.main)  (2094.2):  < 'echo 14' > is a NORMAL COMMAND
-[log.3-0-2084.0-0-2090.0_0.2090] np: 1  1750262867.227100  1750262867.227531  (0.main)  (2090.3):  < 'echo 9.3' > is a SIMPLE FORK
+[log.3_0-2624.0_0-2630.0] np: 1  1750267277.650514  1750267277.650809  (0.main)  (2630.3):  < 'echo 9.3' > is a SIMPLE FORK
 9.4
-[log.3-0-2084.0-0-2090.1_0.2090] np: 1  1750262867.227816  1750262867.227863  (0.main)  (2090.3):  < 'echo 9.4' > is a NORMAL COMMAND
-[log.5_0.2065] np: 1  1750262867.224855  1750262867.228142  (0.main)  (2065.1):  < 'echo 12' > is a SIMPLE FORK
-[log.3-0-2084.0_0.2084] np: 1  1750262867.224534  1750262867.228503  (0.main)  (2084.2):  < 'echo 9.999' > is a NORMAL COMMAND
+[log.3_0-2624.0_0-2630.1] np: 1  1750267277.651038  1750267277.651074  (0.main)  (2630.3):  < 'echo 9.4' > is a NORMAL COMMAND
+[log.5] np: 1  1750267277.649018  1750267277.650956  (0.main)  (2604.1):  < 'echo 12' > is a SIMPLE FORK
+[log.3_0-2624.0] np: 1  1750267277.648922  1750267277.651530  (0.main)  (2624.2):  < 'echo 9.999' > is a NORMAL COMMAND
 9.5
-[log.7.0_0.2065] np: 1  1750262867.228760  1750262867.228786  (2.ff)  (2065.1):  < 'ff 15' > is a FUNCTION (C)
+[log.7.0] np: 1  1750267277.651679  1750267277.651702  (2.ff)  (2604.1):  < 'ff 15' > is a FUNCTION (C)
 15
-[log.3-0-2084.1_0.2084] np: 1  1750262867.228862  1750262867.228938  (0.main)  (2084.2):  < 'echo 9.5' > is a NORMAL COMMAND
-[log.7.1_0.2065] np: 1  1750262867.229061  1750262867.229100  (2.ff)  (2065.1):  < 'echo "${*}"' > is a NORMAL COMMAND
-[log.7_0.2065] np: 1  1750262867.228424  1750262867.230123  (0.main)  (2065.1):  < 'ff 15' > is a FUNCTION (P)
-[log.9.0_0.2065] np: 1  1750262867.230676  1750262867.230710  (2.gg)  (2065.1):  < 'gg 16' > is a FUNCTION (C)
+[log.3_0-2624.1] np: 1  1750267277.651911  1750267277.651951  (0.main)  (2624.2):  < 'echo 9.5' > is a NORMAL COMMAND
+[log.7.1] np: 1  1750267277.651958  1750267277.651992  (2.ff)  (2604.1):  < 'echo "${*}"' > is a NORMAL COMMAND
+[log.7] np: 1  1750267277.651331  1750267277.652878  (0.main)  (2604.1):  < 'ff 15' > is a FUNCTION (P)
+[log.9.0] np: 1  1750267277.653295  1750267277.653316  (2.gg)  (2604.1):  < 'gg 16' > is a FUNCTION (C)
 16
-[log.9.1_0.2065] np: 1  1750262867.231021  1750262867.231057  (2.gg)  (2065.1):  < 'echo "$*"' > is a NORMAL COMMAND
-[log.9.3.0_0.2065] np: 1  1750262867.231492  1750262867.231513  (3.ff)  (2065.1):  < 'ff "$@"' > is a FUNCTION (C)
+[log.9.1] np: 1  1750267277.653532  1750267277.653563  (2.gg)  (2604.1):  < 'echo "$*"' > is a NORMAL COMMAND
+[log.9.3.0] np: 1  1750267277.654022  1750267277.654043  (3.ff)  (2604.1):  < 'ff "$@"' > is a FUNCTION (C)
 16
-[log.9.3.1_0.2065] np: 1  1750262867.231756  1750262867.231817  (3.ff)  (2065.1):  < 'echo "${*}"' > is a NORMAL COMMAND
-[log.9.3_0.2065] np: 1  1750262867.231276  1750262867.232701  (2.gg)  (2065.1):  < 'ff "$@"' > is a FUNCTION (P)
-[log.9_0.2097] np: 1  1750262867.230392  1750262867.234142  (0.main)  (2097.2):  < pid: 2097 ( <-- 2065 ) > is a BACKGROUND FORK
+[log.9.3.1] np: 1  1750267277.654238  1750267277.654270  (3.ff)  (2604.1):  < 'echo "${*}"' > is a NORMAL COMMAND
+[log.9.3] np: 1  1750267277.653807  1750267277.655125  (2.gg)  (2604.1):  < 'ff "$@"' > is a FUNCTION (P)
+[log.9] np: 1  1750267277.653086  1750267277.656252  (0.main)  (2636.2):  < pid: 2636 ( <-- 2604 ) > is a BACKGROUND FORK
+[log.9] np: 1  1750267277.653086  1750267277.656558  (0.main)  (2639.3):  < pid: 2639 ( <-- 2604 ) > is a BACKGROUND FORK
 a
-[log.9_0.2100] np: 1  1750262867.230392  1750262867.234602  (0.main)  (2100.3):  < pid: 2100 ( <-- 2065 ) > is a BACKGROUND FORK
+[log.9] np: 1  1750267277.653086  1750267277.656638  (0.main)  (2638.2):  < pid: 2638 ( <-- 2604 ) > is a SUBSHELL
 b
-[log.9_0.2099] np: 1  1750262867.230392  1750262867.234710  (0.main)  (2099.2):  < pid: 2099 ( <-- 2065 ) > is a SUBSHELL
-[log.9-0-2097.0_0.2097] np: 1  1750262867.234591  1750262867.234976  (0.main)  (2097.2):  < 'echo a' > is a SIMPLE FORK
-[log.9-0-2100.0_0.2100] np: 1  1750262867.235072  1750262867.235124  (0.main)  (2100.3):  < 'echo b' > is a NORMAL COMMAND
 A2
-[log.9_0.2103] np: 1  1750262867.230392  1750262867.235260  (0.main)  (2103.4):  < pid: 2103 ( <-- 2065 ) > is a SUBSHELL
-[log.9-0-2099.0_0.2099] np: 1  1750262867.235264  1750262867.235599  (0.main)  (2099.2):  < 'echo A2' > is a SIMPLE FORK
+[log.9_0-2636.0] np: 1  1750267277.656683  1750267277.656981  (0.main)  (2636.2):  < 'echo a' > is a SIMPLE FORK
+[log.9] np: 1  1750267277.653086  1750267277.656956  (0.main)  (2641.4):  < pid: 2641 ( <-- 2604 ) > is a SUBSHELL
+[log.9_0-2639.0] np: 1  1750267277.657033  1750267277.657089  (0.main)  (2639.3):  < 'echo b' > is a NORMAL COMMAND
+[log.9_0-2638.0] np: 1  1750267277.657020  1750267277.657222  (0.main)  (2638.2):  < 'echo A2' > is a SIMPLE FORK
 A1
 A5
-[log.9-0-2099.1_0.2099] np: 1  1750262867.236000  1750262867.236083  (0.main)  (2099.2):  < 'echo A1' > is a NORMAL COMMAND
-[log.9-0-2103.0_0.2103] np: 1  1750262867.235880  1750262867.236309  (0.main)  (2103.4):  < 'echo A5' > is a SIMPLE FORK
-[log.9_0.2065] np: 1  1750262867.230392  1750262867.236836  (0.main)  (2065.1):  < 'gg 16' > is a FUNCTION (P)
-[log.9_0.2101] np: 1  1750262867.230392  1750262867.237450  (0.main)  (2101.3):  < pid: 2101 ( <-- 2065 ) > is a BACKGROUND FORK
+[log.9_0-2638.1] np: 1  1750267277.657495  1750267277.657547  (0.main)  (2638.2):  < 'echo A1' > is a NORMAL COMMAND
+[log.9_0-2641.0] np: 1  1750267277.657456  1750267277.657737  (0.main)  (2641.4):  < 'echo A5' > is a SIMPLE FORK
+[log.9] np: 1  1750267277.653086  1750267277.658098  (0.main)  (2604.1):  < 'gg 16' > is a FUNCTION (P)
+[log.9] np: 1  1750267277.653086  1750267277.658406  (0.main)  (2640.3):  < pid: 2640 ( <-- 2604 ) > is a BACKGROUND FORK
 A3
-[log.10_0.2065] np: 1  1750262867.237187  1750262867.237522  (0.main)  (2065.1):  < $'cat <<EOF\nfoo\nbar\nbaz\nEOF\n' > is a NORMAL COMMAND
-[log.9_0.2106] np: 1  1750262867.230392  1750262867.237529  (0.main)  (2106.4):  < pid: 2106 ( <-- 2065 ) > is a BACKGROUND FORK
+[log.10] np: 1  1750267277.658363  1750267277.658550  (0.main)  (2604.1):  < $'cat <<EOF\nfoo\nbar\nbaz\nEOF\n' > is a NORMAL COMMAND
+[log.9] np: 1  1750267277.653086  1750267277.658467  (0.main)  (2645.4):  < pid: 2645 ( <-- 2604 ) > is a BACKGROUND FORK
 A4
-[log.9-0-2101.0_0.2101] np: 1  1750262867.237842  1750262867.237914  (0.main)  (2101.3):  < 'echo A3' > is a NORMAL COMMAND
-[log.9-0-2106.0_0.2106] np: 1  1750262867.238083  1750262867.238150  (0.main)  (2106.4):  < 'echo A4' > is a NORMAL COMMAND
-[log.11_0.2065] np: 1  1750262867.237966  1750262867.238334  (0.main)  (2065.1):  < 'grep foo' > is a NORMAL COMMAND
-[log.12_0.2065] np: 1  1750262867.238753  1750262867.239069  (0.main)  (2065.1):  < 'sed '\''s/o/O/g'\''' > is a NORMAL COMMAND
+[log.9_0-2640.0] np: 1  1750267277.658758  1750267277.658808  (0.main)  (2640.3):  < 'echo A3' > is a NORMAL COMMAND
+[log.9_0-2645.0] np: 1  1750267277.658918  1750267277.658978  (0.main)  (2645.4):  < 'echo A4' > is a NORMAL COMMAND
+[log.11] np: 1  1750267277.658829  1750267277.659048  (0.main)  (2604.1):  < 'grep foo' > is a NORMAL COMMAND
+[log.12] np: 1  1750267277.659280  1750267277.659475  (0.main)  (2604.1):  < 'sed '\''s/o/O/g'\''' > is a NORMAL COMMAND
 1
-[log.13_0.2065] np: 4  1750262867.239337  1750262867.241275  (0.main)  (2065.1):  < 'wc -l' > is a NORMAL COMMAND
-[log.14_0.2111] np: 4  1750262867.241563  1750262867.242093  (0.main)  (2111.2):  < pid: 2111 ( <-- 2065 ) > is a SUBSHELL
+[log.13] np: 4  1750267277.659741  1750267277.660929  (0.main)  (2604.1):  < 'wc -l' > is a NORMAL COMMAND
+[log.14] np: 4  1750267277.661222  1750267277.661580  (0.main)  (2650.2):  < pid: 2650 ( <-- 2604 ) > is a SUBSHELL
 today is 2025-06-18
-[log.14_0.2065] np: 1  1750262867.241563  1750262867.244481  (0.main)  (2065.1):  < 'echo "today is $(date +%Y-%m-%d)"' > is a NORMAL COMMAND
-[log.15_0.2112] np: 1  1750262867.244763  1750262867.245424  (0.main)  (2112.2):  < pid: 2112 ( <-- 2065 ) > is a SUBSHELL
-[log.15_0.2113] np: 1  1750262867.244763  1750262867.245466  (0.main)  (2113.3):  < pid: 2113 ( <-- 2065 ) > is a SUBSHELL
-[log.15-0-2113.0_0.2113] np: 1  1750262867.245877  1750262867.245950  (0.main)  (2113.3):  < 'echo nested' > is a NORMAL COMMAND
-[log.15-0-2113.1_0.2113] np: 1  1750262867.246191  1750262867.246234  (0.main)  (2113.3):  < 'echo subshell' > is a NORMAL COMMAND
-[log.15-0-2112.0_0.2112] np: 2  1750262867.245781  1750262867.247449  (0.main)  (2112.2):  < 'grep sub' > is a NORMAL COMMAND
-[log.15_0.2065] np: 1  1750262867.244763  1750262867.248071  (0.main)  (2065.1):  < 'x=$( ( echo nested; echo subshell ) | grep sub)' > is a NORMAL COMMAND
-[log.16_0.2115] np: 1  1750262867.248385  1750262867.248838  (0.main)  (2115.2):  < pid: 2115 ( <-- 2065 ) > is a SUBSHELL
-[log.16_0.2116] np: 1  1750262867.248385  1750262867.249013  (0.main)  (2116.2):  < pid: 2116 ( <-- 2065 ) > is a SUBSHELL
-1,22c1,2
+[log.14] np: 1  1750267277.661222  1750267277.664361  (0.main)  (2604.1):  < 'echo "today is $(date +%Y-%m-%d)"' > is a NORMAL COMMAND
+[log.15] np: 1  1750267277.664605  1750267277.665101  (0.main)  (2651.2):  < pid: 2651 ( <-- 2604 ) > is a SUBSHELL
+[log.15] np: 1  1750267277.664605  1750267277.665174  (0.main)  (2652.3):  < pid: 2652 ( <-- 2604 ) > is a SUBSHELL
+[log.15_0-2652.0] np: 1  1750267277.665566  1750267277.665599  (0.main)  (2652.3):  < 'echo nested' > is a NORMAL COMMAND
+[log.15_0-2652.1] np: 1  1750267277.665852  1750267277.665888  (0.main)  (2652.3):  < 'echo subshell' > is a NORMAL COMMAND
+[log.15_0-2651.0] np: 2  1750267277.665486  1750267277.666917  (0.main)  (2651.2):  < 'grep sub' > is a NORMAL COMMAND
+[log.15] np: 1  1750267277.664605  1750267277.667412  (0.main)  (2604.1):  < 'x=$( ( echo nested; echo subshell ) | grep sub)' > is a NORMAL COMMAND
+[log.16] np: 1  1750267277.667754  1750267277.668095  (0.main)  (2654.2):  < pid: 2654 ( <-- 2604 ) > is a SUBSHELL
+[log.16] np: 1  1750267277.667754  1750267277.668247  (0.main)  (2655.2):  < pid: 2655 ( <-- 2604 ) > is a SUBSHELL
+1,22c1
 < bin
 < boot
 < dev
@@ -401,57 +402,57 @@ today is 2025-06-18
 < usr
 < var
 ---
-> hsperfdata_root
-> hsperfdata_runner98
-[log.16_0.2065] np: 1  1750262867.248385  1750262867.262136  (0.main)  (2065.1):  < 'diff <(ls /) <(ls /tmp)' > is a SIMPLE FORK
-[log.17_0.2118] np: 1  1750262867.262495  1750262867.262993  (0.main)  (2118.2):  < pid: 2118 ( <-- 2065 ) > is a SUBSHELL
-sed: read error on stdin: Input/output error
-[log.17_0.2065] np: 1  1750262867.262495  1750262867.265357  (0.main)  (2065.1):  < 'grep pattern <(sed '\''s/^/>>/'\'' > /dev/null)' > is a SIMPLE FORK
-[log.17_0.2120] np: 1  1750262867.262495  1750262867.265521  (0.main)  (2120.2):  < pid: 2120 ( <-- 2065 ) > is a BACKGROUND FORK
-[log.17-0-2120.0_0.2120] np: 1  1750262867.266096  1750262867.266152  (0.main)  (2120.2):  < 'for i in {1..3}' > is a NORMAL COMMAND
-[log.17-0-2120.1_0.2120] np: 1  1750262867.266396  1750262867.266454  (0.main)  (2120.2):  < 'echo "$i"' > is a NORMAL COMMAND
-[log.18_0.2065] np: 1  1750262867.265733  1750262867.266485  (0.main)  (2065.1):  < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
+> hsperfdata_runner33
+[log.16] np: 1  1750267277.667754  1750267277.670302  (0.main)  (2604.1):  < 'diff <(ls /) <(ls /tmp)' > is a SIMPLE FORK
+[log.17] np: 1  1750267277.670577  1750267277.670920  (0.main)  (2657.2):  < pid: 2657 ( <-- 2604 ) > is a SUBSHELL
+[log.17] np: 1  1750267277.670577  1750267277.672109  (0.main)  (2604.1):  < 'grep pattern <(sed '\''s/^/>>/'\'' > /dev/null)' > is a SIMPLE FORK
+[log.17] np: 1  1750267277.670577  1750267277.672214  (0.main)  (2659.2):  < pid: 2659 ( <-- 2604 ) > is a BACKGROUND FORK
+[log.17_0-2659.0] np: 1  1750267277.672552  1750267277.672581  (0.main)  (2659.2):  < 'for i in {1..3}' > is a NORMAL COMMAND
+[log.17_0-2659.1] np: 1  1750267277.672844  1750267277.672887  (0.main)  (2659.2):  < 'echo "$i"' > is a NORMAL COMMAND
+[log.18] np: 1  1750267277.672390  1750267277.672938  (0.main)  (2604.1):  < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
 got 1
-[log.19_0.2065] np: 1  1750262867.266928  1750262867.267158  (0.main)  (2065.1):  < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
-[log.17-0-2120.2_0.2120] np: 1  1750262867.266781  1750262867.278999  (0.main)  (2120.2):  < 'sleep .01' > is a NORMAL COMMAND
-[log.17-0-2120.3_0.2120] np: 1  1750262867.279545  1750262867.279591  (0.main)  (2120.2):  < 'for i in {1..3}' > is a NORMAL COMMAND
-[log.20_0.2065] np: 1  1750262867.267518  1750262867.280224  (0.main)  (2065.1):  < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
+[log.19] np: 1  1750267277.673361  1750267277.673412  (0.main)  (2604.1):  < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
+[log.17_0-2659.2] np: 1  1750267277.673252  1750267277.684477  (0.main)  (2659.2):  < 'sleep .01' > is a NORMAL COMMAND
+[log.17_0-2659.3] np: 1  1750267277.684914  1750267277.684967  (0.main)  (2659.2):  < 'for i in {1..3}' > is a NORMAL COMMAND
+[log.17_0-2659.4] np: 1  1750267277.685219  1750267277.685258  (0.main)  (2659.2):  < 'echo "$i"' > is a NORMAL COMMAND
+[log.20] np: 1  1750267277.673757  1750267277.685320  (0.main)  (2604.1):  < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
 got 2
-[log.17-0-2120.4_0.2120] np: 1  1750262867.280080  1750262867.280139  (0.main)  (2120.2):  < 'echo "$i"' > is a NORMAL COMMAND
-[log.21_0.2065] np: 1  1750262867.280500  1750262867.280550  (0.main)  (2065.1):  < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
-[log.17-0-2120.5_0.2120] np: 1  1750262867.280603  1750262867.292164  (0.main)  (2120.2):  < 'sleep .01' > is a NORMAL COMMAND
-[log.17-0-2120.6_0.2120] np: 1  1750262867.292505  1750262867.292538  (0.main)  (2120.2):  < 'for i in {1..3}' > is a NORMAL COMMAND
-[log.17-0-2120.7_0.2120] np: 1  1750262867.292976  1750262867.293019  (0.main)  (2120.2):  < 'echo "$i"' > is a NORMAL COMMAND
-[log.22_0.2065] np: 1  1750262867.280830  1750262867.293178  (0.main)  (2065.1):  < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
+[log.21] np: 1  1750267277.685791  1750267277.685840  (0.main)  (2604.1):  < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
+[log.17_0-2659.5] np: 1  1750267277.685665  1750267277.696935  (0.main)  (2659.2):  < 'sleep .01' > is a NORMAL COMMAND
+[log.17_0-2659.6] np: 1  1750267277.697407  1750267277.697459  (0.main)  (2659.2):  < 'for i in {1..3}' > is a NORMAL COMMAND
+[log.17_0-2659.7] np: 1  1750267277.697879  1750267277.697929  (0.main)  (2659.2):  < 'echo "$i"' > is a NORMAL COMMAND
+[log.22] np: 1  1750267277.686115  1750267277.697984  (0.main)  (2604.1):  < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
 got 3
-[log.23_0.2065] np: 1  1750262867.293682  1750262867.293753  (0.main)  (2065.1):  < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
-[log.17-0-2120.8_0.2120] np: 1  1750262867.293295  1750262867.304838  (0.main)  (2120.2):  < 'sleep .01' > is a NORMAL COMMAND
-[log.24_0.2065] np: 1  1750262867.294188  1750262867.305588  (0.main)  (2065.1):  < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
-[log.25_0.2065] np: 1  1750262867.306007  1750262867.306066  (0.main)  (2065.1):  < 'let "x = 5 + 6"' > is a NORMAL COMMAND
-[log.26_0.2065] np: 1  1750262867.306376  1750262867.306413  (0.main)  (2065.1):  < 'arr=(one two three)' > is a NORMAL COMMAND
+[log.23] np: 1  1750267277.698379  1750267277.698421  (0.main)  (2604.1):  < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
+[log.17_0-2659.8] np: 1  1750267277.698318  1750267277.709671  (0.main)  (2659.2):  < 'sleep .01' > is a NORMAL COMMAND
+[log.24] np: 1  1750267277.698830  1750267277.710535  (0.main)  (2604.1):  < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
+[log.25] np: 1  1750267277.711005  1750267277.711039  (0.main)  (2604.1):  < 'let "x = 5 + 6"' > is a NORMAL COMMAND
+[log.26] np: 1  1750267277.711288  1750267277.711318  (0.main)  (2604.1):  < 'arr=(one two three)' > is a NORMAL COMMAND
 one two three
-[log.27_0.2065] np: 1  1750262867.306697  1750262867.306741  (0.main)  (2065.1):  < 'echo ${arr[@]}' > is a NORMAL COMMAND
-[log.28_0.2065] np: 1  1750262867.307097  1750262867.307144  (0.main)  (2065.1):  < '((i=0))' > is a NORMAL COMMAND
-[log.29_0.2065] np: 1  1750262867.307484  1750262867.307513  (0.main)  (2065.1):  < '((i<3))' > is a NORMAL COMMAND
+[log.27] np: 1  1750267277.711606  1750267277.711661  (0.main)  (2604.1):  < 'echo ${arr[@]}' > is a NORMAL COMMAND
+[log.28] np: 1  1750267277.712014  1750267277.712043  (0.main)  (2604.1):  < '((i=0))' > is a NORMAL COMMAND
+[log.29] np: 1  1750267277.712277  1750267277.712303  (0.main)  (2604.1):  < '((i<3))' > is a NORMAL COMMAND
 0
-[log.30_0.2065] np: 1  1750262867.307729  1750262867.307758  (0.main)  (2065.1):  < 'echo "$i"' > is a NORMAL COMMAND
-[log.31_0.2065] np: 1  1750262867.308046  1750262867.308089  (0.main)  (2065.1):  < '((i++))' > is a NORMAL COMMAND
-[log.32_0.2065] np: 1  1750262867.308340  1750262867.308367  (0.main)  (2065.1):  < '((i<3))' > is a NORMAL COMMAND
+[log.30] np: 1  1750267277.712548  1750267277.712594  (0.main)  (2604.1):  < 'echo "$i"' > is a NORMAL COMMAND
+[log.31] np: 1  1750267277.712967  1750267277.712997  (0.main)  (2604.1):  < '((i++))' > is a NORMAL COMMAND
+[log.32] np: 1  1750267277.713266  1750267277.713292  (0.main)  (2604.1):  < '((i<3))' > is a NORMAL COMMAND
 1
-[log.33_0.2065] np: 1  1750262867.308575  1750262867.308604  (0.main)  (2065.1):  < 'echo "$i"' > is a NORMAL COMMAND
-[log.34_0.2065] np: 1  1750262867.308802  1750262867.308827  (0.main)  (2065.1):  < '((i++))' > is a NORMAL COMMAND
-[log.35_0.2065] np: 1  1750262867.309180  1750262867.309223  (0.main)  (2065.1):  < '((i<3))' > is a NORMAL COMMAND
+[log.33] np: 1  1750267277.713522  1750267277.713552  (0.main)  (2604.1):  < 'echo "$i"' > is a NORMAL COMMAND
+[log.34] np: 1  1750267277.713880  1750267277.713920  (0.main)  (2604.1):  < '((i++))' > is a NORMAL COMMAND
+[log.35] np: 1  1750267277.714219  1750267277.714245  (0.main)  (2604.1):  < '((i<3))' > is a NORMAL COMMAND
 2
-[log.36_0.2065] np: 1  1750262867.309629  1750262867.309689  (0.main)  (2065.1):  < 'echo "$i"' > is a NORMAL COMMAND
-[log.37_0.2065] np: 1  1750262867.310081  1750262867.310124  (0.main)  (2065.1):  < '((i++))' > is a NORMAL COMMAND
-[log.38_0.2065] np: 1  1750262867.310509  1750262867.310594  (0.main)  (2065.1):  < '((i<3))' > is a NORMAL COMMAND
-[log.39_0.2065] np: 1  1750262867.311022  1750262867.311058  (0.main)  (2065.1):  < 'cmd="echo inside-eval"' > is a NORMAL COMMAND
-[log.40_0.2065] np: 1  1750262867.311272  1750262867.311307  (0.main)  (2065.1):  < 'eval "$cmd"' > is a NORMAL COMMAND
+[log.36] np: 1  1750267277.714464  1750267277.714493  (0.main)  (2604.1):  < 'echo "$i"' > is a NORMAL COMMAND
+[log.37] np: 1  1750267277.714740  1750267277.714774  (0.main)  (2604.1):  < '((i++))' > is a NORMAL COMMAND
+[log.38] np: 1  1750267277.715117  1750267277.715155  (0.main)  (2604.1):  < '((i<3))' > is a NORMAL COMMAND
+[log.39] np: 1  1750267277.715388  1750267277.715413  (0.main)  (2604.1):  < 'cmd="echo inside-eval"' > is a NORMAL COMMAND
+[log.40] np: 1  1750267277.715651  1750267277.715680  (0.main)  (2604.1):  < 'eval "$cmd"' > is a NORMAL COMMAND
 inside-eval
-[log.41_0.2065] np: 1  1750262867.311635  1750262867.311755  (0.main)  (2065.1):  < 'echo inside-eval' > is a NORMAL COMMAND
-[log.42_0.2065] np: 1  1750262867.312197  1750262867.312252  (0.main)  (2065.1):  < 'eval "eval \"$cmd\""' > is a NORMAL COMMAND
-[log.43_0.2065] np: 1  1750262867.312677  1750262867.312711  (0.main)  (2065.1):  < 'eval "echo inside-eval"' > is a NORMAL COMMAND
+[log.41] np: 1  1750267277.715999  1750267277.716048  (0.main)  (2604.1):  < 'echo inside-eval' > is a NORMAL COMMAND
+[log.42] np: 1  1750267277.716348  1750267277.716377  (0.main)  (2604.1):  < 'eval "eval \"$cmd\""' > is a NORMAL COMMAND
+[log.43] np: 1  1750267277.716608  1750267277.716635  (0.main)  (2604.1):  < 'eval "echo inside-eval"' > is a NORMAL COMMAND
 inside-eval
+[log.44] np: 1  1750267277.720826  1750267277.720864  (0.main)  (2604.1):  < 'kill -USR1 $$' > is a NORMAL COMMAND
+
 
 EOF
 
