@@ -6,12 +6,12 @@ set -m
 : &
 
 read -r _ _ _ _ timep_PARENT_PGID _ _ timep_PARENT_TPID _ </proc/${BASHPID}/stat
-timep_CHILD_PGID=$timep_PARENT_PGID
-timep_CHILD_TPID=$timep_PARENT_TPID
+timep_CHILD_PGID="$timep_PARENT_PGID"
+timep_CHILD_TPID="$timep_PARENT_TPID"
 
-timep_BASHPID_PREV=$BASHPID
-timep_BG_PID_PREV=$!
-timep_BASH_SUBSHELL_PREV=$BASH_SUBSHELL
+timep_BASHPID_PREV="$BASHPID"
+timep_BG_PID_PREV="$!"
+timep_BASH_SUBSHELL_PREV="$BASH_SUBSHELL"
 timep_SUBSHELL_BASHPID_CUR=''
 timep_NEXEC_0=''
 timep_NEXEC_A=(0)
@@ -21,14 +21,14 @@ timep_SIMPLEFORK_NEXT_FLAG=false
 timep_SIMPLEFORK_CUR_FLAG=false
 timep_SKIP_DEBUG_FLAG=false
 timep_NO_PRINT_FLAG=false
-timep_IS_FUNC_FLAG1=false
+timep_IS_FUNC_FLAG_1=false
 
 timep_BASH_COMMAND_PREV=()
 timep_NPIPE=()
 timep_STARTTIME=()
 
-timep_FNEST=(${#FUNCNAME[@]})
-timep_FNEST_CUR=${#FUNCNAME[@]}
+timep_FNEST=("${#FUNCNAME[@]}")
+timep_FNEST_CUR="${#FUNCNAME[@]}"
 
 timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]=''
 timep_NPIPE[${timep_FNEST_CUR}]='0'
@@ -109,7 +109,7 @@ if (( timep_BASH_SUBSHELL_PREV == BASH_SUBSHELL )); then
 else
   timep_IS_SUBSHELL_FLAG=true
   (( BASHPID < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
-  timep_SUBSHELL_BASHPID_CUR=$BASHPID 
+  timep_SUBSHELL_BASHPID_CUR="$BASHPID" 
   builtin trap '"'"':'"'"' EXIT 
   read -r _ _ _ _ timep_CHILD_PGID _ _ timep_CHILD_TPID _ </proc/${BASHPID}/stat
   (( timep_CHILD_PGID == timep_PARENT_TPID )) || (( timep_CHILD_PGID == timep_CHILD_TPID )) || {  (( timep_CHILD_PGID == timep_PARENT_PGID )) && (( timep_CHILD_TPID == timep_PARENT_TPID )); } || timep_IS_BG_FLAG=true
@@ -124,9 +124,9 @@ elif [[ "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]}" == " (F) "* ]]; then
   timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]# (F) }"
 elif ${timep_IS_BG_FLAG}; then
   timep_CMD_TYPE="SIMPLE FORK"
-elif ${timep_IS_FUNC_FLAG1}; then
+elif ${timep_IS_FUNC_FLAG_1}; then
   timep_CMD_TYPE="FUNCTION (C)"
-  timep_IS_FUNC_FLAG1=false
+  timep_IS_FUNC_FLAG_1=false
 else
   timep_CMD_TYPE="NORMAL COMMAND"
 fi
@@ -150,7 +150,7 @@ if ${timep_IS_FUNC_FLAG}; then
   timep_FNEST_CUR="${#FUNCNAME[@]}"
   timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="${BASH_COMMAND}"
   timep_NO_PRINT_FLAG=false
-  timep_IS_FUNC_FLAG1=true
+  timep_IS_FUNC_FLAG_1=true
 else
   timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="$BASH_COMMAND"
 fi
