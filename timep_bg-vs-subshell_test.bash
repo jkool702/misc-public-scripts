@@ -1,3 +1,264 @@
+
+(
+set -T
+set -m
+
+: &
+
+read -r _ _ _ _ timep_PARENT_PGID _ _ timep_PARENT_TPID _ </proc/${BASHPID}/stat
+timep_CHILD_PGID=$timep_PARENT_PGID
+timep_CHILD_TPID=$timep_PARENT_TPID
+
+timep_BASHPID_PREV=$BASHPID
+timep_BG_PID_PREV=$!
+timep_BASH_SUBSHELL_PREV=$BASH_SUBSHELL
+timep_SUBSHELL_BASHPID_CUR=''
+timep_NEXEC_0=''
+timep_NEXEC_A=(0)
+timep_NPIDWRAP=0
+
+timep_SIMPLEFORK_NEXT_FLAG=false
+timep_SIMPLEFORK_CUR_FLAG=false
+timep_SKIP_DEBUG_FLAG=false
+timep_NO_PRINT_FLAG=false
+timep_IS_FUNC_FLAG1=false
+
+timep_BASH_COMMAND_PREV=()
+timep_NPIPE=()
+timep_STARTTIME=()
+
+timep_FNEST=(${#FUNCNAME[@]})
+timep_FNEST_CUR=${#FUNCNAME[@]}
+
+timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]=''
+timep_NPIPE[${timep_FNEST_CUR}]='0'
+timep_STARTTIME[${timep_FNEST_CUR}]="${EPOCHREALTIME}"
+
+trap() {
+    local trapStr trapType
+
+    if [[ "${1}" == -[lp] ]]; then
+        builtin trap "${@}"
+        return
+    else
+        [[ "${1}" == '--' ]] && shift 1
+        trapStr="${1%\;}"$'\n'
+        shift 1
+        if [[ "${trapStr}" == '-'$'\n' ]] || [[ "$trapStr" == $'\n' ]]; then
+            trapStr=''
+        fi
+    fi
+
+    for trapType in "${@}"; do
+        case "${trapType}" in
+            EXIT)    builtin trap ':' EXIT ;;
+            RETURN)  builtin trap  'timep_SKIP_DEBUG_FLAG=true
+unset "timep_FNEST[-1]" "timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]" "timep_NPIPE[${timep_FNEST_CUR}]" "timep_STARTTIME[${timep_FNEST_CUR}]" "timep_NEXEC_A[-1]"
+timep_NEXEC_0="${timep_NEXEC_0%.*}"
+timep_FNEST_CUR="${timep_FNEST[-1]}"
+timep_SKIP_DEBUG_FLAG=false' RETURN ;;
+            *)       eval "builtin trap ${trapStr@Q} ${trapType}" ;;
+        esac
+    done
+}
+
+export -f trap
+
+builtin trap ':' EXIT 
+builtin trap 'timep_SKIP_DEBUG_FLAG=true
+unset "timep_FNEST[-1]" "timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]" "timep_NPIPE[${timep_FNEST_CUR}]" "timep_STARTTIME[${timep_FNEST_CUR}]" "timep_NEXEC_A[-1]"
+timep_NEXEC_0="${timep_NEXEC_0%.*}"
+timep_FNEST_CUR="${timep_FNEST[-1]}"
+timep_SKIP_DEBUG_FLAG=false' RETURN
+
+builtin trap 'timep_NPIPE0=${#PIPESTATUS[@]}
+timep_ENDTIME0="${EPOCHREALTIME}"
+[[ "${BASH_COMMAND}" == trap* ]] && {
+  timep_SKIP_DEBUG_FLAG=true
+  (( timep_FNEST_CUR == ${#FUNCNAME[@]} )) && {
+    timep_FNEST_CUR=${#FUNCNAME[@]}
+    timep_FNEST+=("${#FUNCNAME[@]}")
+    timep_BASH_COMMAND_PREV+=('')
+    timep_NEXEC_0+=".${timep_NEXEC_A[-1]}"
+    timep_NEXEC_A+=(0)    
+  }
+}
+${timep_SKIP_DEBUG_FLAG} || {
+timep_NPIPE[${timep_FNEST_CUR}]=${timep_NPIPE0}
+timep_ENDTIME=${timep_ENDTIME0}
+timep_IS_BG_FLAG=false
+timep_IS_SUBSHELL_FLAG=false
+timep_IS_FUNC_FLAG=false
+timep_CMD_TYPE='"''"'
+if ${timep_SIMPLEFORK_NEXT_FLAG}; then
+  timep_SIMPLEFORK_NEXT_FLAG=false
+  timep_SIMPLEFORK_CUR_FLAG=true
+else
+  timep_SIMPLEFORK_CUR_FLAG=false
+fi
+if (( timep_BASH_SUBSHELL_PREV == BASH_SUBSHELL )); then
+  if (( timep_BG_PID_PREV == $! )); then
+    (( timep_FNEST_CUR >= ${#FUNCNAME[@]} )) || {
+      timep_NO_PRINT_FLAG=true
+      timep_IS_FUNC_FLAG=true
+      timep_FNEST+=("${#FUNCNAME[@]}")
+    }
+  else
+    timep_IS_BG_FLAG=true
+  fi
+else
+  timep_IS_SUBSHELL_FLAG=true
+  (( BASHPID < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
+  timep_SUBSHELL_BASHPID_CUR=$BASHPID 
+  builtin trap '"'"':'"'"' EXIT 
+  read -r _ _ _ _ timep_CHILD_PGID _ _ timep_CHILD_TPID _ </proc/${BASHPID}/stat
+  (( timep_CHILD_PGID == timep_PARENT_TPID )) || (( timep_CHILD_PGID == timep_CHILD_TPID )) || {  (( timep_CHILD_PGID == timep_PARENT_PGID )) && (( timep_CHILD_TPID == timep_PARENT_TPID )); } || timep_IS_BG_FLAG=true
+fi
+if ${timep_IS_SUBSHELL_FLAG} && ${timep_IS_BG_FLAG}; then
+  (( timep_CHILD_PGID == BASHPID )) && (( timep_CHILD_TPID == timep_PARENT_PGID )) && (( timep_CHILD_TPID == timep_PARENT_TPID )) && timep_SIMPLEFORK_NEXT_FLAG=true
+  timep_CMD_TYPE="BACKGROUND FORK"
+elif ${timep_IS_SUBSHELL_FLAG}; then
+  timep_CMD_TYPE="SUBSHELL"
+elif [[ "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]}" == " (F) "* ]]; then
+  timep_CMD_TYPE="FUNCTION (P)"
+  timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]# (F) }"
+elif ${timep_IS_BG_FLAG}; then
+  timep_CMD_TYPE="SIMPLE FORK"
+elif ${timep_IS_FUNC_FLAG1}; then
+  timep_CMD_TYPE="FUNCTION (C)"
+  timep_IS_FUNC_FLAG1=false
+else
+  timep_CMD_TYPE="NORMAL COMMAND"
+fi
+if ${timep_IS_SUBSHELL_FLAG}; then
+  ${timep_NO_PRINT_FLAG} || printf '"'"'[log%s.%s_%s-%s] np: %s  %s  %s  (%s.%s)  (%s.%s):  < pid: %s ( <-- %s ) > is a %s\n'"'"' "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${FUNCNAME[0]:-main}" "${BASHPID}" "${BASH_SUBSHELL}" "$BASHPID" "$timep_BASHPID_PREV" "$timep_CMD_TYPE" >&${timep_FD}
+  timep_NEXEC_0+=".${timep_NEXEC_A[-1]}_${timep_NPIDWRAP}-${BASHPID}"
+  timep_NEXEC_A+=(0)
+  timep_PARENT_PGID="$timep_CHILD_PGID"
+  timep_PARENT_TPID="$timep_CHILD_TPID"
+  timep_BASH_SUBSHELL_PREV="$BASH_SUBSHELL"
+elif [[ ${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]} ]]; then
+  ${timep_SIMPLEFORK_CUR_FLAG} && (( BASHPID < $! )) && timep_CMD_TYPE="SIMPLE FORK *"
+  ${timep_NO_PRINT_FLAG} || printf '"'"'[log%s.%s] np: %s  %s  %s  (%s.%s)  (%s.%s):  < %s > is a %s\n'"'"' "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${FUNCNAME[0]:-main}" "${BASHPID}" "${BASH_SUBSHELL}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" "$timep_CMD_TYPE"  >&${timep_FD}
+  (( timep_NEXEC_A[-1]++ ))
+fi 
+if ${timep_IS_FUNC_FLAG}; then
+  timep_NEXEC_0+=".${timep_NEXEC_A[-1]}"
+  timep_NEXEC_A+=(0)    
+  timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]=" (F) ${BASH_COMMAND}"
+  timep_NPIPE[${#FUNCNAME[@]}]="${timep_NPIPE[${timep_FNEST_CUR}]}"
+  timep_FNEST_CUR="${#FUNCNAME[@]}"
+  timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="${BASH_COMMAND}"
+  timep_NO_PRINT_FLAG=false
+  timep_IS_FUNC_FLAG1=true
+else
+  timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="$BASH_COMMAND"
+fi
+timep_BG_PID_PREV="$!"
+timep_BASHPID_PREV="$BASHPID"
+timep_STARTTIME[${timep_FNEST_CUR}]="${EPOCHREALTIME}"
+}' DEBUG
+
+{ echo ; } &
+{ ( echo A & ); echo B; } &
+
+echo 0
+{ echo 1; }
+( echo 2 )
+echo 3 &
+{ echo 4 & }
+{ echo 5; } &
+( echo 6 & )
+( echo 7 ) &
+( echo 8 )
+( echo 9 & ) &
+{ echo 9.1; echo 9.2 & } &
+{ echo 9.1a & echo 9.2a; } &
+( echo 9.1b; echo 9.2b & ) &
+( echo 9.1c & echo 9.2c; ) &
+{ echo 9.999; ( echo 9.3 & echo 9.4 ); echo 9.5; } &
+{ echo 10 & } &
+
+echo 11
+echo 12 &
+( echo 13 ) &
+( echo 14 )
+
+ff() { echo "${*}"; }
+gg() { echo "$*"; ff "$@"; }
+
+ff 15
+gg 16
+
+( echo a & ) &
+{ ( echo b ) & } &
+
+( ( ( echo A5 & ); { echo A4; } & echo A3; ) & echo A2 & echo A1 )
+
+
+cat <<EOF | grep foo | sed 's/o/O/g' | wc -l
+foo
+bar
+baz
+EOF
+
+echo "today is $(date +%Y-%m-%d)"
+x=$( (echo nested; echo subshell) | grep sub )
+
+diff <(ls /) <(ls /tmp)
+grep pattern <(sed 's/^/>>/' > /dev/null)
+
+coproc CO { for i in {1..3}; do echo "$i"; sleep .01; done; }
+while read -r n <&${CO[0]}; do printf "got %s\n" "$n"; done
+
+let "x = 5 + 6"
+arr=( one two three ); echo ${arr[@]}
+for ((i=0;i<3;i++)); do echo "$i"; done
+
+hh() {
+  trap 'echo in-ff-EXIT' EXIT
+  echo before
+  (
+    trap 'echo in-sub-EXIT' EXIT
+    echo in subshell
+  )
+  echo after
+}
+
+
+cmd="echo inside-eval"
+eval "$cmd"
+eval "eval \"$cmd\""
+
+#trap 'echo got USR1; sleep .01' USR1
+#kill -USR1 $$
+#echo after-signal
+
+for i in {1..3}; do
+  while read x; do
+    if (( x % 2 == 0 )); then
+      echo even "$x"
+    else
+      ( echo odd "$x" )
+    fi
+  done < <(seq 1 5)
+done
+    
+builtin trap - DEBUG EXIT RETURN
+
+) {timep_FD}>&2
+
+
+
+
+
+
+
+
+
+
+###########################################################################
+
 (
 
 set -T
