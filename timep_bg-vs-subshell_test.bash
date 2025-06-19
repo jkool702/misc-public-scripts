@@ -167,7 +167,7 @@ trap() {
         case "${trapType}" in
             EXIT)    builtin trap "${trapStr}"':' EXIT ;;
             RETURN)  builtin trap "${trapStr}${timep_RETURN_TRAP_STR}" RETURN ;;
-            DEBUG)   builting trap "${timep_DEBUG_TRAP_STR[0]}${trapStr}${timep_DEBUG_TRAP_STR[1]}" DEBUG ;;
+            DEBUG)   builtin trap "${timep_DEBUG_TRAP_STR[0]}${trapStr}${timep_DEBUG_TRAP_STR[1]}" DEBUG ;;
             *)       eval "builtin trap ${trapStr@Q} ${trapType}" ;;
         esac
     done
