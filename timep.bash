@@ -218,9 +218,6 @@ _timep_getFuncSrc() {
     bash --debug --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type $nn 2>/dev/null | grep -qF 'is a function' && _timep_getFuncSrc "$nn"; done
 }
 
-
-
-
 # generate the code for a wrapper function (timep_runFunc) that wraps around whatever we are running / time profiling.
 # this will setup a DEBUG trap to measure runtime from every command, then will run the specified code.
 # the source code is generated and then sourced (instead of directly defined) so that things like the tmpdir/logfile path are hardcoded.
@@ -303,42 +300,41 @@ else
 fi
 if ${timep_IS_SUBSHELL_FLAG}; then
   (( timep_BASH_SUBSHELL_DIFF = BASH_SUBSHELL - timep_BASH_SUBSHELL_PREV ))
-  timep_KK=0
-        timep_BASHPID_ADD=()
-        while (( timep_BASH_SUBSHELL_DIFF > 0 )); do
-            (( timep_BASH_SUBSHELL_DIFF-- ))
-            case "${timep_KK}" in
-                0) timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}]="${BASHPID}" ;;
-                *) (( timep_BASH_SUBSHELL_DIFF_0 = timep_BASH_SUBSHELL_DIFF + 1 )); IFS=" " read -r _ _ _ timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] _ </proc/${timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF_0}]}/stat ;;
-            esac
-            if (( timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] == timep_BASHPID_PREV )) || (( timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] <= 1 )); then
-                (( timep_BASH_SUBSHELL_DIFF++ ))
-                break
-            else
-                (( timep_KK++ ))
-            fi
-            unset "timep_BASH_SUBSHELL_DIFF_0"
-        done
-        timep_KK="${timep_BASH_SUBSHELL_DIFF}"
-             timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
-            timep_NEXEC_A+=(0)
-        while (( timep_KK < ( ${#timep_BASHPID_ADD[@]} - 1 ) )); do
+  timep_KK=0    timep_BASHPID_ADD=()
+    while (( timep_BASH_SUBSHELL_DIFF > 0 )); do
+      (( timep_BASH_SUBSHELL_DIFF-- ))
+      case "${timep_KK}" in
+        0) timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}]="${BASHPID}" ;;
+        *) (( timep_BASH_SUBSHELL_DIFF_0 = timep_BASH_SUBSHELL_DIFF + 1 )); IFS=" " read -r _ _ _ timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] _ </proc/${timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF_0}]}/stat ;;
+      esac
+      if (( timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] == timep_BASHPID_PREV )) || (( timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] <= 1 )); then
+        (( timep_BASH_SUBSHELL_DIFF++ ))
+        break
+      else
+        (( timep_KK++ ))
+      fi
+      unset "timep_BASH_SUBSHELL_DIFF_0"
+    done
+    timep_KK="${timep_BASH_SUBSHELL_DIFF}"
+       timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
+      timep_NEXEC_A+=(0)
+    while (( timep_KK < ( ${#timep_BASHPID_ADD[@]} - 1 ) )); do
 
-            (( timep_BASHPID_ADD[${timep_KK}] < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
-            timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
-            timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
-            (( timep_KK++ ))
-             timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
-            timep_NEXEC_A+=(0)
-        done
-            (( timep_BASHPID_ADD[${timep_KK}] < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
-            timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
-        unset "timep_KK" "timep_BASHPID_ADD"
-  ${timep_NO_PRINT_FLAG} || printf '"'"'log%s.%s[%s-%s] np: %s  %s  %s  (f:%s %s)  (s:%s %s):  < pid: %s > is a %s\n'"'"' "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${BASHPID}" "${timep_CMD_TYPE}" >&${timep_FD}
-             timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
-             timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
-            timep_NEXEC_A+=(0)
-            timep_PARENT_PGID="$timep_CHILD_PGID"
+      (( timep_BASHPID_ADD[${timep_KK}] < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
+      timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
+      timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
+      (( timep_KK++ ))
+       timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
+      timep_NEXEC_A+=(0)
+    done
+    (( timep_BASHPID_ADD[${timep_KK}] < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
+    timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
+    unset "timep_KK" "timep_BASHPID_ADD"
+    ${timep_NO_PRINT_FLAG} || printf '"'"'log%s.%s[%s-%s] np: %s  %s  %s  (f:%s %s)  (s:%s %s):  < pid: %s > is a %s\n'"'"' "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${BASHPID}" "${timep_CMD_TYPE}" >&${timep_FD}
+    timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
+    timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
+    timep_NEXEC_A+=(0)
+    timep_PARENT_PGID="$timep_CHILD_PGID"
   timep_PARENT_TPID="$timep_CHILD_TPID"
   timep_BASH_SUBSHELL_PREV="$BASH_SUBSHELL"
 elif [[ ${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]} ]]; then
