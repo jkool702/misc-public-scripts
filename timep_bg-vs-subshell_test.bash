@@ -55,7 +55,11 @@ declare -a timep_DEBUG_TRAP_STR
 timep_DEBUG_TRAP_STR[0]='timep_NPIPE0="${#PIPESTATUS[@]}"
 timep_ENDTIME0="${EPOCHREALTIME}"
 '
-timep_DEBUG_TRAP_STR[1]='[[ "${BASH_COMMAND}" == trap\ * ]] && {
+timep_DEBUG_TRAP_STR[1]='[[ "$-" == *m* ]] || { 
+  printf '"'"'\nWARNING: timep requires job control to be enabled.\n         Running "set +m" is not allowed!\n         Job control will automatically be re-enabled.\n\n'"'"' >&2
+  set -m
+}
+[[ "${BASH_COMMAND}" == trap\ * ]] && {
   timep_SKIP_DEBUG_FLAG=true
   (( timep_FNEST_CUR == ${#FUNCNAME[@]} )) && {
     timep_FNEST_CUR="${#FUNCNAME[@]}"
