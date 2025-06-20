@@ -42,20 +42,18 @@ builtin trap - EXIT RETURN DEBUG
 
 export -p timep_RETURN_TRAP_STR &>/dev/null && export -n timep_RETURN_TRAP_STR
 
-timep_RETURN_TRAP_STR='timep_SKIP_DEBUG_FLAG=true
+declare -gxr timep_RETURN_TRAP_STR='timep_SKIP_DEBUG_FLAG=true
 unset "timep_FNEST[-1]" "timep_NEXEC_A[-1]" "timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]" "timep_NPIPE[${timep_FNEST_CUR}]" "timep_STARTTIME[${timep_FNEST_CUR}]"
 timep_NEXEC_0="${timep_NEXEC_0%.*}"
 timep_FUNCNAME_STR="${timep_FUNCNAME_STR%.*}"
 timep_FNEST_CUR="${timep_FNEST[-1]}"
 timep_SKIP_DEBUG_FLAG=false'
-export timep_RETURN_TRAP_STR
 
 export -p timep_DEBUG_TRAP_STR &>/dev/null && export -n timep_DEBUG_TRAP_STR
-declare -a timep_DEBUG_TRAP_STR
-timep_DEBUG_TRAP_STR[0]='timep_NPIPE0="${#PIPESTATUS[@]}"
+declare -agxr timep_DEBUG_TRAP_STR=('timep_NPIPE0="${#PIPESTATUS[@]}"
 timep_ENDTIME0="${EPOCHREALTIME}"
-'
-timep_DEBUG_TRAP_STR[1]='[[ "$-" == *m* ]] || { 
+' '
+[[ "$-" == *m* ]] || { 
   printf '"'"'\nWARNING: timep requires job control to be enabled.\n         Running "set +m" is not allowed!\n         Job control will automatically be re-enabled.\n\n'"'"' >&2
   set -m
 }
@@ -146,7 +144,7 @@ fi
 timep_BG_PID_PREV="$!"
 timep_BASHPID_PREV="$BASHPID"
 timep_STARTTIME[${timep_FNEST_CUR}]="${EPOCHREALTIME}"
-}' 
+}')
 
 export timep_DEBUG_TRAP_STR
 
