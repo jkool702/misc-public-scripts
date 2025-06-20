@@ -125,7 +125,7 @@ if ${timep_IS_SUBSHELL_FLAG}; then
                 0) timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}]="${BASHPID}" ;;
                 *) (( timep_BASH_SUBSHELL_DIFF_0 = timep_BASH_SUBSHELL_DIFF + 1 )); IFS=" " read -r _ _ _ timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] _ </proc/${timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF_0}]}/stat ;;
             esac
-            if (( timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] == timep_BASHPID_PREV )); then
+            if (( timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] == timep_BASHPID_PREV )) || (( timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] <= 1 )); then
                 (( timep_BASH_SUBSHELL_DIFF++ ))
                 break
             else
