@@ -309,6 +309,7 @@ if ${timep_IS_SUBSHELL_FLAG}; then
       esac
       if (( timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] == timep_BASHPID_PREV )) || (( timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] <= 1 )); then
         (( timep_BASH_SUBSHELL_DIFF++ ))
+        unset "timep_BASH_SUBSHELL_DIFF_0"
         break
       else
         (( timep_KK++ ))
@@ -319,7 +320,6 @@ if ${timep_IS_SUBSHELL_FLAG}; then
        timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
       timep_NEXEC_A+=(0)
     while (( timep_KK < ( ${#timep_BASHPID_ADD[@]} - 1 ) )); do
-
       (( timep_BASHPID_ADD[${timep_KK}] < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
       timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
       timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
@@ -330,7 +330,7 @@ if ${timep_IS_SUBSHELL_FLAG}; then
     (( timep_BASHPID_ADD[${timep_KK}] < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
     timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
     unset "timep_KK" "timep_BASHPID_ADD"
-    ${timep_NO_PRINT_FLAG} || printf '"'"'log%s.%s[%s-%s] np: %s  %s  %s  (f:%s %s)  (s:%s %s):  < pid: %s > is a %s\n'"'"' "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${BASHPID}" "${timep_CMD_TYPE}" >&${timep_FD}
+    ${timep_NO_PRINT_FLAG} || printf '"'"'np: %s  %s  %s  (f:%s %s)  (s:%s %s):  << (%s): log%s.%s[%s-%s] >>\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_CMD_TYPE}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}" 
     timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
     timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
     timep_NEXEC_A+=(0)
