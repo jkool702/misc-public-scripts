@@ -268,8 +268,8 @@ fi
 if (( timep_BASH_SUBSHELL_PREV == BASH_SUBSHELL )); then
   if (( timep_BG_PID_PREV == $! )); then
     (( timep_FNEST_CUR >= ${#FUNCNAME[@]} )) || {
-      timep_NO_PRINT_FLAG=true
       timep_IS_FUNC_FLAG=true
+      timep_NO_PRINT_FLAG=true
       timep_FNEST+=("${#FUNCNAME[@]}")
     }
   else
@@ -277,6 +277,7 @@ if (( timep_BASH_SUBSHELL_PREV == BASH_SUBSHELL )); then
   fi
 else
   timep_IS_SUBSHELL_FLAG=true
+  echo "${timep_ENDTIME}" >>"${timep_TMPDIR}/.endtimes/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}" 
   (( BASHPID < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
   timep_SUBSHELL_BASHPID_CUR="$BASHPID"
   builtin trap '"'"':'"'"' EXIT
@@ -332,7 +333,7 @@ if ${timep_IS_SUBSHELL_FLAG}; then
     (( timep_BASHPID_ADD[${timep_KK}] < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
     timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
     unset "timep_KK" "timep_BASHPID_ADD"
-    ${timep_NO_PRINT_FLAG} || printf '"'"'np: %s  %s  %s  (F:%s %s)  (S:%s %s)  (N:%s %s.%s[%s-%s]):  << (%s) >>\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_CMD_TYPE}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}" 
+    ${timep_NO_PRINT_FLAG} || printf '"'"'np: %s  %s  %s  (F:%s %s)  (S:%s %s)  (N:%s %s.%s):  << (%s) >>\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_CMD_TYPE}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}" 
     timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
     timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
     timep_NEXEC_A+=(0)
@@ -349,8 +350,16 @@ elif [[ ${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]} ]]; then
      timep_IS_BG_INDICATOR='"'"'(&)'"'"'
   else
      timep_IS_BG_INDICATOR='"''"'
-  fi     
-  ${timep_NO_PRINT_FLAG} || printf '"'"'np: %s  %s  %s  (F:%s %s)  (S:%s %s)  (N:%s %s.%s[%s-%s]):  %s %s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}"  "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" "${timep_IS_BG_INDICATOR}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}" 
+  fi
+  [[ -s "${timep_TMPDIR}/.endtimes/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}" ]] && {
+    {
+      while read -r -u ${timep_FD} timep_ENDTIME0; do
+        (( ${timep_ENDTIME0//./} < ${timep_ENDTIME//./} )) && timep_ENDTIME="${timep_ENDTIME0}"
+      done
+    } {timep_FD}<"${timep_TMPDIR}/.endtimes/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}"
+    exec {timep_FD}>&-
+  }
+  ${timep_NO_PRINT_FLAG} || printf '"'"'np: %s  %s  %s  (F:%s %s)  (S:%s %s)  (N:%s %s.%s):  %s %s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}"  "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" "${timep_IS_BG_INDICATOR}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}" 
   (( timep_NEXEC_A[-1]++ ))
   (( timep_NEXEC_N++ ))
 fi
