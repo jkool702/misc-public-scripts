@@ -330,7 +330,8 @@ if ${timep_IS_SUBSHELL_FLAG}; then
     (( timep_BASHPID_ADD[${timep_KK}] < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
     timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
     unset "timep_KK" "timep_BASHPID_ADD"
-    ${timep_NO_PRINT_FLAG} || printf '"'"'np: %s  %s  %s  (f:%s %s)  (s:%s %s):  << (%s): log%s.%s[%s-%s] >>\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_CMD_TYPE}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}" 
+    ${timep_NO_PRINT_FLAG} || printf '"'"'np: %s  %s  %s  (f:%s %s)  (s:%s %s):  << (%s): log%s.%s[%s-%s] >>\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_CMD_TYPE}" "${timep_NEXEC
+_CUR}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}" 
     timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
     timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
     timep_NEXEC_A+=(0)
@@ -338,8 +339,16 @@ if ${timep_IS_SUBSHELL_FLAG}; then
   timep_PARENT_TPID="$timep_CHILD_TPID"
   timep_BASH_SUBSHELL_PREV="$BASH_SUBSHELL"
 elif [[ ${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]} ]]; then
-  ${timep_SIMPLEFORK_CUR_FLAG} && (( BASHPID < $! )) && timep_CMD_TYPE="SIMPLE FORK *"
-  ${timep_NO_PRINT_FLAG} || printf '"'"'log%s.%s[%s-%s] np: %s  %s  %s  (f:%s %s)  (s:%s %s):  < %s > is a %s\n'"'"' "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" "${timep_CMD_TYPE}" >&${timep_FD}
+  ${timep_SIMPLEFORK_CUR_FLAG} && (( BASHPID < $! )) && { 
+    timep_IS_BG_FLAG=true
+    timep_CMD_TYPE="SIMPLE FORK *"
+  }
+  if ${timep_IS_BG_FLAG}; then
+     timep_IS_BG_INDICATOR='"'"'(&)'"'"'
+  else
+     timep_IS_BG_INDICATOR='"''"'
+  fi     
+  ${timep_NO_PRINT_FLAG} || printf '"'"'np: %s  %s  %s  (f:%s %s)  (s:%s %s):  < %s > is a %s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" "${timep_CMD_TYPE}" >&${timep_FD}
   (( timep_NEXEC_A[-1]++ ))
 fi
 if ${timep_IS_FUNC_FLAG}; then
