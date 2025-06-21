@@ -330,8 +330,7 @@ if ${timep_IS_SUBSHELL_FLAG}; then
     (( timep_BASHPID_ADD[${timep_KK}] < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
     timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
     unset "timep_KK" "timep_BASHPID_ADD"
-    ${timep_NO_PRINT_FLAG} || printf '"'"'np: %s  %s  %s  (f:%s %s)  (s:%s %s):  << (%s): log%s.%s[%s-%s] >>\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_CMD_TYPE}" "${timep_NEXEC
-_CUR}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}" 
+    ${timep_NO_PRINT_FLAG} || printf '"'"'np: %s  %s  %s  (F:%s %s)  (S:%s %s)  (N: %s.%s[%s-%s]):  << (%s) >>\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_CMD_TYPE}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}" 
     timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
     timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
     timep_NEXEC_A+=(0)
@@ -348,7 +347,7 @@ elif [[ ${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]} ]]; then
   else
      timep_IS_BG_INDICATOR='"''"'
   fi     
-  ${timep_NO_PRINT_FLAG} || printf '"'"'np: %s  %s  %s  (f:%s %s)  (s:%s %s):  < %s > is a %s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" "${timep_CMD_TYPE}" >&${timep_FD}
+  ${timep_NO_PRINT_FLAG} || printf '"'"'np: %s  %s  %s  (F:%s %s)  (S:%s %s)  (N: %s.%s[%s-%s]): %s %s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" "${timep_IS_BG_INDICATOR}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}" 
   (( timep_NEXEC_A[-1]++ ))
 fi
 if ${timep_IS_FUNC_FLAG}; then
