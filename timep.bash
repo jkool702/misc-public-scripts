@@ -65,7 +65,6 @@ timep() (
     shopt -s extglob
 
     local timep_runType=''
-    local -a timep_DEBUG_TRAP_STR
 
     # parse flags
     while true; do
@@ -186,6 +185,8 @@ _timep_getFuncSrc() {
                 ((n--))
             done
             A=("${A[@]:$n}")
+            off=$(( 1 - $( { history | grep -n '' | grep -E '^[0-9]+:[[:space:]]*[0-9]*[[:space:]]*((function[[:space:]]+'"${1}"')|('"${1}"'[[:space:]]*\(\)))' | tail -n 1; history | grep -n '' | tail -n 1; } | sed -E s/'\:.*$'// | sed -zE s/'\n'/' +'/) ))
+            mapfile -t A < <(history | tail -n $off | sed -E s/'^[[:space:]]*[0-9]*[[:space:]]*'//)
         else
             # cant extract original source. use declare -f.
             declare -f "${1}"
@@ -197,7 +198,14 @@ _timep_getFuncSrc() {
 
         # our text blob *should* now start at the start of the function definition, but goes all the way to the EOF.
         # try sourcing just the 1st line, then the first 2, then the first 3, etc. until the function sources correctly.
-        m=$( kk=1;  IFS=$'\n'; until . /proc/self/fd/0 <<<"${A[*]:0:$kk}" &>/dev/null || (( m > ${#A[@]} )); do ((kk++)); done; echo "$kk"; )
+        mm=0
+        m=0
+        funcdef0="$(declare -f "$1")"
+        until ( . /proc/self/fd/0 <<<"${A[*]:${mm}:${m}}" && [[ "$(declare -f "$1")" == "${funcdef0}" ]] ) ||  (( m > ${#A[@]} )); do
+            mm=${m}
+            m=$(kk=1; IFS=$'\n'; until . /proc/self/fd/0 <<<"${A[*]:0:$kk}" &>/dev/null || (( kk > ${#A[@]} )); do ((kk++)); done; echo "$kk"; )
+        done
+
         if (( m == 0 )) || (( m > ${#A[@]} )); then
             declare -f "$1"
         else
@@ -232,10 +240,12 @@ timep_FUNCNAME_STR="${timep_FUNCNAME_STR%.*}"
 timep_FNEST_CUR="${timep_FNEST[-1]}"
 timep_SKIP_DEBUG_FLAG=false'
 
-export -p timep_DEBUG_TRAP_STR &>/dev/null && export -n timep_DEBUG_TRAP_STR
-declare -agxr timep_DEBUG_TRAP_STR=('timep_NPIPE0="${#PIPESTATUS[@]}"
+export -p timep_DEBUG_TRAP_STR_0 &>/dev/null && export -n timep_DEBUG_TRAP_STR_0
+export -p timep_DEBUG_TRAP_STR_1 &>/dev/null && export -n timep_DEBUG_TRAP_STR_1
+declare -gxr timep_DEBUG_TRAP_STR_0='timep_NPIPE0="${#PIPESTATUS[@]}"
 timep_ENDTIME0="${EPOCHREALTIME}"
-' '
+' 
+declare -gxr timep_DEBUG_TRAP_STR_1='
 [[ "$-" == *m* ]] || { 
   printf '"'"'\nWARNING: timep requires job control to be enabled.\n         Running "set +m" is not allowed!\n         Job control will automatically be re-enabled.\n\n'"'"' >&2
   set -m
@@ -282,14 +292,14 @@ else
   timep_SUBSHELL_BASHPID_CUR="$BASHPID"
   builtin trap '"'"':'"'"' EXIT
   read -r _ _ _ _ timep_CHILD_PGID _ _ timep_CHILD_TPID _ </proc/${BASHPID}/stat
-  (( timep_CHILD_PGID == timep_PARENT_TPID )) || (( timep_CHILD_PGID == timep_CHILD_TPID )) || {  (( timep_CHILD_PGID == timep_PARENT_PGID )) && (( timep_CHILD_TPID == timep_PARENT_TPID )); } || timep_IS_BG_FLAG=true
+  (( timep_CHILD_PGID == timep_PARENT_TPID )) || (( timep_CHILD_PGID == timep_CHILD_TPID )) || { (( timep_CHILD_PGID == timep_PARENT_PGID )) && (( timep_CHILD_TPID == timep_PARENT_TPID )); } || timep_IS_BG_FLAG=true
 fi
 if ${timep_IS_SUBSHELL_FLAG} && ${timep_IS_BG_FLAG}; then
   (( timep_CHILD_PGID == BASHPID )) && (( timep_CHILD_TPID == timep_PARENT_PGID )) && (( timep_CHILD_TPID == timep_PARENT_TPID )) && timep_SIMPLEFORK_NEXT_FLAG=true
   timep_CMD_TYPE="BACKGROUND FORK"
 elif ${timep_IS_SUBSHELL_FLAG}; then
   timep_CMD_TYPE="SUBSHELL"
-elif [[ "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]}" == " (F) "* ]]; then
+elif [[ "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]}" == '"'"' (F) '"'"'* ]]; then
   timep_CMD_TYPE="FUNCTION (P)"
   timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]# (F) }"
 elif ${timep_IS_BG_FLAG}; then
@@ -335,7 +345,7 @@ if ${timep_IS_SUBSHELL_FLAG}; then
     timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
     unset "timep_KK" "timep_BASHPID_ADD"
     timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
-    ${timep_NO_PRINT_FLAG} || printf '"'"'%s	%s	-	F:%s	%s	S:%s	%s	N:%s	%s.%s	%s	::	<< (%s) >>\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}"  "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_CMD_TYPE}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}" 
+    ${timep_NO_PRINT_FLAG} || printf '"'"'%s	%s	-	F:%s	%s	S:%s	%s	N:%s	%s.%s	%s	::	<< (%s) >>\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}"  "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_CMD_TYPE}" >>"${timep_TMPDIR}/.log/${timep_NEXEC_0}" 
     timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
     timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
     timep_NEXEC_A+=(0)
@@ -361,7 +371,7 @@ elif [[ ${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]} ]]; then
     } {timep_FD}<"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}"
     exec {timep_FD}>&-
   }
-  ${timep_NO_PRINT_FLAG} || printf '"'"'%s	%s	%s	F:%s	%s	S:%s	%s	N:%s	%s.%s	%s	::	%s %s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}"  "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" "${timep_IS_BG_INDICATOR}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}" 
+  ${timep_NO_PRINT_FLAG} || printf '"'"'%s	%s	%s	F:%s	%s	S:%s	%s	N:%s	%s.%s	%s	::	%s %s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}"  "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" "${timep_IS_BG_INDICATOR}" >>"${timep_TMPDIR}/.log/${timep_NEXEC_0}" 
   (( timep_NEXEC_A[-1]++ ))
   (( timep_NEXEC_N++ ))
 fi
@@ -382,7 +392,7 @@ timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
 timep_BG_PID_PREV="$!"
 timep_BASHPID_PREV="$BASHPID"
 timep_STARTTIME[${timep_FNEST_CUR}]="${EPOCHREALTIME}"
-}')
+}'
 
 # overload the trap builtin to allow the use of custom EXIT/RETURN/DEBUG traps
 
@@ -407,7 +417,7 @@ trap() {
         case "${trapType}" in
             EXIT)    builtin trap "${trapStr}"':' EXIT ;;
             RETURN)  builtin trap "${trapStr}${timep_RETURN_TRAP_STR}" RETURN ;;
-            DEBUG)   builtin trap "${timep_DEBUG_TRAP_STR[0]}${trapStr}${timep_DEBUG_TRAP_STR[1]}" DEBUG ;;
+            DEBUG)   builtin trap "${timep_DEBUG_TRAP_STR_0}${trapStr}${timep_DEBUG_TRAP_STR_1}" DEBUG ;;
             *)       eval "builtin trap ${trapStr@Q} ${trapType}" ;;
         esac
     done
@@ -415,7 +425,7 @@ trap() {
 
 export -f trap
 
-    { declare -p timep_RETURN_TRAP_STR timep_DEBUG_TRAP_STR; printf '\n\n'; declare -f trap; printf '\n\n'; } >"${timep_TMPDIR}/functions.bash"
+    { declare -p timep_RETURN_TRAP_STR timep_DEBUG_TRAP_STR_0 timep_DEBUG_TRAP_STR_1; printf '\n\n'; declare -f trap; printf '\n\n'; } >"${timep_TMPDIR}/functions.bash"
 
     # setup a string with the command to run
     case "${timep_runType}" in
@@ -463,7 +473,7 @@ timep_runFuncSrc+='(
 
     : & 2>/dev/null
 
-    timep_TMPDIR="'"${timep_TMPDIR}"'
+    declare -gxr timep_TMPDIR="'"${timep_TMPDIR}"'"
     . "${timep_TMPDIR}/functions.bash"
     export -f trap
 
@@ -475,7 +485,7 @@ timep_runFuncSrc+='(
     timep_BG_PID_PREV="$!"
     timep_BASH_SUBSHELL_PREV="$BASH_SUBSHELL"
     timep_SUBSHELL_BASHPID_CUR='"''"'
-    timep_NEXEC_0='"''"'
+    timep_NEXEC_0='"'"'log'"'"'
     timep_NEXEC_A=('"'"'0'"'"')
     timep_NPIDWRAP='"'"'0'"'"'
     timep_BASHPID_STR="${BASHPID}"
@@ -500,7 +510,7 @@ timep_runFuncSrc+='(
 
     echo "$(( LINENO + 4 ))" >${timep_TMPDIR}/.log/lineno_offset"
 
-    builtin trap '"'${timep_DEBUG_TRAP_STR[@]//"'"/"'"'"'"'"'"'"'"}'"' DEBUG
+    builtin trap '"'${timep_DEBUG_TRAP_STR_0//"'"/"'"'"'"'"'"'"'"}${timep_DEBUG_TRAP_STR_1//"'"/"'"'"'"'"'"'"'"}'"' DEBUG
 
     '"${timep_runCmd}"'
 
@@ -555,9 +565,12 @@ esac
 printf '\n\nThe %s being time profiled has finished running!\ntimep will now process the logged timing data.\ntimep will save the time profiles it generates in "%s"\n\n' "$([[ "${timep_runType}" == 's' ]] && echo 'script' || echo 'function')" "${timep_TMPDIR}" >&2
 unset IFS
 
- ls -la "${timep_TMPDIR}"/.log/
-find "${timep_TMPDIR}"/.log/ -empty -exec rm {} +
-for nn in "${timep_TMPDIR}"/{*.bash,.log/*}; do printf '\n\n--------------------------------------\n%s\n\n' "$nn"; cat "$nn"; done 
+#ls -la "${timep_TMPDIR}"/.log/
+#find "${timep_TMPDIR}"/.log/ -empty -exec rm {} +
+
+# ERROR
+#/dev/shm/.timep.36B1EB0/main.bash: line 112: syntax error near unexpected token `('
+#/dev/shm/.timep.36B1EB0/main.bash: line 112: `elif [[ "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]}" == '"'"' (F) '"'"'* ]]; then'
 
 
 # TO DO
