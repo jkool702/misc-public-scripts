@@ -506,7 +506,7 @@ timep_runFuncSrc+='(
     timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
     
     builtin trap '"'${timep_RETURN_TRAP_STR//"'"/"'"'"'"'"'"'"'"}'"' RETURN
-    builtin trap ':' EXIT
+    builtin trap '"'"':'"'"' EXIT
 
     echo "$(( LINENO + 4 ))" >${timep_TMPDIR}/.log/lineno_offset"
 
