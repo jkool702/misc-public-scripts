@@ -62,10 +62,7 @@ timep() (
     #
     ################################################################################################################################################################
 
-{
-  local timep_PTY_FD
   timep0() {
-    {
 
     shopt -s extglob
     #[[ "${SHELLOPTS}" =~ ^(.+\:)?monitor(\:.+)?$ ]] || export SHELLOPTS="${SHELLOPTS}${SHELLOPTS:+:}monitor"
@@ -677,46 +674,12 @@ export -nf _timep_check_traps
 #    \rm -r "${timep_TMPDIR}"
 #fi
 EOF
-  } 2>&${timep_FD2}
 }
 
-timep_PTY_FLAG=false
-timep_PPID=${BASHPID}
-for kk in 2 0 1; do
-    [[ -t "/proc/${timep_PPID}/fd/$kk" ]] && { 
-        timep_PTY_FLAG=true
-        timep_PTY_FD="/proc/${timep_PPID}/fd/$kk"
-        break
-    }
-done
-until ${timep_PTY_FLAG}; do
-    timep_PPID0=${timep_PPID}
-    for kk in 2 0 1; do
-        IFS=\  read -r _ _ _ timep_PPID _ <"/proc/${timep_PPID0}/stat"
-        [[ -t "/proc/${timep_PPID}/fd/$kk" ]] && { 
-            timep_PTY_FLAG=true
-            timep_PTY_FD="/proc/${timep_PPID}/fd/$kk"
-            break
-        }
-    done
-    (( timep_PPID > 1 )) || break
-done
-
-${timep_PPID_FLAG} || printf '\n\nWARNING: job control could not be enabled due to lack of controlling PTY. subshells and background forks may not be properly distinguished!\n\n' >&${timep_FD2}
-
-if ${timep_PTY_FLAG}; then
-    export -f timep0
-    if [[ -t 0 ]]; then
-        exec bash -o monitor -O extglob -m -c 'timep0 "$@"' 2>"$pty_check"
-    else
-        exec bash -o monitor -O extglob -m -c 'timep0 "$@"' 2>"$pty_check" <&0
-    fi
+if [[ -t 0 ]]; then
+    timep0 "$@"
 else
-    if [[ -t 0 ]]; then
-        timep0 "$@"
-    else
-        timep0 "$@" <&0
-    fi
+    timep0 "$@" <&0
 fi
-} {timep_FD2}>&2
+
 )
