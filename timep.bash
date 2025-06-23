@@ -198,18 +198,25 @@ _timep_getFuncSrc() {
 
         # our text blob *should* now start at the start of the function definition, but goes all the way to the EOF.
         # try sourcing just the 1st line, then the first 2, then the first 3, etc. until the function sources correctly.
+		# if pulling the function definition out of the history, its possible that the text blob starts at an old definition for the function.
+		#   --> also require that is produces the same `declare -f` as the orig function. if not keep going
+		#  --> wrap in a 2nd function definition so that any "regular commands" wont get re-run
         mm=0
         m=0
-        funcdef0="$(declare -f "$1")"
-        until ( . /proc/self/fd/0 <<<"${A[*]:${mm}:${m}}" && [[ "$(declare -f "$1")" == "${funcdef0}" ]] ) ||  (( m > ${#A[@]} )); do
+        funcdef0="$( . /proc/self/fd/0 <<<"_timep_getFuncSrc1() {
+    $(declare -f "$1")
+}; declare -f _timep_getFuncSrc1")"
+        until ( IFS=$'\n'; . /proc/self/fd/0 <<<"_timep_getFuncSrc1() {
+    ${A[*]:${mm}:${m}}
+}" && [[ "$(declare -f _timep_getFuncSrc1)" == "${funcdef0}" ]] ) ||  (( m > ${#A[@]} )); do
             mm=${m}
-            m=$(kk=1; IFS=$'\n'; until . /proc/self/fd/0 <<<"${A[*]:0:$kk}" &>/dev/null || (( kk > ${#A[@]} )); do ((kk++)); done; echo "$kk"; )
+            m=$(kk=1; IFS=$'\n'; until . /proc/self/fd/0 <<<"${A[*]:${mm}:${kk}}" &>/dev/null || (( kk > ${#A[@]} )); do ((kk++)); done; echo "$kk"; )
         done
 
         if (( m == 0 )) || (( m > ${#A[@]} )); then
             declare -f "$1"
         else
-            printf '%s\n' "${A[@]:0:$m}"
+            printf '%s\n' "${A[@]:${mm}:${m}}"
         fi
     }
 
@@ -223,7 +230,10 @@ _timep_getFuncSrc() {
     # feed the function definition through `bash --rpm-requires` to get dependencies,
     # then test each with `type` to find function dependencies.
     # re-call _timep_getFuncSrc for each dependent function.
-    bash --debug --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type $nn 2>/dev/null | grep -qF 'is a function' && _timep_getFuncSrc "$nn"; done
+	# NOTE: the "--rpm-requires" flag is non-standard, and may only be available on distros based on red hat / fedora
+    : | bash --debug --rpm-requires -O extglob &>/dev/null && {
+	    bash --debug --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type $nn 2>/dev/null | grep -qF 'is a function' && _timep_getFuncSrc "$nn"; done
+	}
 }
 
 # generate the code for a wrapper function (timep_runFunc) that wraps around whatever we are running / time profiling.
@@ -563,7 +573,7 @@ unset IFS
 
 sleep 1
 mapfile -t timep_LOG_A < <(printf '%s\n' "${timep_TMPDIR}"/.log/log* | sort -V)
-for nn in "${timep_LOG_A[@]}"; do printf '\n\n------------------------------------------------------------------\n%s\n\n' "$nn"; cat "$nn"; done >&2
+for nn in "${timep_LOG_A[@]}"; do printf '\n\n------------------------------------------------------------------\n%s\n\n' "$nn"; sort -n -k2 <"$nn"; done >&2
 
 # TO DO
 ##### AFTER the code has finished running, a post-processing phase will:
