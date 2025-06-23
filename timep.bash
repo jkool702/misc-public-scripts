@@ -466,6 +466,7 @@ trap() {
 
     chmod +x "${timep_TMPDIR}/functions.bash"
 timep_runFuncSrc+='(
+    exec '"${type -p bash)"'
 
     builtin trap - DEBUG EXIT RETURN
 
