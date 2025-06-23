@@ -1,118 +1,46 @@
 0
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25304  bp: 25304   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo 0' > is a NORMAL COMMAND
+
 1
-pp: 25302   pt: 25302   cp: 25305   ct: 25305   lbp: 25304  bp: 25304   BP: 25305  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25305 > is a SUBSHELL
+A
 2
-pp: 25305   pt: 25305   cp: 25305   ct: 25305   lbp: 25304  bp: 25304   BP: 25305  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25305): < 'echo 2' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25304  bp: 25304   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo 1' > is a NORMAL COMMAND
+B
 3
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25304  bp: 25306   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo 3' > is a SIMPLE FORK
 4
-pp: 25302   pt: 25302   cp: 25308   ct: 25309   lbp: 25306  bp: 25307   BP: 25308  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25308 > is a BACKGROUND FORK
 5
-pp: 25302   pt: 25302   cp: 25309   ct: 25309   lbp: 25306  bp: 25308   BP: 25309  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25309 > is a SUBSHELL
-pp: 25308   pt: 25309   cp: 25308   ct: 25309   lbp: 25307  bp: 25307   BP: 25308  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25308): < 'echo 5' > is a NORMAL COMMAND
 6
-pp: 25309   pt: 25309   cp: 25309   ct: 25309   lbp: 25308  bp: 25310   BP: 25309  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25309): < 'echo 6' > is a SIMPLE FORK
-pp: 25302   pt: 25302   cp: 25311   ct: 25312   lbp: 25306  bp: 25308   BP: 25311  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25311 > is a BACKGROUND FORK
-7
-pp: 25311   pt: 25312   cp: 25311   ct: 25312   lbp: 25308  bp: 25308   BP: 25311  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25311): < 'echo 7' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25312   ct: 25312   lbp: 25306  bp: 25311   BP: 25312  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25312 > is a SUBSHELL
 8
-pp: 25312   pt: 25312   cp: 25312   ct: 25312   lbp: 25311  bp: 25311   BP: 25312  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25312): < 'echo 8' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25313   ct: 25302   lbp: 25306  bp: 25311   BP: 25313  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25313 > is a BACKGROUND FORK
-pp: 25302   pt: 25302   cp: 25314   ct: 25302   lbp: 25306  bp: 25313   BP: 25314  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25314 > is a BACKGROUND FORK
+7
 9.1
-pp: 25314   pt: 25302   cp: 25314   ct: 25302   lbp: 25313  bp: 25313   BP: 25314  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25314): < 'echo 9.1' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25315   ct: 25302   lbp: 25306  bp: 25314   BP: 25315  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25315 > is a BACKGROUND FORK
-pp: 25302   pt: 25302   cp: 25316   ct: 25302   lbp: 25306  bp: 25315   BP: 25316  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25316 > is a BACKGROUND FORK
-9
-9.1b
-pp: 25316   pt: 25302   cp: 25316   ct: 25302   lbp: 25315  bp: 25315   BP: 25316  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25316): < 'echo 9.1b' > is a NORMAL COMMAND
-pp: 25313   pt: 25302   cp: 25313   ct: 25302   lbp: 25311  bp: 25318   BP: 25313  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25313): < 'echo 9' > is a SIMPLE FORK *
-9.1a
-9.2
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25306  bp: 25320   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo 4' > is a SIMPLE FORK
 11
-pp: 25315   pt: 25302   cp: 25315   ct: 25302   lbp: 25314  bp: 25322   BP: 25315  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25315): < 'echo 9.1a' > is a SIMPLE FORK *
-9.2a
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25320  bp: 25320   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo 11' > is a NORMAL COMMAND
-pp: 25314   pt: 25302   cp: 25314   ct: 25302   lbp: 25313  bp: 25321   BP: 25314  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25314): < 'echo 9.2' > is a SIMPLE FORK
-9.2b
-pp: 25302   pt: 25302   cp: 25317   ct: 25302   lbp: 25306  bp: 25316   BP: 25317  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25317 > is a BACKGROUND FORK
-pp: 25315   pt: 25302   cp: 25315   ct: 25302   lbp: 25322  bp: 25322   BP: 25315  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25315): < 'echo 9.2a' > is a NORMAL COMMAND
-pp: 25316   pt: 25302   cp: 25316   ct: 25302   lbp: 25315  bp: 25323   BP: 25316  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25316): < 'echo 9.2b' > is a SIMPLE FORK
-9.1c
-12
-pp: 25302   pt: 25302   cp: 25320   ct: 25327   lbp: 25306  bp: 25319   BP: 25320  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25320 > is a BACKGROUND FORK
-pp: 25302   pt: 25302   cp: 25319   ct: 25327   lbp: 25306  bp: 25317   BP: 25319  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25319 > is a BACKGROUND FORK
 9.999
-pp: 25302   pt: 25302   cp: 25326   ct: 25327   lbp: 25320  bp: 25324   BP: 25326  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25326 > is a BACKGROUND FORK
-pp: 25317   pt: 25302   cp: 25317   ct: 25302   lbp: 25316  bp: 25325   BP: 25317  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25317): < 'echo 9.1c' > is a SIMPLE FORK *
-13
+9.1a
+9
+9.2
+9.1c
+9.2a
 9.2c
-pp: 25326   pt: 25327   cp: 25326   ct: 25327   lbp: 25324  bp: 25324   BP: 25326  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25326): < 'echo 13' > is a NORMAL COMMAND
-10
-pp: 25317   pt: 25302   cp: 25317   ct: 25302   lbp: 25325  bp: 25325   BP: 25317  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25317): < 'echo 9.2c' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25327   ct: 25327   lbp: 25320  bp: 25326   BP: 25327  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25327 > is a SUBSHELL
+12
 14
-pp: 25327   pt: 25327   cp: 25327   ct: 25327   lbp: 25326  bp: 25326   BP: 25327  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25327): < 'echo 14' > is a NORMAL COMMAND
-pp: 25320   pt: 25327   cp: 25320   ct: 25327   lbp: 25319  bp: 25328   BP: 25320  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25320): < 'echo 10' > is a SIMPLE FORK
-pp: 25319   pt: 25327   cp: 25319   ct: 25327   lbp: 25317  bp: 25317   BP: 25329  BS: 4   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25319): < pid: 25329 > is a SUBSHELL
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25320  bp: 25326   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo 12' > is a SIMPLE FORK
+9.1b
 9.3
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25326  bp: 25326   BP: 25302  BS: 2   lBS: 2   fd: 1    lfd: 1    PP: 25105    np: 1    (25302): < 'ff 15' > is a FUNCTION
-15
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25326  bp: 25326   BP: 25302  BS: 2   lBS: 2   fd: 1    lfd: 1    PP: 25105    np: 1    (25302): < 'echo "${*}"' > is a NORMAL COMMAND
-pp: 25319   pt: 25327   cp: 25319   ct: 25327   lbp: 25317  bp: 25330   BP: 25329  BS: 4   lBS: 4   fd: 0    lfd: 0    PP: 25105    np: 1    (25329): < 'echo 9.3' > is a SIMPLE FORK
+10
 9.4
-pp: 25319   pt: 25327   cp: 25319   ct: 25327   lbp: 25330  bp: 25330   BP: 25329  BS: 4   lBS: 4   fd: 0    lfd: 0    PP: 25105    np: 1    (25329): < 'echo 9.4' > is a NORMAL COMMAND
-pp: 25319   pt: 25327   cp: 25319   ct: 25327   lbp: 25317  bp: 25317   BP: 25319  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25319): < 'echo 9.999' > is a NORMAL COMMAND
+13
+15
 9.5
-pp: 25319   pt: 25327   cp: 25319   ct: 25327   lbp: 25317  bp: 25317   BP: 25319  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25319): < 'echo 9.5' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25326  bp: 25326   BP: 25302  BS: 2   lBS: 2   fd: 1    lfd: 1    PP: 25105    np: 1    (25302): < 'gg 16' > is a FUNCTION
+9.2b
 16
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25326  bp: 25326   BP: 25302  BS: 2   lBS: 2   fd: 1    lfd: 1    PP: 25105    np: 1    (25302): < 'echo "$*"' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25326  bp: 25326   BP: 25302  BS: 2   lBS: 2   fd: 2    lfd: 2    PP: 25105    np: 1    (25302): < 'ff "$@"' > is a FUNCTION
 16
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25326  bp: 25326   BP: 25302  BS: 2   lBS: 2   fd: 2    lfd: 2    PP: 25105    np: 1    (25302): < 'echo "${*}"' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25331   ct: 25333   lbp: 25326  bp: 25326   BP: 25331  BS: 3   lBS: 2   fd: 0    lfd: 1    PP: 25105    np: 1    (25302): < pid: 25331 > is a BACKGROUND FORK
 a
-pp: 25302   pt: 25302   cp: 25332   ct: 25333   lbp: 25326  bp: 25331   BP: 25334  BS: 4   lBS: 2   fd: 0    lfd: 1    PP: 25105    np: 1    (25302): < pid: 25334 > is a BACKGROUND FORK
 b
-pp: 25332   pt: 25333   cp: 25332   ct: 25333   lbp: 25331  bp: 25331   BP: 25334  BS: 4   lBS: 4   fd: 0    lfd: 0    PP: 25105    np: 1    (25334): < 'echo b' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25333   ct: 25333   lbp: 25326  bp: 25335   BP: 25333  BS: 3   lBS: 2   fd: 0    lfd: 1    PP: 25105    np: 1    (25302): < pid: 25333 > is a SUBSHELL
-pp: 25331   pt: 25333   cp: 25331   ct: 25333   lbp: 25326  bp: 25336   BP: 25331  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25331): < 'echo a' > is a SIMPLE FORK
-pp: 25302   pt: 25302   cp: 25333   ct: 25333   lbp: 25326  bp: 25332   BP: 25337  BS: 5   lBS: 2   fd: 0    lfd: 1    PP: 25105    np: 1    (25302): < pid: 25337 > is a SUBSHELL
 A2
-A5
-pp: 25333   pt: 25333   cp: 25333   ct: 25333   lbp: 25335  bp: 25338   BP: 25333  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25333): < 'echo A2' > is a SIMPLE FORK
 A1
-pp: 25333   pt: 25333   cp: 25333   ct: 25333   lbp: 25338  bp: 25338   BP: 25333  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25333): < 'echo A1' > is a NORMAL COMMAND
-pp: 25333   pt: 25333   cp: 25333   ct: 25333   lbp: 25332  bp: 25339   BP: 25337  BS: 5   lBS: 5   fd: 0    lfd: 0    PP: 25105    np: 1    (25337): < 'echo A5' > is a SIMPLE FORK
-pp: 25302   pt: 25302   cp: 25333   ct: 25333   lbp: 25326  bp: 25340   BP: 25335  BS: 4   lBS: 2   fd: 0    lfd: 1    PP: 25105    np: 1    (25302): < pid: 25335 > is a SUBSHELL
+A5
 A3
-pp: 25302   pt: 25302   cp: 25333   ct: 25333   lbp: 25326  bp: 25332   BP: 25340  BS: 5   lBS: 2   fd: 0    lfd: 1    PP: 25105    np: 1    (25302): < pid: 25340 > is a SUBSHELL
 A4
-pp: 25333   pt: 25333   cp: 25333   ct: 25333   lbp: 25340  bp: 25340   BP: 25335  BS: 4   lBS: 4   fd: 0    lfd: 0    PP: 25105    np: 1    (25335): < 'echo A3' > is a NORMAL COMMAND
-pp: 25333   pt: 25333   cp: 25333   ct: 25333   lbp: 25332  bp: 25332   BP: 25340  BS: 5   lBS: 5   fd: 0    lfd: 0    PP: 25105    np: 1    (25340): < 'echo A4' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < $'cat <<EOF\nfoo\nbar\nbaz\nEOF\n' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'grep --color=auto foo' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'sed '\''s/o/O/g'\''' > is a NORMAL COMMAND
 1
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 4    (25302): < 'wc -l' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25345  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 4    (25302): < pid: 25345 > is a SUBSHELL
-today is 2025-06-14
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo "today is $(date +%Y-%m-%d)"' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25346  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25346 > is a SUBSHELL
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25347  BS: 4   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25347 > is a SUBSHELL
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25347  BS: 4   lBS: 4   fd: 0    lfd: 0    PP: 25105    np: 1    (25347): < 'echo nested' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25347  BS: 4   lBS: 4   fd: 0    lfd: 0    PP: 25105    np: 1    (25347): < 'echo subshell' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25346  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 2    (25346): < 'grep --color=auto sub' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25332   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'x=$( ( echo nested; echo subshell ) | grep sub)' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25351   lbp: 25332  bp: 25332   BP: 25349  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25349 > is a SUBSHELL
-pp: 25302   pt: 25302   cp: 25302   ct: 25351   lbp: 25332  bp: 25349   BP: 25350  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25350 > is a SUBSHELL
-1,47c1,20
+today is 2025-06-22
+1,47c1,26
 < 0
 < afs
 < bin
@@ -161,73 +89,575 @@ pp: 25302   pt: 25302   cp: 25302   ct: 25351   lbp: 25332  bp: 25349   BP: 2535
 < work
 < zfs-rpm
 ---
-> plasma-csd-generator.kcFfoP
-> sddm-auth-933f42a0-8b8b-4847-bdad-9a592139be01
-> sddm--cdJEqE
+> kde-anthony
+> ksocket-anthony
+> plasma-csd-generator.VsPIUX
+> sddm--aResZf
+> sddm-auth-5a9dcefc-1622-4fec-a449-ce7d75933bd3
 > snap-private-tmp
-> ssh-XXXXXXdOF8p3
-> ssh-XXXXXXN2JIs4
-> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-abrtd.service-sqrK3r
-> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-chronyd.service-Jfs7iN
-> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-colord.service-DXriYO
-> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-dbus-broker.service-uobaYo
-> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-irqbalance.service-reAwt3
-> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-ModemManager.service-1qiMJE
-> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-polkit.service-lgjTkI
-> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-power-profiles-daemon.service-lWWQhZ
-> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-rtkit-daemon.service-CmK4r0
-> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-switcheroo-control.service-bIZCxB
-> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-systemd-logind.service-Cc4hLL
-> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-systemd-oomd.service-SYgQ6N
-> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-systemd-resolved.service-WkHWSz
-> systemd-private-c3ff3b10d8384f7d95297687a0b30dc5-upower.service-9QV9GK
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25332  bp: 25350   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'diff <(ls /) <(ls /tmp)' > is a SIMPLE FORK
-pp: 25302   pt: 25302   cp: 25302   ct: 25353   lbp: 25350  bp: 25350   BP: 25352  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25352 > is a SUBSHELL
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25350  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'grep --color=auto pattern <(sed '\''s/^/>>/'\'' > /dev/null)' > is a SIMPLE FORK
-pp: 25302   pt: 25302   cp: 25354   ct: 25302   lbp: 25350  bp: 25352   BP: 25354  BS: 3   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < pid: 25354 > is a BACKGROUND FORK
-pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'for i in {1..3}' > is a NORMAL COMMAND
-pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'echo “$i”' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
-got “1”
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
-pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'sleep .01' > is a NORMAL COMMAND
-pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'for i in {1..3}' > is a NORMAL COMMAND
-pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'echo “$i”' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
-got “2”
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
-pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'sleep .01' > is a NORMAL COMMAND
-pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'for i in {1..3}' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
-pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'echo “$i”' > is a NORMAL COMMAND
-got “3”
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'printf "got %s\n" "$n"' > is a NORMAL COMMAND
-pp: 25354   pt: 25302   cp: 25354   ct: 25302   lbp: 25352  bp: 25352   BP: 25354  BS: 3   lBS: 3   fd: 0    lfd: 0    PP: 25105    np: 1    (25354): < 'sleep .01' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'read -r n <&${CO[0]}' > is a NORMAL COMMAND
-bash: let: “x: syntax error: operand expected (error token is "“x")
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'let “x = 5 + 6”' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'arr=(one two three)' > is a NORMAL COMMAND
+> ssh-XXXXXXc3F02P
+> ssh-XXXXXXriG4L2
+> Sublime Text.18bba2f919d04e82c4d74b410f5a4aca.sock
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-abrtd.service-I1n4dQ
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-bolt.service-B8bZMc
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-chronyd.service-tOCkCu
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-colord.service-soYNS0
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-dbus-broker.service-F2hzi4
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-fwupd.service-ExEXWm
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-irqbalance.service-ne2OCo
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-ModemManager.service-ZJSBo0
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-passim.service-UyVcWM
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-polkit.service-AdMIyK
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-power-profiles-daemon.service-p2hzty
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-rtkit-daemon.service-S6h8eh
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-switcheroo-control.service-mAN6rf
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-systemd-logind.service-CJRBnP
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-systemd-oomd.service-rvBSDX
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-systemd-resolved.service-xkdWc4
+> systemd-private-add0018b85134f6fbcc5bcc6cc7c5c6b-upower.service-760sRu
+got 1
+got 2
+got 3
 one two three
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo ${arr[@]}' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < '((i=0))' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < '((i<3))' > is a NORMAL COMMAND
-“0”
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo “$i”' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < '((i++))' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < '((i<3))' > is a NORMAL COMMAND
-“1”
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo “$i”' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < '((i++))' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < '((i<3))' > is a NORMAL COMMAND
-“2”
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo “$i”' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < '((i++))' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < '((i<3))' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'cmd="echo inside-eval"' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'eval "$cmd"' > is a NORMAL COMMAND
+0
+1
+2
 inside-eval
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'echo inside-eval' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'eval "eval \"$cmd\""' > is a NORMAL COMMAND
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 0    lfd: 0    PP: 25105    np: 1    (25302): < 'eval "echo inside-eval"' > is a NORMAL COMMAND
 inside-eval
-pp: 25302   pt: 25302   cp: 25302   ct: 25302   lbp: 25354  bp: 25354   BP: 25302  BS: 2   lBS: 2   fd: 1    lfd: 1    PP: 25105    np: 1    (25302): < 'skip_debug=true' > is a FUNCTION
+got USR1
+after-signal
+odd 1
+even 2
+odd 3
+even 4
+odd 5
+odd 1
+even 2
+odd 3
+even 4
+odd 5
+odd 1
+even 2
+odd 3
+even 4
+odd 5
+bye
+1
+1
+bye
+bye
+return
+1
+1
+return
+return
+119586
+119585
+119584
+119583
+
+
+The script being time profiled has finished running!
+timep will now process the logged timing data.
+timep will save the time profiles it generates in "/dev/shm/.timep.D72791"
+
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504]
+
+1	1750648502.824474	        -        	F:0	main	S:2	119504	N:1	[0-119504].0[0-119506]	152	::	<< (BACKGROUND FORK) >>
+1	1750648502.824762	1750648502.824474	F:0	main	S:1	119504	N:	[0-119504].0	199	::	'echo 0' 
+1	1750648502.825606	        -        	F:0	main	S:2	119504	N:2	[0-119504].1[0-119509]	157	::	<< (BACKGROUND FORK) >>
+1	1750648502.826428	        -        	F:0	main	S:2	119504	N:1	[0-119504].0[0-119507]	153	::	<< (BACKGROUND FORK) >>
+1	1750648502.825238	1750648502.825606	F:0	main	S:1	119504	N:1	[0-119504].1	200	::	'echo 1' 
+1	1750648502.827539	1750648502.827803	F:0	main	S:1	119504	N:2	[0-119504].2	202	::	'echo 3' (&)
+1	1750648502.828692	        -        	F:0	main	S:2	119504	N:4	[0-119504].3[0-119513]	160	::	<< (BACKGROUND FORK) >>
+1	1750648502.828819	        -        	F:0	main	S:2	119504	N:4	[0-119504].3[0-119514]	161	::	<< (BACKGROUND FORK) >>
+1	1750648502.830734	        -        	F:0	main	S:2	119504	N:4	[0-119504].3[0-119517]	163	::	<< (BACKGROUND FORK) >>
+1	1750648502.831069	        -        	F:0	main	S:2	119504	N:4	[0-119504].3[0-119516]	162	::	<< (BACKGROUND FORK) >>
+1	1750648502.832562	        -        	F:0	main	S:2	119504	N:4	[0-119504].3[0-119518]	164	::	<< (BACKGROUND FORK) >>
+1	1750648502.832655	        -        	F:0	main	S:2	119504	N:4	[0-119504].3[0-119519]	165	::	<< (BACKGROUND FORK) >>
+1	1750648502.832757	        -        	F:0	main	S:2	119504	N:4	[0-119504].3[0-119520]	166	::	<< (BACKGROUND FORK) >>
+1	1750648502.828194	1750648502.828692	F:0	main	S:1	119504	N:3	[0-119504].3	203	::	'echo 4' (&)
+1	1750648502.833055	        -        	F:0	main	S:2	119504	N:4	[0-119504].3[0-119523]	169	::	<< (BACKGROUND FORK) >>
+1	1750648502.833009	        -        	F:0	main	S:2	119504	N:4	[0-119504].3[0-119522]	168	::	<< (BACKGROUND FORK) >>
+1	1750648502.833563	1750648502.833625	F:0	main	S:1	119504	N:4	[0-119504].4	216	::	'echo 11' 
+1	1750648502.834597	        -        	F:0	main	S:2	119504	N:6	[0-119504].5[0-119532]	175	::	<< (BACKGROUND FORK) >>
+1	1750648502.833417	        -        	F:0	main	S:2	119504	N:4	[0-119504].3[0-119521]	167	::	<< (BACKGROUND FORK) >>
+1	1750648502.833601	        -        	F:0	main	S:2	119504	N:4	[0-119504].3[0-119524]	170	::	<< (BACKGROUND FORK) >>
+1	1750648502.834001	1750648502.834597	F:0	main	S:1	119504	N:5	[0-119504].5	217	::	'echo 12' (&)
+1	1750648502.834999	        -        	F:0	main	S:2	119504	N:6	[0-119504].5[0-119531]	174	::	<< (BACKGROUND FORK) >>
+1	1750648502.836261	1750648502.838926	F:0	main	S:1	119504	N:10	[0-119504].7	186	::	'ff 15' 
+1	1750648502.845172	        -        	F:0	main	S:2	119504	N:21	[0-119504].9[0-119536]	180	::	<< (BACKGROUND FORK) >>
+1	1750648502.845526	        -        	F:0	main	S:2	119504	N:21	[0-119504].9[0-119538]	183	::	<< (BACKGROUND FORK) >>
+1	1750648502.839292	1750648502.845172	F:0	main	S:1	119504	N:20	[0-119504].9	187	::	'gg 16' (&)
+1	1750648502.847873	1750648502.848109	F:0	main	S:1	119504	N:21	[0-119504].10	230	::	$'cat <<EOF\nfoo\nbar\nbaz\nEOF\n' 
+1	1750648502.848497	1750648502.848734	F:0	main	S:1	119504	N:22	[0-119504].11	230	::	'grep foo' 
+1	1750648502.849117	1750648502.849340	F:0	main	S:1	119504	N:23	[0-119504].12	230	::	'sed '\''s/o/O/g'\''' 
+4	1750648502.849725	1750648502.850757	F:0	main	S:1	119504	N:24	[0-119504].13	230	::	'wc -l' 
+4	1750648502.851716	        -        	F:0	main	S:2	119504	N:26	[0-119504].14[0-119550]	192	::	<< (SUBSHELL) >>
+1	1750648502.851134	1750648502.851716	F:0	main	S:1	119504	N:25	[0-119504].14	236	::	'echo "today is $(date +%Y-%m-%d)"' 
+1	1750648502.854167	        -        	F:0	main	S:2	119504	N:27	[0-119504].15[0-119551]	193	::	<< (SUBSHELL) >>
+1	1750648502.853417	1750648502.854167	F:0	main	S:1	119504	N:26	[0-119504].15	237	::	'x=$( ( echo nested; echo subshell ) | grep sub)' 
+1	1750648502.857651	        -        	F:0	main	S:2	119504	N:28	[0-119504].16[0-119554]	195	::	<< (SUBSHELL) >>
+1	1750648502.857810	        -        	F:0	main	S:2	119504	N:28	[0-119504].16[0-119555]	195	::	<< (SUBSHELL) >>
+1	1750648502.857093	1750648502.857651	F:0	main	S:1	119504	N:27	[0-119504].16	239	::	'diff <(ls /) <(ls /tmp)' (&)
+1	1750648502.860485	        -        	F:0	main	S:2	119504	N:29	[0-119504].17[0-119557]	196	::	<< (SUBSHELL) >>
+1	1750648502.860121	1750648502.860485	F:0	main	S:1	119504	N:28	[0-119504].17	240	::	'grep pattern <(sed '\''s/^/>>/'\'' > /dev/null)' (&)
+1	1750648502.861634	        -        	F:0	main	S:2	119504	N:29	[0-119504].17[0-119559]	198	::	<< (BACKGROUND FORK) >>
+1	1750648502.862119	1750648502.862610	F:0	main	S:1	119504	N:29	[0-119504].18	243	::	'read -r n <&${CO[0]}' 
+1	1750648502.863122	1750648502.863170	F:0	main	S:1	119504	N:30	[0-119504].19	243	::	'printf "got %s\n" "$n"' 
+1	1750648502.863682	1750648502.878020	F:0	main	S:1	119504	N:31	[0-119504].20	243	::	'read -r n <&${CO[0]}' 
+1	1750648502.879650	1750648502.879796	F:0	main	S:1	119504	N:32	[0-119504].21	243	::	'printf "got %s\n" "$n"' 
+1	1750648502.881389	1750648502.892698	F:0	main	S:1	119504	N:33	[0-119504].22	243	::	'read -r n <&${CO[0]}' 
+1	1750648502.893198	1750648502.893243	F:0	main	S:1	119504	N:34	[0-119504].23	243	::	'printf "got %s\n" "$n"' 
+1	1750648502.893763	1750648502.907808	F:0	main	S:1	119504	N:35	[0-119504].24	243	::	'read -r n <&${CO[0]}' 
+1	1750648502.909619	1750648502.909772	F:0	main	S:1	119504	N:36	[0-119504].25	245	::	'let "x = 5 + 6"' 
+1	1750648502.911543	1750648502.911717	F:0	main	S:1	119504	N:37	[0-119504].26	246	::	'arr=(one two three)' 
+1	1750648502.913485	1750648502.913667	F:0	main	S:1	119504	N:38	[0-119504].27	246	::	'echo ${arr[@]}' 
+1	1750648502.915124	1750648502.915164	F:0	main	S:1	119504	N:39	[0-119504].28	247	::	'((i=0))' 
+1	1750648502.915657	1750648502.915699	F:0	main	S:1	119504	N:40	[0-119504].29	247	::	'((i<3))' 
+1	1750648502.916188	1750648502.916234	F:0	main	S:1	119504	N:41	[0-119504].30	247	::	'echo "$i"' 
+1	1750648502.916728	1750648502.916768	F:0	main	S:1	119504	N:42	[0-119504].31	247	::	'((i++))' 
+1	1750648502.917258	1750648502.917299	F:0	main	S:1	119504	N:43	[0-119504].32	247	::	'((i<3))' 
+1	1750648502.917792	1750648502.917837	F:0	main	S:1	119504	N:44	[0-119504].33	247	::	'echo "$i"' 
+1	1750648502.918327	1750648502.918367	F:0	main	S:1	119504	N:45	[0-119504].34	247	::	'((i++))' 
+1	1750648502.918862	1750648502.918903	F:0	main	S:1	119504	N:46	[0-119504].35	247	::	'((i<3))' 
+1	1750648502.919392	1750648502.919436	F:0	main	S:1	119504	N:47	[0-119504].36	247	::	'echo "$i"' 
+1	1750648502.919931	1750648502.919971	F:0	main	S:1	119504	N:48	[0-119504].37	247	::	'((i++))' 
+1	1750648502.920461	1750648502.920509	F:0	main	S:1	119504	N:49	[0-119504].38	247	::	'((i<3))' 
+1	1750648502.921006	1750648502.921046	F:0	main	S:1	119504	N:50	[0-119504].39	260	::	'cmd="echo inside-eval"' 
+1	1750648502.921552	1750648502.921602	F:0	main	S:1	119504	N:51	[0-119504].40	261	::	'eval "$cmd"' 
+1	1750648502.922103	1750648502.922151	F:0	main	S:1	119504	N:52	[0-119504].41	261	::	'echo inside-eval' 
+1	1750648502.922685	1750648502.922740	F:0	main	S:1	119504	N:53	[0-119504].42	262	::	'eval "eval \"$cmd\""' 
+1	1750648502.923231	1750648502.923274	F:0	main	S:1	119504	N:54	[0-119504].43	262	::	'eval "echo inside-eval"' 
+1	1750648502.932054	1750648502.932103	F:0	main	S:1	119504	N:56	[0-119504].44	265	::	'kill -USR1 $BASHPID' 
+1	1750648502.932590	1750648502.932634	F:0	main	S:1	119504	N:57	[0-119504].45	142	::	'kill -USR1 $BASHPID' 
+1	1750648502.933118	1750648502.945517	F:0	main	S:1	119504	N:58	[0-119504].46	142	::	'kill -USR1 $BASHPID' 
+1	1750648502.946752	1750648502.946869	F:0	main	S:1	119504	N:59	[0-119504].47	266	::	'echo after-signal' 
+1	1750648502.948056	1750648502.948646	F:0	main	S:1	119504	N:60	[0-119504].48	268	::	'for i in {1..3}' (&)
+1	1750648502.949079	        -        	F:0	main	S:2	119504	N:61	[0-119504].48[0-119565]	224	::	<< (SUBSHELL) >>
+1	1750648502.950234	1750648502.952855	F:0	main	S:1	119504	N:61	[0-119504].49	269	::	'read x' 
+1	1750648502.954917	        -        	F:0	main	S:2	119504	N:63	[0-119504].50[0-119566]	229	::	<< (BACKGROUND FORK) >>
+1	1750648502.954116	1750648502.954917	F:0	main	S:1	119504	N:62	[0-119504].50	270	::	'(( x % 2 == 0 ))' 
+1	1750648502.958839	1750648502.958886	F:0	main	S:1	119504	N:63	[0-119504].51	269	::	'read x' 
+1	1750648502.959368	1750648502.959407	F:0	main	S:1	119504	N:64	[0-119504].52	270	::	'(( x % 2 == 0 ))' 
+1	1750648502.959897	1750648502.959943	F:0	main	S:1	119504	N:65	[0-119504].53	271	::	'echo even "$x"' 
+1	1750648502.960425	1750648502.960471	F:0	main	S:1	119504	N:66	[0-119504].54	269	::	'read x' 
+1	1750648502.961844	        -        	F:0	main	S:2	119504	N:68	[0-119504].55[0-119567]	229	::	<< (BACKGROUND FORK) >>
+1	1750648502.960956	1750648502.961844	F:0	main	S:1	119504	N:67	[0-119504].55	270	::	'(( x % 2 == 0 ))' 
+1	1750648502.965856	1750648502.965903	F:0	main	S:1	119504	N:68	[0-119504].56	269	::	'read x' 
+1	1750648502.966384	1750648502.966422	F:0	main	S:1	119504	N:69	[0-119504].57	270	::	'(( x % 2 == 0 ))' 
+1	1750648502.966936	1750648502.966981	F:0	main	S:1	119504	N:70	[0-119504].58	271	::	'echo even "$x"' 
+1	1750648502.967487	1750648502.967534	F:0	main	S:1	119504	N:71	[0-119504].59	269	::	'read x' 
+1	1750648502.968383	        -        	F:0	main	S:2	119504	N:73	[0-119504].60[0-119568]	229	::	<< (BACKGROUND FORK) >>
+1	1750648502.968036	1750648502.968383	F:0	main	S:1	119504	N:72	[0-119504].60	270	::	'(( x % 2 == 0 ))' 
+1	1750648502.970083	1750648502.970136	F:0	main	S:1	119504	N:73	[0-119504].61	269	::	'read x' 
+1	1750648502.970635	1750648502.970901	F:0	main	S:1	119504	N:74	[0-119504].62	268	::	'for i in {1..3}' (&)
+1	1750648502.971039	        -        	F:0	main	S:2	119504	N:75	[0-119504].62[0-119569]	224	::	<< (SUBSHELL) >>
+1	1750648502.971641	1750648502.972466	F:0	main	S:1	119504	N:75	[0-119504].63	269	::	'read x' 
+1	1750648502.974094	        -        	F:0	main	S:2	119504	N:77	[0-119504].64[0-119570]	229	::	<< (BACKGROUND FORK) >>
+1	1750648502.973024	1750648502.974094	F:0	main	S:1	119504	N:76	[0-119504].64	270	::	'(( x % 2 == 0 ))' 
+1	1750648502.977513	1750648502.977560	F:0	main	S:1	119504	N:77	[0-119504].65	269	::	'read x' 
+1	1750648502.978074	1750648502.978113	F:0	main	S:1	119504	N:78	[0-119504].66	270	::	'(( x % 2 == 0 ))' 
+1	1750648502.978624	1750648502.978669	F:0	main	S:1	119504	N:79	[0-119504].67	271	::	'echo even "$x"' 
+1	1750648502.979162	1750648502.979208	F:0	main	S:1	119504	N:80	[0-119504].68	269	::	'read x' 
+1	1750648502.980083	        -        	F:0	main	S:2	119504	N:82	[0-119504].69[0-119571]	229	::	<< (BACKGROUND FORK) >>
+1	1750648502.979703	1750648502.980083	F:0	main	S:1	119504	N:81	[0-119504].69	270	::	'(( x % 2 == 0 ))' 
+1	1750648502.981792	1750648502.981839	F:0	main	S:1	119504	N:82	[0-119504].70	269	::	'read x' 
+1	1750648502.982331	1750648502.982370	F:0	main	S:1	119504	N:83	[0-119504].71	270	::	'(( x % 2 == 0 ))' 
+1	1750648502.982866	1750648502.982911	F:0	main	S:1	119504	N:84	[0-119504].72	271	::	'echo even "$x"' 
+1	1750648502.983400	1750648502.983447	F:0	main	S:1	119504	N:85	[0-119504].73	269	::	'read x' 
+1	1750648502.984293	        -        	F:0	main	S:2	119504	N:87	[0-119504].74[0-119573]	229	::	<< (BACKGROUND FORK) >>
+1	1750648502.983944	1750648502.984293	F:0	main	S:1	119504	N:86	[0-119504].74	270	::	'(( x % 2 == 0 ))' 
+1	1750648502.985988	1750648502.986041	F:0	main	S:1	119504	N:87	[0-119504].75	269	::	'read x' 
+1	1750648502.986535	1750648502.986805	F:0	main	S:1	119504	N:88	[0-119504].76	268	::	'for i in {1..3}' (&)
+1	1750648502.986945	        -        	F:0	main	S:2	119504	N:89	[0-119504].76[0-119574]	224	::	<< (SUBSHELL) >>
+1	1750648502.987520	1750648502.988335	F:0	main	S:1	119504	N:89	[0-119504].77	269	::	'read x' 
+1	1750648502.989225	        -        	F:0	main	S:2	119504	N:91	[0-119504].78[0-119575]	229	::	<< (BACKGROUND FORK) >>
+1	1750648502.988864	1750648502.989225	F:0	main	S:1	119504	N:90	[0-119504].78	270	::	'(( x % 2 == 0 ))' 
+1	1750648502.990968	1750648502.991016	F:0	main	S:1	119504	N:91	[0-119504].79	269	::	'read x' 
+1	1750648502.991510	1750648502.991550	F:0	main	S:1	119504	N:92	[0-119504].80	270	::	'(( x % 2 == 0 ))' 
+1	1750648502.992056	1750648502.992102	F:0	main	S:1	119504	N:93	[0-119504].81	271	::	'echo even "$x"' 
+1	1750648502.992598	1750648502.992645	F:0	main	S:1	119504	N:94	[0-119504].82	269	::	'read x' 
+1	1750648502.993502	        -        	F:0	main	S:2	119504	N:96	[0-119504].83[0-119576]	229	::	<< (BACKGROUND FORK) >>
+1	1750648502.993135	1750648502.993502	F:0	main	S:1	119504	N:95	[0-119504].83	270	::	'(( x % 2 == 0 ))' 
+1	1750648502.995235	1750648502.995284	F:0	main	S:1	119504	N:96	[0-119504].84	269	::	'read x' 
+1	1750648502.995801	1750648502.995841	F:0	main	S:1	119504	N:97	[0-119504].85	270	::	'(( x % 2 == 0 ))' 
+1	1750648502.996331	1750648502.996377	F:0	main	S:1	119504	N:98	[0-119504].86	271	::	'echo even "$x"' 
+1	1750648502.996872	1750648502.996920	F:0	main	S:1	119504	N:99	[0-119504].87	269	::	'read x' 
+1	1750648502.997780	        -        	F:0	main	S:2	119504	N:101	[0-119504].88[0-119577]	229	::	<< (BACKGROUND FORK) >>
+1	1750648502.997409	1750648502.997780	F:0	main	S:1	119504	N:100	[0-119504].88	270	::	'(( x % 2 == 0 ))' 
+1	1750648503.004400	        -        	F:0	main	S:2	119504	N:103	[0-119504].89[0-119578]	236	::	<< (BACKGROUND FORK) >>
+1	1750648503.018470	        -        	F:0	main	S:2	119504	N:103	[0-119504].89[0-119579]	241	::	<< (BACKGROUND FORK) >>
+1	1750648503.041044	        -        	F:0	main	S:2	119504	N:104	[0-119504].89[0-119580]	248	::	<< (BACKGROUND FORK) >>
+1	1750648503.059134	        -        	F:0	main	S:2	119504	N:103	[0-119504].89[0-119581]	255	::	<< (BACKGROUND FORK) >>
+1	1750648503.065219	        -        	F:0	main	S:2	119504	N:103	[0-119504].89[0-119582]	261	::	<< (BACKGROUND FORK) >>
+1	1750648503.078644	        -        	F:0	main	S:2	119504	N:102	[0-119504].89[0-119583]	264	::	<< (BACKGROUND FORK) >>
+1	1750648502.999483	1750648503.004400	F:0	main	S:1	119504	N:101	[0-119504].89	269	::	'read x' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].0[0-119506]
+
+1	1750648502.825128	1750648502.825179	F:0	main	S:2	119504.119506	N:2	[0-119504].0[0-119506].0	196	::	'echo' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].0[0-119507]
+
+1	1750648502.824760	        -        	F:0	main	S:3	119504.119507	N:1	[0-119504].0[0-119507].0[0-119508]	153	::	<< (BACKGROUND FORK) >>
+1	1750648502.826990	1750648502.827039	F:0	main	S:2	119504.119507	N:2	[0-119504].0[0-119507].0	197	::	'echo B' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].0[0-119507].0[0-119508]
+
+1	1750648502.825442	1750648502.825726	F:0	main	S:3	119504.119507.119508	N:2	[0-119504].0[0-119507].0[0-119508].0	197	::	'echo A' (&)
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].1[0-119509]
+
+1	1750648502.826153	1750648502.826200	F:0	main	S:2	119504.119509	N:3	[0-119504].1[0-119509].0	201	::	'echo 2' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].3[0-119513]
+
+1	1750648502.829241	1750648502.829290	F:0	main	S:2	119504.119513	N:5	[0-119504].3[0-119513].0	204	::	'echo 5' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].3[0-119514]
+
+1	1750648502.829356	1750648502.829623	F:0	main	S:2	119504.119514	N:5	[0-119504].3[0-119514].0	205	::	'echo 6' (&)
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].3[0-119516]
+
+1	1750648502.832909	1750648502.833067	F:0	main	S:2	119504.119516	N:5	[0-119504].3[0-119516].0	206	::	'echo 7' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].3[0-119517]
+
+1	1750648502.831456	1750648502.831519	F:0	main	S:2	119504.119517	N:5	[0-119504].3[0-119517].0	207	::	'echo 8' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].3[0-119518]
+
+1	1750648502.833095	1750648502.833336	F:0	main	S:2	119504.119518	N:5	[0-119504].3[0-119518].0	208	::	'echo 9' (&)
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].3[0-119519]
+
+1	1750648502.833189	1750648502.833237	F:0	main	S:2	119504.119519	N:5	[0-119504].3[0-119519].0	209	::	'echo 9.1' 
+1	1750648502.833608	1750648502.833861	F:0	main	S:2	119504.119519	N:6	[0-119504].3[0-119519].1	209	::	'echo 9.2' (&)
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].3[0-119520]
+
+1	1750648502.833293	1750648502.833522	F:0	main	S:2	119504.119520	N:5	[0-119504].3[0-119520].0	210	::	'echo 9.1a' (&)
+1	1750648502.834202	1750648502.834283	F:0	main	S:2	119504.119520	N:6	[0-119504].3[0-119520].1	210	::	'echo 9.2a' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].3[0-119521]
+
+1	1750648502.835352	1750648502.835527	F:0	main	S:2	119504.119521	N:5	[0-119504].3[0-119521].0	211	::	'echo 9.1b' 
+1	1750648502.836804	1750648502.837512	F:0	main	S:2	119504.119521	N:6	[0-119504].3[0-119521].1	211	::	'echo 9.2b' (&)
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].3[0-119522]
+
+1	1750648502.833607	1750648502.833832	F:0	main	S:2	119504.119522	N:5	[0-119504].3[0-119522].0	212	::	'echo 9.1c' (&)
+1	1750648502.834255	1750648502.834303	F:0	main	S:2	119504.119522	N:6	[0-119504].3[0-119522].1	212	::	'echo 9.2c' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].3[0-119523]
+
+1	1750648502.834116	        -        	F:0	main	S:3	119504.119523	N:6	[0-119504].3[0-119523].0[0-119527]	169	::	<< (SUBSHELL) >>
+1	1750648502.833595	1750648502.834116	F:0	main	S:2	119504.119523	N:5	[0-119504].3[0-119523].0	213	::	'echo 9.999' 
+1	1750648502.837231	1750648502.837279	F:0	main	S:2	119504.119523	N:6	[0-119504].3[0-119523].1	213	::	'echo 9.5' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].3[0-119523].0[0-119527]
+
+1	1750648502.835063	1750648502.835379	F:0	main	S:3	119504.119523.119527	N:7	[0-119504].3[0-119523].0[0-119527].0	213	::	'echo 9.3' (&)
+1	1750648502.835959	1750648502.836023	F:0	main	S:3	119504.119523.119527	N:8	[0-119504].3[0-119523].0[0-119527].1	213	::	'echo 9.4' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].3[0-119524]
+
+1	1750648502.835403	1750648502.836130	F:0	main	S:2	119504.119524	N:5	[0-119504].3[0-119524].0	214	::	'echo 10' (&)
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].5[0-119531]
+
+1	1750648502.836843	1750648502.837004	F:0	main	S:2	119504.119531	N:7	[0-119504].5[0-119531].0	218	::	'echo 13' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].5[0-119532]
+
+1	1750648502.835141	1750648502.835189	F:0	main	S:2	119504.119532	N:7	[0-119504].5[0-119532].0	219	::	'echo 14' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].7
+
+1	1750648502.836648	1750648502.836683	F:2	main.ff	S:1	119504	N:8	[0-119504].7.0	193	::	'ff 15' 
+1	1750648502.837049	1750648502.837098	F:2	main.ff	S:1	119504	N:9	[0-119504].7.1	193	::	'echo "${*}"' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].9
+
+1	1750648502.839669	1750648502.839703	F:2	main.gg	S:1	119504	N:13	[0-119504].9.0	194	::	'gg 16' 
+1	1750648502.840069	1750648502.840114	F:2	main.gg	S:1	119504	N:14	[0-119504].9.1	194	::	'echo "$*"' 
+1	1750648502.840467	1750648502.843071	F:2	main.gg	S:1	119504	N:19	[0-119504].9.3	186	::	'ff "$@"' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].9.3
+
+1	1750648502.840853	1750648502.840888	F:3	main.gg.ff	S:1	119504	N:17	[0-119504].9.3.0	193	::	'ff "$@"' 
+1	1750648502.841258	1750648502.841306	F:3	main.gg.ff	S:1	119504	N:18	[0-119504].9.3.1	193	::	'echo "${*}"' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].9[0-119536]
+
+1	1750648502.845727	1750648502.845963	F:0	main	S:2	119504.119536	N:22	[0-119504].9[0-119536].0	224	::	'echo a' (&)
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].9[0-119538]
+
+1	1750648502.846069	1750648502.846303	F:0	main	S:2	119504.119538	N:22	[0-119504].9[0-119538].0	227	::	'echo A2' (&)
+1	1750648502.846725	1750648502.846773	F:0	main	S:2	119504.119538	N:23	[0-119504].9[0-119538].1	227	::	'echo A1' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].9[0-119538].0[0-119540]
+
+1	1750648502.845796	        -        	F:0	main	S:4	119504.119538.119540	N:21	[0-119504].9[0-119538].0[0-119540].0[0-119541]	183	::	<< (BACKGROUND FORK) >>
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].9[0-119538].0[0-119540].0[0-119541]
+
+1	1750648502.846500	1750648502.846748	F:0	main	S:4	119504.119538.119540.119541	N:22	[0-119504].9[0-119538].0[0-119540].0[0-119541].0	227	::	'echo A5' (&)
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].9[1-16838]
+
+1	1750648502.845511	        -        	F:0	main	S:3	119504.16838	N:21	[0-119504].9[1-16838].0[1-119539]	181	::	<< (BACKGROUND FORK) >>
+1	1750648502.847583	        -        	F:0	main	S:3	119504.16838	N:21	[0-119504].9[1-16838].0[1-119540]	183	::	<< (BACKGROUND FORK) >>
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].9[1-16838].0[1-119539]
+
+1	1750648502.846154	1750648502.846201	F:0	main	S:3	119504.16838.119539	N:22	[0-119504].9[1-16838].0[1-119539].0	225	::	'echo b' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].9[1-16838].0[1-119540]
+
+1	1750648502.847648	        -        	F:0	main	S:4	119504.16838.119540	N:21	[0-119504].9[1-16838].0[1-119540].0[1-119545]	183	::	<< (BACKGROUND FORK) >>
+1	1750648502.848205	1750648502.848252	F:0	main	S:3	119504.16838.119540	N:22	[0-119504].9[1-16838].0[1-119540].0	227	::	'echo A3' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].9[1-16838].0[1-119540].0[1-119545]
+
+1	1750648502.848348	1750648502.848396	F:0	main	S:4	119504.16838.119540.119545	N:22	[0-119504].9[1-16838].0[1-119540].0[1-119545].0	227	::	'echo A4' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].15[0-119551]
+
+1	1750648502.854265	        -        	F:0	main	S:3	119504.119551	N:27	[0-119504].15[0-119551].0[0-119552]	193	::	<< (SUBSHELL) >>
+2	1750648502.854708	1750648502.856023	F:0	main	S:2	119504.119551	N:28	[0-119504].15[0-119551].0	237	::	'grep sub' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].15[0-119551].0[0-119552]
+
+1	1750648502.854937	1750648502.854983	F:0	main	S:3	119504.119551.119552	N:28	[0-119504].15[0-119551].0[0-119552].0	237	::	'echo nested' 
+1	1750648502.855353	1750648502.855394	F:0	main	S:3	119504.119551.119552	N:29	[0-119504].15[0-119551].0[0-119552].1	237	::	'echo subshell' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].17[0-119559]
+
+1	1750648502.862153	1750648502.862191	F:0	main	S:2	119504.119559	N:30	[0-119504].17[0-119559].0	242	::	'for i in {1..3}' 
+1	1750648502.862549	1750648502.862597	F:0	main	S:2	119504.119559	N:31	[0-119504].17[0-119559].1	242	::	'echo "$i"' 
+1	1750648502.862940	1750648502.874079	F:0	main	S:2	119504.119559	N:32	[0-119504].17[0-119559].2	242	::	'sleep .01' 
+1	1750648502.875940	1750648502.876081	F:0	main	S:2	119504.119559	N:33	[0-119504].17[0-119559].3	242	::	'for i in {1..3}' 
+1	1750648502.877827	1750648502.877980	F:0	main	S:2	119504.119559	N:34	[0-119504].17[0-119559].4	242	::	'echo "$i"' 
+1	1750648502.879832	1750648502.891476	F:0	main	S:2	119504.119559	N:35	[0-119504].17[0-119559].5	242	::	'sleep .01' 
+1	1750648502.892116	1750648502.892155	F:0	main	S:2	119504.119559	N:36	[0-119504].17[0-119559].6	242	::	'for i in {1..3}' 
+1	1750648502.892640	1750648502.892684	F:0	main	S:2	119504.119559	N:37	[0-119504].17[0-119559].7	242	::	'echo "$i"' 
+1	1750648502.893164	1750648502.905412	F:0	main	S:2	119504.119559	N:38	[0-119504].17[0-119559].8	242	::	'sleep .01' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].50[0-119566]
+
+1	1750648502.956446	1750648502.956606	F:0	main	S:2	119504.119566	N:64	[0-119504].50[0-119566].0	273	::	'echo odd "$x"' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].55[0-119567]
+
+1	1750648502.963509	1750648502.963667	F:0	main	S:2	119504.119567	N:69	[0-119504].55[0-119567].0	273	::	'echo odd "$x"' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].60[0-119568]
+
+1	1750648502.968899	1750648502.968944	F:0	main	S:2	119504.119568	N:74	[0-119504].60[0-119568].0	273	::	'echo odd "$x"' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].64[0-119570]
+
+1	1750648502.975685	1750648502.975792	F:0	main	S:2	119504.119570	N:78	[0-119504].64[0-119570].0	273	::	'echo odd "$x"' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].69[0-119571]
+
+1	1750648502.980610	1750648502.980657	F:0	main	S:2	119504.119571	N:83	[0-119504].69[0-119571].0	273	::	'echo odd "$x"' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].74[0-119573]
+
+1	1750648502.984811	1750648502.984857	F:0	main	S:2	119504.119573	N:88	[0-119504].74[0-119573].0	273	::	'echo odd "$x"' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].78[0-119575]
+
+1	1750648502.989750	1750648502.989796	F:0	main	S:2	119504.119575	N:92	[0-119504].78[0-119575].0	273	::	'echo odd "$x"' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].83[0-119576]
+
+1	1750648502.994034	1750648502.994080	F:0	main	S:2	119504.119576	N:97	[0-119504].83[0-119576].0	273	::	'echo odd "$x"' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].88[0-119577]
+
+1	1750648502.998299	1750648502.998345	F:0	main	S:2	119504.119577	N:102	[0-119504].88[0-119577].0	273	::	'echo odd "$x"' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].89[0-119578]
+
+1	1750648503.004868	1750648503.004908	F:0	main	S:2	119504.119578	N:104	[0-119504].89[0-119578].0	280	::	'exit' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].89[0-119579]
+
+1	1750648503.018942	1750648503.024992	F:0	main	S:2	119504.119579	N:115	[0-119504].89[0-119579].1	187	::	'gg 1' 
+1	1750648503.025328	1750648503.025365	F:0	main	S:2	119504.119579	N:116	[0-119504].89[0-119579].2	286	::	'exit' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].89[0-119579].1
+
+1	1750648503.019301	1750648503.019335	F:2	main.gg	S:2	119504.119579	N:106	[0-119504].89[0-119579].1.0	194	::	'gg 1' 
+1	1750648503.019684	1750648503.019736	F:2	main.gg	S:2	119504.119579	N:107	[0-119504].89[0-119579].1.1	194	::	'echo "$*"' 
+1	1750648503.020086	1750648503.022974	F:2	main.gg	S:2	119504.119579	N:113	[0-119504].89[0-119579].1.3	186	::	'ff "$@"' 
+1	1750648503.023310	1750648503.023353	F:2	main.gg	S:2	119504.119579	N:114	[0-119504].89[0-119579].1.4	194	::	'echo "${*}"' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].89[0-119579].1.3
+
+1	1750648503.020434	1750648503.020467	F:3	main.gg.ff	S:2	119504.119579	N:110	[0-119504].89[0-119579].1.3.0	193	::	'ff "$@"' 
+1	1750648503.020811	1750648503.020857	F:3	main.gg.ff	S:2	119504.119579	N:111	[0-119504].89[0-119579].1.3.1	193	::	'echo "${*}"' 
+1	1750648503.021190	1750648503.021232	F:3	main.gg.ff	S:2	119504.119579	N:112	[0-119504].89[0-119579].1.3.2	193	::	'echo "${*}"' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].89[0-119580]
+
+1	1750648503.041499	1750648503.047413	F:0	main	S:2	119504.119580	N:116	[0-119504].89[0-119580].1	187	::	'gg 1' 
+1	1750648503.047762	1750648503.047801	F:0	main	S:2	119504.119580	N:117	[0-119504].89[0-119580].2	293	::	'exit' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].89[0-119580].1
+
+1	1750648503.041863	1750648503.041897	F:2	main.gg	S:2	119504.119580	N:107	[0-119504].89[0-119580].1.0	194	::	'gg 1' 
+1	1750648503.042241	1750648503.042283	F:2	main.gg	S:2	119504.119580	N:108	[0-119504].89[0-119580].1.1	194	::	'echo "$*"' 
+1	1750648503.042623	1750648503.045405	F:2	main.gg	S:2	119504.119580	N:114	[0-119504].89[0-119580].1.3	186	::	'ff "$@"' 
+1	1750648503.045743	1750648503.045785	F:2	main.gg	S:2	119504.119580	N:115	[0-119504].89[0-119580].1.4	194	::	'echo "${*}"' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].89[0-119580].1.3
+
+1	1750648503.042971	1750648503.043004	F:3	main.gg.ff	S:2	119504.119580	N:111	[0-119504].89[0-119580].1.3.0	193	::	'ff "$@"' 
+1	1750648503.043345	1750648503.043391	F:3	main.gg.ff	S:2	119504.119580	N:112	[0-119504].89[0-119580].1.3.1	193	::	'echo "${*}"' 
+1	1750648503.043728	1750648503.043770	F:3	main.gg.ff	S:2	119504.119580	N:113	[0-119504].89[0-119580].1.3.2	193	::	'echo "${*}"' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].89[0-119581]
+
+1	1750648503.059597	1750648503.059637	F:0	main	S:2	119504.119581	N:104	[0-119504].89[0-119581].0	299	::	'exit' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].89[0-119582]
+
+1	1750648503.065688	1750648503.065726	F:0	main	S:2	119504.119582	N:104	[0-119504].89[0-119582].0	305	::	'exit' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].89[0-119583]
+
+1	1750648503.076875	        -        	F:0	main	S:3	119504.119583	N:102	[0-119504].89[0-119583].0[0-119584]	264	::	<< (BACKGROUND FORK) >>
+1	1750648503.079887	1750648503.079977	F:0	main	S:2	119504.119583	N:103	[0-119504].89[0-119583].0	308	::	'echo $BASHPID' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].89[0-119583].0[0-119584]
+
+1	1750648503.073275	        -        	F:0	main	S:4	119504.119583.119584	N:102	[0-119504].89[0-119583].0[0-119584].0[0-119585]	264	::	<< (BACKGROUND FORK) >>
+1	1750648503.077694	1750648503.077747	F:0	main	S:3	119504.119583.119584	N:103	[0-119504].89[0-119583].0[0-119584].0	308	::	'echo $BASHPID' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].89[0-119583].0[0-119584].0[0-119585]
+
+1	1750648503.068248	        -        	F:0	main	S:5	119504.119583.119584.119585	N:102	[0-119504].89[0-119583].0[0-119584].0[0-119585].0[0-119586]	264	::	<< (BACKGROUND FORK) >>
+1	1750648503.075327	1750648503.075448	F:0	main	S:4	119504.119583.119584.119585	N:103	[0-119504].89[0-119583].0[0-119584].0[0-119585].0	308	::	'echo $BASHPID' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.D72791/.log/log.[0-119504].89[0-119583].0[0-119584].0[0-119585].0[0-119586]
+
+1	1750648503.070992	1750648503.071155	F:0	main	S:5	119504.119583.119584.119585.119586	N:103	[0-119504].89[0-119583].0[0-119584].0[0-119585].0[0-119586].0	308	::	'echo $BASHPID' 
+sed: read error on stdin: Input/output error
