@@ -63,8 +63,10 @@ timep() (
     ################################################################################################################################################################
 
     shopt -s extglob
+    #[[ "${SHELLOPTS}" =~ ^(.+\:)?monitor(\:.+)?$ ]] || export SHELLOPTS="${SHELLOPTS}${SHELLOPTS:+:}monitor"
 
     local timep_runType=''
+    local -gx timep_TMPDIR
 
     # parse flags
     while true; do
@@ -114,7 +116,6 @@ timep() (
          return 1
     }
 
-    export timep_TMPDIR="${timep_TMPDIR}"
     mkdir -p "${timep_TMPDIR}"/.log/.endtimes
 
     # determine if command being profiled is a shell script or not
@@ -164,7 +165,8 @@ timep() (
 
 # helper function to get src code from functions
 _timep_getFuncSrc() {
-    local out
+    local out FF kk nn
+    local -a F
 
     _timep_getFuncSrc0() {
         local m n p kk off
@@ -185,9 +187,7 @@ _timep_getFuncSrc() {
                 ((n--))
             done
             A=("${A[@]:$n}")
-            off=$(( 1 - $( { history | grep -n '' | grep -E '^[0-9]+:[[:space:]]*[0-9]*[[:space:]]*((function[[:space:]]+'"${1}"')|('"${1}"'[[:space:]]*\(\)))' | tail -n 1; history | grep -n '' | tail -n 1; } | sed -E s/'\:.*$'// | sed -zE s/'\n'/' +'/) ))
-            mapfile -t A < <(history | tail -n $off | sed -E s/'^[[:space:]]*[0-9]*[[:space:]]*'//)
-        else
+       else
             # cant extract original source. use declare -f.
             declare -f "${1}"
             return
@@ -208,7 +208,7 @@ _timep_getFuncSrc() {
 }; declare -f _timep_getFuncSrc1")"
         until ( IFS=$'\n'; . /proc/self/fd/0 <<<"_timep_getFuncSrc1() {
     ${A[*]:${mm}:${m}}
-}" && [[ "$(declare -f _timep_getFuncSrc1)" == "${funcdef0}" ]] ) ||  (( m > ${#A[@]} )); do
+}" &>/dev/null && [[ "$(declare -f _timep_getFuncSrc1)" == "${funcdef0}" ]] ) ||  (( m > ${#A[@]} )); do
             mm=${m}
             m=$(kk=1; IFS=$'\n'; until . /proc/self/fd/0 <<<"${A[*]:${mm}:${kk}}" &>/dev/null || (( kk > ${#A[@]} )); do ((kk++)); done; echo "$kk"; )
         done
@@ -232,7 +232,17 @@ _timep_getFuncSrc() {
     # re-call _timep_getFuncSrc for each dependent function.
 	# NOTE: the "--rpm-requires" flag is non-standard, and may only be available on distros based on red hat / fedora
     : | bash --debug --rpm-requires -O extglob &>/dev/null && {
-	    bash --debug --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type $nn 2>/dev/null | grep -qF 'is a function' && _timep_getFuncSrc "$nn"; done
+        mapfile -t F < <(bash --debug --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type $nn 2>/dev/null | grep -qF 'is a function' && echo "$nn"; done)
+        for kk in "${!F[@]}"; do
+            if [[ "${FF}" == *" ${F[$kk]} "* ]]; then
+                unset "F[$kk]"
+            else
+                FF+=" ${F[$kk]} "
+            fi
+        done
+        for nn in "${F[@]}"; do
+            FF="${FF}" _timep_getFuncSrc "${nn}"
+        done
 	}
 }
 
@@ -351,7 +361,7 @@ if ${timep_IS_SUBSHELL_FLAG}; then
     timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
     unset "timep_KK" "timep_BASHPID_ADD"
     timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
-    ${timep_NO_PRINT_FLAG} || printf '"'"'%s	%s	        -        	F:%s	%s	S:%s	%s	N:%s	%s.%s[%s-%s]	%s	::	<< (%s) >>\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}"  "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_CMD_TYPE}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
+    ${timep_NO_PRINT_FLAG} || printf '"'"'%s|%s|%s|%s\t%s	%s	        -        	F:%s	%s	S:%s	%s	N:%s	%s.%s[%s-%s]	%s	::	<< (%s) >>\n'"'"' "${timep_CHILD_PGID}" "${timep_CHILD_TPID}" "${timep_PARENT_PGID}" "${timep_PARENT_TPID}" "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}"  "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_CMD_TYPE}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
     timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
     timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
     timep_NEXEC_A+=(0)
@@ -466,7 +476,6 @@ trap() {
 
     chmod +x "${timep_TMPDIR}/functions.bash"
 timep_runFuncSrc+='(
-    exec '"${type -p bash)"'
 
     builtin trap - DEBUG EXIT RETURN
 
@@ -478,7 +487,7 @@ timep_runFuncSrc+='(
 
     : & 2>/dev/null
 
-    declare -gxr timep_TMPDIR="'"${timep_TMPDIR}"'"
+    declare -gx timep_TMPDIR="'"${timep_TMPDIR}"'"
     . "${timep_TMPDIR}/functions.bash"
     export -f trap
 
@@ -520,10 +529,9 @@ timep_runFuncSrc+='(
 
     builtin trap - DEBUG EXIT RETURN;
 )'
+ _timep_getFuncSrc "${timep_TMPDIR}/main.bash" >>"${timep_TMPDIR}/functions.bash"
 
-[[ "${timep_runType}" == 'f' ]] || _timep_getFuncSrc "${timep_TMPDIR}/main.bash" >>"${timep_TMPDIR}/functions.bash"
-
-   # save script/function (with added debug trap) in new script file and make it executable
+    # save script/function (with added debug trap) in new script file and make it executable
     echo "${timep_runFuncSrc}" >"${timep_TMPDIR}/main.bash"
     chmod +x "${timep_TMPDIR}/main.bash"
 
@@ -546,7 +554,8 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
     case "${timep_runType}" in
     f)
         # source the original functions and then the wrapper function we just generated
-#        . "${timep_TMPDIR}/functions.bash"
+        . "${timep_TMPDIR}/functions.bash"
+        export -f trap
         . "${timep_TMPDIR}/main.bash"
 
         # now actually run it
@@ -561,7 +570,7 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
         if [[ -t 0 ]]; then
            "${timep_TMPDIR}/main.bash"
         else
-           "${timep_TMPDIR}/main.bash"  <&0
+           "${timep_TMPDIR}/main.bash" <&0
         fi
     ;;
 esac

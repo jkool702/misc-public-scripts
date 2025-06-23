@@ -1,0 +1,6 @@
+gg() {
+set -m
+echo "${SHELLOPTS}"
+}
+gg
+gg | tee

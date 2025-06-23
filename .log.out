@@ -1,0 +1,3 @@
+/usr/bin/bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+/usr/bin/bash: no job control in this shell
+/usr/bin/bash: timep: No such file or directory

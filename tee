@@ -1,0 +1,10 @@
++ shopt -s extglob
++ [[ -t 1 ]]
++ export -f timep
+++ type -p bash
++ eval 'exec /usr/bin/bash -o monitor -O extglob timep '\''./timep.tests.bash'\''' ''\''/dev/pts/2'\'''
+exec /usr/bin/bash -o monitor -O extglob timep './timep.tests.bash' '/dev/pts/2'
+++ exec /usr/bin/bash -o monitor -O extglob timep ./timep.tests.bash /dev/pts/2
+/usr/bin/bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+/usr/bin/bash: no job control in this shell
+/usr/bin/bash: timep: No such file or directory
