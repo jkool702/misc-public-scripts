@@ -2,7 +2,7 @@
 
 shopt -s extglob
 
-timep() (
+timep() {
     ## TIME Profile - efficiently produces an accurate per-command execution time profile for shell scripts and functions using a DEBUG trap
     #
     # USAGE:     timep [-s|-f] [--] _______          --OR--
@@ -62,7 +62,9 @@ timep() (
     #
     ################################################################################################################################################################
 
+(
   timep0() {
+    (
 
     shopt -s extglob
     #[[ "${SHELLOPTS}" =~ ^(.+\:)?monitor(\:.+)?$ ]] || export SHELLOPTS="${SHELLOPTS}${SHELLOPTS:+:}monitor"
@@ -565,13 +567,49 @@ FORMAT (TAB-SEPERATED):
 NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
 ----------------------------------------------------------------------------\\n\\n' "$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")" "$(date)" "${EPOCHREALTIME}" >"${timep_TMPDIR}/.log/format"
 
+
+timep_PTY_FLAG=false
+timep_PPID=${BASHPID}
+until ${timep_PTY_FLAG}; do
+    timep_PPID0=${timep_PPID}
+    for kk in 2 0 1; do
+        IFS=\  read -r _ _ _ timep_PPID _ <"/proc/${timep_PPID0}/stat"
+        {
+            [[ -t "${timep_PTY_FD_TEST}" ]] && { 
+                timep_PTY_FLAG=true
+                timep_PTY_FD="/proc/${timep_PPID}/fd/${kk}"
+            }
+        } {timep_PTY_FD_TEST}<>"/proc/${timep_PPID}/fd/${kk}"
+        exec {timep_PTY_FD_TEST}>&-
+        ${timep_PTY_FLAG} && break
+    done
+    (( timep_PPID > 1 )) || break
+done
+
+${timep_PTY_FLAG} || printf '\n\nWARNING: job control could not be enabled due to lack of controlling PTY. subshells and background forks may not be properly distinguished!\n\n' >&${timep_FD2}
+
+if ${timep_PTY_FLAG}; then
+    export -f timep0
+    if [[ -t 0 ]]; then
+        "${timep_TMPDIR}/main.bash" 1>"${timep_PTY_FD}" 2>"${timep_PTY_FD}"
+    else
+        "${timep_TMPDIR}/main.bash" 0<"${timep_PTY_FD}" 1>"${timep_PTY_FD}" 2>"${timep_PTY_FD}"
+    fi
+else
+    if [[ -t 0 ]]; then
+       "${timep_TMPDIR}/main.bash"
+    else
+       "${timep_TMPDIR}/main.bash" <&0
+    fi
+fi
+
 #    f)
-        # source the original functions and then the wrapper function we just generated
+#        # source the original functions and then the wrapper function we just generated
 #        . "${timep_TMPDIR}/functions.bash"
 #        export -f trap
 #        . "${timep_TMPDIR}/main.bash"
-
-        # now actually run it
+#
+#        # now actually run it
 #        if [[ -t 0 ]]; then
 #            echo 'timep_runFunc "${@}"' >>"${timep_TMPDIR}/main.bash"
 #        else
@@ -579,12 +617,12 @@ NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
 #        fi
 #    ;;
 #    c|s)
-        # run the script (with added debug trap)
-        if [[ -t 0 ]]; then
-           "${timep_TMPDIR}/main.bash"
-        else
-           "${timep_TMPDIR}/main.bash" <&0
-        fi
+#        # run the script (with added debug trap)
+#        if [[ -t 0 ]]; then
+#           "${timep_TMPDIR}/main.bash"
+#        else
+#           "${timep_TMPDIR}/main.bash" <&0
+#        fi
 #    ;;
 #esac
 
@@ -674,12 +712,9 @@ export -nf _timep_check_traps
 #    \rm -r "${timep_TMPDIR}"
 #fi
 EOF
+  ) 0<&${timep_FD0} 1>&${timep_FD1} 2>&${timep_FD2}
 }
 
-if [[ -t 0 ]]; then
-    timep0 "$@"
-else
-    timep0 "$@" <&0
-fi
-
-)
+timep0 "$@"
+) {timep_FD0}<&0 {timep_FD1}>&1 {timep_FD2}>&2
+}

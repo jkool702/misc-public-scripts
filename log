@@ -1,41 +1,879 @@
-0
-1
++ [[ -t 0 ]]
++ timep0 fff
++ shopt -s extglob
++ local timep_runType=
++ local -gx timep_TMPDIR
++ true
++ case "${1}" in
++ break
++ : ''
++ [[ -d /dev/shm ]]
+++ printf %X 165380947
++ timep_TMPDIR=/dev/shm/.timep.9DB8353
++ [[ -d /dev/shm/.timep.9DB8353 ]]
++ mkdir -p /dev/shm/.timep.9DB8353
++ [[ -n /dev/shm/.timep.9DB8353 ]]
++ [[ -n /dev/shm/.timep.9DB8353 ]]
++ [[ -n /dev/shm/.timep.9DB8353 ]]
++ mkdir -p /dev/shm/.timep.9DB8353/.log/.endtimes
++ [[ '' == [sfc] ]]
++ declare -F fff
++ timep_runType=f
++ export -p timep_RETURN_TRAP_STR
++ export -n timep_RETURN_TRAP_STR
++ timep_RETURN_TRAP_STR='timep_SKIP_DEBUG_FLAG=true
+unset "timep_FNEST[-1]" "timep_NEXEC_A[-1]" "timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]" "timep_NPIPE[${timep_FNEST_CUR}]" "timep_STARTTIME[${timep_FNEST_CUR}]" "timep_LINENO[${timep_FNEST_CUR}]"
+timep_NEXEC_0="${timep_NEXEC_0%.*}"
+timep_FUNCNAME_STR="${timep_FUNCNAME_STR%.*}"
+timep_FNEST_CUR="${timep_FNEST[-1]}"
+timep_SKIP_DEBUG_FLAG=false'
++ export -p timep_DEBUG_TRAP_STR_0
++ export -n timep_DEBUG_TRAP_STR_0
++ export -p timep_DEBUG_TRAP_STR_1
++ export -n timep_DEBUG_TRAP_STR_1
++ timep_DEBUG_TRAP_STR_0='timep_NPIPE0="${#PIPESTATUS[@]}"
+timep_ENDTIME0="${EPOCHREALTIME}"
+'
++ timep_DEBUG_TRAP_STR_1='
+[[ "$-" == *m* ]] || {
+  printf '\''\nWARNING: timep requires job control to be enabled.\n         Running "set +m" is not allowed!\n         Job control will automatically be re-enabled.\n\n'\'' >&2
+  set -m
+}
+[[ "${BASH_COMMAND}" == trap\ * ]] && {
+  timep_SKIP_DEBUG_FLAG=true
+  (( timep_FNEST_CUR == ${#FUNCNAME[@]} )) && {
+    timep_FNEST_CUR="${#FUNCNAME[@]}"
+    timep_FNEST+=("${#FUNCNAME[@]}")
+    timep_FUNCNAME_STR+=".trap"
+    timep_NEXEC_0+=".${timep_NEXEC_A[-1]}"
+    timep_NEXEC_A+=("0")
+    (( timep_NEXEC_N++ ))
+  }
+}
+${timep_SKIP_DEBUG_FLAG} || {
+timep_NPIPE[${timep_FNEST_CUR}]=${timep_NPIPE0}
+timep_ENDTIME=${timep_ENDTIME0}
+timep_IS_BG_FLAG=false
+timep_IS_SUBSHELL_FLAG=false
+timep_IS_FUNC_FLAG=false
+if ${timep_SIMPLEFORK_NEXT_FLAG}; then
+  timep_SIMPLEFORK_NEXT_FLAG=false
+  timep_SIMPLEFORK_CUR_FLAG=true
+else
+  timep_SIMPLEFORK_CUR_FLAG=false
+fi
+if (( timep_BASH_SUBSHELL_PREV == BASH_SUBSHELL )); then
+  if (( timep_BG_PID_PREV == $! )); then
+    (( timep_FNEST_CUR >= ${#FUNCNAME[@]} )) || {
+      timep_IS_FUNC_FLAG=true
+      timep_NO_PRINT_FLAG=true
+      timep_FNEST+=("${#FUNCNAME[@]}")
+    }
+  else
+    timep_IS_BG_FLAG=true
+  fi
+else
+  timep_IS_SUBSHELL_FLAG=true
+  echo "${timep_ENDTIME}" >>"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}"
+  (( BASHPID < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
+  builtin trap '\'':'\'' EXIT
+  IFS=\  read -r _ _ _ _ timep_CHILD_PGID _ _ timep_CHILD_TPID _ </proc/${BASHPID}/stat
+  (( timep_CHILD_PGID == timep_PARENT_TPID )) || (( timep_CHILD_PGID == timep_CHILD_TPID )) || { (( timep_CHILD_PGID == timep_PARENT_PGID )) && (( timep_CHILD_TPID == timep_PARENT_TPID )); } || timep_IS_BG_FLAG=true
+fi
+if ${timep_IS_SUBSHELL_FLAG} && ${timep_IS_BG_FLAG}; then
+  (( timep_CHILD_PGID == BASHPID )) && (( timep_CHILD_TPID == timep_PARENT_PGID )) && (( timep_CHILD_TPID == timep_PARENT_TPID )) && timep_SIMPLEFORK_NEXT_FLAG=true
+  timep_CMD_TYPE="BACKGROUND FORK"
+elif ${timep_IS_SUBSHELL_FLAG}; then
+  timep_CMD_TYPE="SUBSHELL"
+elif [[ "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]}" == " (F) "* ]]; then
+  timep_CMD_TYPE="FUNCTION (P)"
+  timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]# (F) }"
+elif ${timep_IS_BG_FLAG}; then
+  timep_CMD_TYPE="SIMPLE FORK"
+elif ${timep_IS_FUNC_FLAG_1}; then
+  timep_CMD_TYPE="FUNCTION (C)"
+  timep_IS_FUNC_FLAG_1=false
+else
+  timep_CMD_TYPE="NORMAL COMMAND"
+fi
+if ${timep_IS_SUBSHELL_FLAG}; then
+  (( timep_BASH_SUBSHELL_DIFF = BASH_SUBSHELL - timep_BASH_SUBSHELL_PREV ))
+  timep_KK=0
+  timep_BASHPID_ADD=()
+    while (( timep_BASH_SUBSHELL_DIFF > 0 )); do
+      timep_BASH_SUBSHELL_DIFF_0="${timep_BASH_SUBSHELL_DIFF}"
+      (( timep_BASH_SUBSHELL_DIFF-- ))
+      case "${timep_KK}" in
+        0) timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}]="${BASHPID}" ;;
+        *) IFS=" " read -r _ _ _ timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] _ </proc/${timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF_0}]}/stat ;;
+      esac
+      if (( timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] == timep_BASHPID_PREV )) || (( timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] <= 1 )); then
+        (( timep_BASH_SUBSHELL_DIFF++ ))
+        (( timep_BASH_SUBSHELL_DIFF_0++ ))
+        break
+      else
+        (( timep_KK++ ))
+      fi
+    done
+    timep_KK="${timep_BASH_SUBSHELL_DIFF}"
+    unset "timep_BASH_SUBSHELL_DIFF" "timep_BASH_SUBSHELL_DIFF_0"
+    (( timep_NEXEC_N++ ))
+    while (( timep_KK < ( ${#timep_BASHPID_ADD[@]} - 1 ) )); do
+      (( timep_BASHPID_ADD[${timep_KK}] < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
+      timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
+      timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
+      (( timep_KK++ ))
+       timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
+      timep_NEXEC_A+=(0)
+    done
+    (( timep_BASHPID_ADD[${timep_KK}] < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
+    timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
+    unset "timep_KK" "timep_BASHPID_ADD"
+    timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
+    ${timep_NO_PRINT_FLAG} || printf '\''%s	%s	        -        	F:%s	%s	S:%s	%s	N:%s	%s.%s[%s-%s]	%s	::	<< (%s) >>\n'\'' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}"  "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_CMD_TYPE}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
+    timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
+    timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
+    timep_NEXEC_A+=(0)
+    (( timep_NEXEC_N++ ))
+    timep_PARENT_PGID="$timep_CHILD_PGID"
+  timep_PARENT_TPID="$timep_CHILD_TPID"
+  timep_BASH_SUBSHELL_PREV="$BASH_SUBSHELL"
+elif [[ ${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]} ]]; then
+  ${timep_SIMPLEFORK_CUR_FLAG} && (( BASHPID < $! )) && {
+    timep_IS_BG_FLAG=true
+    timep_CMD_TYPE="SIMPLE FORK *"
+  }
+  if ${timep_IS_BG_FLAG}; then
+     timep_IS_BG_INDICATOR='\''(&)'\''
+  else
+     timep_IS_BG_INDICATOR='\'''\''
+  fi
+  [[ -s "${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}" ]] && {
+    {
+      while read -r -u ${timep_FD} timep_ENDTIME0; do
+        (( ${timep_ENDTIME0//./} < ${timep_ENDTIME//./} )) && timep_ENDTIME="${timep_ENDTIME0}"
+      done
+    } {timep_FD}<"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}"
+    exec {timep_FD}>&-
+  }
+  ${timep_NO_PRINT_FLAG} || printf '\''%s	%s	%s	F:%s	%s	S:%s	%s	N:%s	%s.%s	%s	::	%s %s\n'\'' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}"  "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" "${timep_IS_BG_INDICATOR}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
+  (( timep_NEXEC_A[-1]++ ))
+  (( timep_NEXEC_N++ ))
+fi
+${timep_IS_FUNC_FLAG} && {
+  timep_FUNCNAME_STR+=".${FUNCNAME[0]}"
+  timep_NEXEC_0+=".${timep_NEXEC_A[-1]}"
+  timep_NEXEC_A+=(0)
+  (( timep_NEXEC_N++ ))
+  timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]=" (F) ${BASH_COMMAND}"
+  timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
+  timep_NPIPE[${#FUNCNAME[@]}]="${timep_NPIPE[${timep_FNEST_CUR}]}"
+  timep_FNEST_CUR="${#FUNCNAME[@]}"
+  timep_NO_PRINT_FLAG=false
+  timep_IS_FUNC_FLAG_1=true
+}
+timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="${BASH_COMMAND}"
+timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
+timep_BG_PID_PREV="$!"
+timep_BASHPID_PREV="$BASHPID"
+timep_STARTTIME[${timep_FNEST_CUR}]="${EPOCHREALTIME}"
+}'
++ export -p -f trap
++ printf 'declare -gx timep_RETURN_TRAP_STR='\''%s'\''\n\ndeclare -gx timep_DEBUG_TRAP_STR_0='\''%s'\''\n\ndeclare -gx timep_DEBUG_TRAP_STR_1='\''%s'\''\n\n' 'timep_SKIP_DEBUG_FLAG=true
+unset "timep_FNEST[-1]" "timep_NEXEC_A[-1]" "timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]" "timep_NPIPE[${timep_FNEST_CUR}]" "timep_STARTTIME[${timep_FNEST_CUR}]" "timep_LINENO[${timep_FNEST_CUR}]"
+timep_NEXEC_0="${timep_NEXEC_0%.*}"
+timep_FUNCNAME_STR="${timep_FUNCNAME_STR%.*}"
+timep_FNEST_CUR="${timep_FNEST[-1]}"
+timep_SKIP_DEBUG_FLAG=false' 'timep_NPIPE0="${#PIPESTATUS[@]}"
+timep_ENDTIME0="${EPOCHREALTIME}"
+' '
+[[ "$-" == *m* ]] || {
+  printf '\''"'\''"'\''\nWARNING: timep requires job control to be enabled.\n         Running "set +m" is not allowed!\n         Job control will automatically be re-enabled.\n\n'\''"'\''"'\'' >&2
+  set -m
+}
+[[ "${BASH_COMMAND}" == trap\ * ]] && {
+  timep_SKIP_DEBUG_FLAG=true
+  (( timep_FNEST_CUR == ${#FUNCNAME[@]} )) && {
+    timep_FNEST_CUR="${#FUNCNAME[@]}"
+    timep_FNEST+=("${#FUNCNAME[@]}")
+    timep_FUNCNAME_STR+=".trap"
+    timep_NEXEC_0+=".${timep_NEXEC_A[-1]}"
+    timep_NEXEC_A+=("0")
+    (( timep_NEXEC_N++ ))
+  }
+}
+${timep_SKIP_DEBUG_FLAG} || {
+timep_NPIPE[${timep_FNEST_CUR}]=${timep_NPIPE0}
+timep_ENDTIME=${timep_ENDTIME0}
+timep_IS_BG_FLAG=false
+timep_IS_SUBSHELL_FLAG=false
+timep_IS_FUNC_FLAG=false
+if ${timep_SIMPLEFORK_NEXT_FLAG}; then
+  timep_SIMPLEFORK_NEXT_FLAG=false
+  timep_SIMPLEFORK_CUR_FLAG=true
+else
+  timep_SIMPLEFORK_CUR_FLAG=false
+fi
+if (( timep_BASH_SUBSHELL_PREV == BASH_SUBSHELL )); then
+  if (( timep_BG_PID_PREV == $! )); then
+    (( timep_FNEST_CUR >= ${#FUNCNAME[@]} )) || {
+      timep_IS_FUNC_FLAG=true
+      timep_NO_PRINT_FLAG=true
+      timep_FNEST+=("${#FUNCNAME[@]}")
+    }
+  else
+    timep_IS_BG_FLAG=true
+  fi
+else
+  timep_IS_SUBSHELL_FLAG=true
+  echo "${timep_ENDTIME}" >>"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}"
+  (( BASHPID < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
+  builtin trap '\''"'\''"'\'':'\''"'\''"'\'' EXIT
+  IFS=\  read -r _ _ _ _ timep_CHILD_PGID _ _ timep_CHILD_TPID _ </proc/${BASHPID}/stat
+  (( timep_CHILD_PGID == timep_PARENT_TPID )) || (( timep_CHILD_PGID == timep_CHILD_TPID )) || { (( timep_CHILD_PGID == timep_PARENT_PGID )) && (( timep_CHILD_TPID == timep_PARENT_TPID )); } || timep_IS_BG_FLAG=true
+fi
+if ${timep_IS_SUBSHELL_FLAG} && ${timep_IS_BG_FLAG}; then
+  (( timep_CHILD_PGID == BASHPID )) && (( timep_CHILD_TPID == timep_PARENT_PGID )) && (( timep_CHILD_TPID == timep_PARENT_TPID )) && timep_SIMPLEFORK_NEXT_FLAG=true
+  timep_CMD_TYPE="BACKGROUND FORK"
+elif ${timep_IS_SUBSHELL_FLAG}; then
+  timep_CMD_TYPE="SUBSHELL"
+elif [[ "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]}" == " (F) "* ]]; then
+  timep_CMD_TYPE="FUNCTION (P)"
+  timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]# (F) }"
+elif ${timep_IS_BG_FLAG}; then
+  timep_CMD_TYPE="SIMPLE FORK"
+elif ${timep_IS_FUNC_FLAG_1}; then
+  timep_CMD_TYPE="FUNCTION (C)"
+  timep_IS_FUNC_FLAG_1=false
+else
+  timep_CMD_TYPE="NORMAL COMMAND"
+fi
+if ${timep_IS_SUBSHELL_FLAG}; then
+  (( timep_BASH_SUBSHELL_DIFF = BASH_SUBSHELL - timep_BASH_SUBSHELL_PREV ))
+  timep_KK=0
+  timep_BASHPID_ADD=()
+    while (( timep_BASH_SUBSHELL_DIFF > 0 )); do
+      timep_BASH_SUBSHELL_DIFF_0="${timep_BASH_SUBSHELL_DIFF}"
+      (( timep_BASH_SUBSHELL_DIFF-- ))
+      case "${timep_KK}" in
+        0) timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}]="${BASHPID}" ;;
+        *) IFS=" " read -r _ _ _ timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] _ </proc/${timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF_0}]}/stat ;;
+      esac
+      if (( timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] == timep_BASHPID_PREV )) || (( timep_BASHPID_ADD[${timep_BASH_SUBSHELL_DIFF}] <= 1 )); then
+        (( timep_BASH_SUBSHELL_DIFF++ ))
+        (( timep_BASH_SUBSHELL_DIFF_0++ ))
+        break
+      else
+        (( timep_KK++ ))
+      fi
+    done
+    timep_KK="${timep_BASH_SUBSHELL_DIFF}"
+    unset "timep_BASH_SUBSHELL_DIFF" "timep_BASH_SUBSHELL_DIFF_0"
+    (( timep_NEXEC_N++ ))
+    while (( timep_KK < ( ${#timep_BASHPID_ADD[@]} - 1 ) )); do
+      (( timep_BASHPID_ADD[${timep_KK}] < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
+      timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
+      timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
+      (( timep_KK++ ))
+       timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
+      timep_NEXEC_A+=(0)
+    done
+    (( timep_BASHPID_ADD[${timep_KK}] < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
+    timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
+    unset "timep_KK" "timep_BASHPID_ADD"
+    timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
+    ${timep_NO_PRINT_FLAG} || printf '\''"'\''"'\''%s	%s	        -        	F:%s	%s	S:%s	%s	N:%s	%s.%s[%s-%s]	%s	::	<< (%s) >>\n'\''"'\''"'\'' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}"  "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_CMD_TYPE}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
+    timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
+    timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
+    timep_NEXEC_A+=(0)
+    (( timep_NEXEC_N++ ))
+    timep_PARENT_PGID="$timep_CHILD_PGID"
+  timep_PARENT_TPID="$timep_CHILD_TPID"
+  timep_BASH_SUBSHELL_PREV="$BASH_SUBSHELL"
+elif [[ ${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]} ]]; then
+  ${timep_SIMPLEFORK_CUR_FLAG} && (( BASHPID < $! )) && {
+    timep_IS_BG_FLAG=true
+    timep_CMD_TYPE="SIMPLE FORK *"
+  }
+  if ${timep_IS_BG_FLAG}; then
+     timep_IS_BG_INDICATOR='\''"'\''"'\''(&)'\''"'\''"'\''
+  else
+     timep_IS_BG_INDICATOR='\''"'\''"'\'''\''"'\''"'\''
+  fi
+  [[ -s "${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}" ]] && {
+    {
+      while read -r -u ${timep_FD} timep_ENDTIME0; do
+        (( ${timep_ENDTIME0//./} < ${timep_ENDTIME//./} )) && timep_ENDTIME="${timep_ENDTIME0}"
+      done
+    } {timep_FD}<"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}"
+    exec {timep_FD}>&-
+  }
+  ${timep_NO_PRINT_FLAG} || printf '\''"'\''"'\''%s	%s	%s	F:%s	%s	S:%s	%s	N:%s	%s.%s	%s	::	%s %s\n'\''"'\''"'\'' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}"  "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" "${timep_IS_BG_INDICATOR}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
+  (( timep_NEXEC_A[-1]++ ))
+  (( timep_NEXEC_N++ ))
+fi
+${timep_IS_FUNC_FLAG} && {
+  timep_FUNCNAME_STR+=".${FUNCNAME[0]}"
+  timep_NEXEC_0+=".${timep_NEXEC_A[-1]}"
+  timep_NEXEC_A+=(0)
+  (( timep_NEXEC_N++ ))
+  timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]=" (F) ${BASH_COMMAND}"
+  timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
+  timep_NPIPE[${#FUNCNAME[@]}]="${timep_NPIPE[${timep_FNEST_CUR}]}"
+  timep_FNEST_CUR="${#FUNCNAME[@]}"
+  timep_NO_PRINT_FLAG=false
+  timep_IS_FUNC_FLAG_1=true
+}
+timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="${BASH_COMMAND}"
+timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
+timep_BG_PID_PREV="$!"
+timep_BASHPID_PREV="$BASHPID"
+timep_STARTTIME[${timep_FNEST_CUR}]="${EPOCHREALTIME}"
+}'
++ declare -f trap
++ printf '\n\n'
++ case "${timep_runType}" in
++ _timep_getFuncSrc fff
++ local out FF kk nn
++ local -a F
++ [[ f == \f ]]
+++ _timep_getFuncSrc0 fff
+++ local m n p kk off
+++ local -a A
+++ read -r _ n p
++++ shopt -s extdebug
++++ declare -F fff
+++ (( n-- ))
+++ [[ '' == \m\a\i\n ]]
+++ [[ -f '' ]]
+++ declare -f fff
+++ return
++ out='fff () 
+{ 
+    function ff () 
+    { 
+        echo "${*}"
+    };
+    function gg () 
+    { 
+        echo "$*";
+        ff "$@"
+    };
+    { 
+        echo
+    } & { 
+        ( echo A & );
+        echo B
+    } & echo 0;
+    { 
+        echo 1
+    };
+    ( echo 2 );
+    echo 3 & { 
+        echo 4 &
+    };
+    { 
+        echo 5
+    } & ( echo 6 & );
+    ( echo 7 ) & ( echo 8 );
+    ( echo 9 & ) & { 
+        echo 9.1;
+        echo 9.2 &
+    } & { 
+        echo 9.1a & echo 9.2a
+    } & ( echo 9.1b;
+    echo 9.2b & ) & ( echo 9.1c & echo 9.2c ) & { 
+        echo 9.999;
+        ( echo 9.3 & echo 9.4 );
+        echo 9.5
+    } & { 
+        echo 10 &
+    } & echo 11;
+    echo 12 & ( echo 13 ) & ( echo 14 );
+    ff 15;
+    gg 16;
+    ( echo a & ) & { 
+        ( echo b ) &
+    } & ( ( ( echo A5 & );
+    { 
+        echo A4
+    } & echo A3 ) & echo A2 & echo A1 );
+    cat <<EOF |
+foo
+bar
+baz
+EOF
+  grep --color=auto foo | sed '\''s/o/O/g'\'' | wc -l
+    echo "today is $(date +%Y-%m-%d)";
+    x=$( ( echo nested; echo subshell ) | grep sub);
+    diff <(ls /) <(ls /tmp);
+    grep --color=auto pattern <(sed '\''s/^/>>/'\'' > /dev/null);
+    coproc CO { 
+        for i in {1..3};
+        do
+            echo "$i";
+            sleep .01;
+        done
+    };
+    while read -r n <&${CO[0]}; do
+        printf "got %s\n" "$n";
+    done;
+    let "x = 5 + 6";
+    arr=(one two three);
+    echo ${arr[@]};
+    for ((i=0; i<3; i++))
+    do
+        echo "$i";
+    done;
+    function hh () 
+    { 
+        trap '\''echo in-ff-EXIT'\'' EXIT;
+        echo before;
+        ( trap '\''echo in-sub-EXIT'\'' EXIT;
+        echo in subshell );
+        echo after
+    };
+    cmd="echo inside-eval";
+    eval "$cmd";
+    eval "eval \"$cmd\"";
+    trap '\''echo got USR1; sleep .01'\'' USR1;
+    kill -USR1 $BASHPID;
+    echo after-signal;
+    for i in {1..3};
+    do
+        while read x; do
+            if (( x % 2 == 0 )); then
+                echo even "$x";
+            else
+                ( echo odd "$x" );
+            fi;
+        done < <(seq 1 5);
+    done;
+    ( trap '\''echo bye'\'' EXIT;
+    exit );
+    ( trap '\''echo bye'\'' RETURN EXIT;
+    gg 1;
+    exit );
+    ( trap '\''echo exit'\'' EXIT;
+    trap '\''echo return'\'' RETURN;
+    gg 1;
+    exit );
+    ( trap '\'''\'' RETURN EXIT;
+    exit );
+    ( trap - EXIT;
+    exit );
+    ( ( ( ( echo $BASHPID );
+    echo $BASHPID );
+    echo $BASHPID );
+    echo $BASHPID )
+}'
++ echo 'fff () 
+{ 
+    function ff () 
+    { 
+        echo "${*}"
+    };
+    function gg () 
+    { 
+        echo "$*";
+        ff "$@"
+    };
+    { 
+        echo
+    } & { 
+        ( echo A & );
+        echo B
+    } & echo 0;
+    { 
+        echo 1
+    };
+    ( echo 2 );
+    echo 3 & { 
+        echo 4 &
+    };
+    { 
+        echo 5
+    } & ( echo 6 & );
+    ( echo 7 ) & ( echo 8 );
+    ( echo 9 & ) & { 
+        echo 9.1;
+        echo 9.2 &
+    } & { 
+        echo 9.1a & echo 9.2a
+    } & ( echo 9.1b;
+    echo 9.2b & ) & ( echo 9.1c & echo 9.2c ) & { 
+        echo 9.999;
+        ( echo 9.3 & echo 9.4 );
+        echo 9.5
+    } & { 
+        echo 10 &
+    } & echo 11;
+    echo 12 & ( echo 13 ) & ( echo 14 );
+    ff 15;
+    gg 16;
+    ( echo a & ) & { 
+        ( echo b ) &
+    } & ( ( ( echo A5 & );
+    { 
+        echo A4
+    } & echo A3 ) & echo A2 & echo A1 );
+    cat <<EOF |
+foo
+bar
+baz
+EOF
+  grep --color=auto foo | sed '\''s/o/O/g'\'' | wc -l
+    echo "today is $(date +%Y-%m-%d)";
+    x=$( ( echo nested; echo subshell ) | grep sub);
+    diff <(ls /) <(ls /tmp);
+    grep --color=auto pattern <(sed '\''s/^/>>/'\'' > /dev/null);
+    coproc CO { 
+        for i in {1..3};
+        do
+            echo "$i";
+            sleep .01;
+        done
+    };
+    while read -r n <&${CO[0]}; do
+        printf "got %s\n" "$n";
+    done;
+    let "x = 5 + 6";
+    arr=(one two three);
+    echo ${arr[@]};
+    for ((i=0; i<3; i++))
+    do
+        echo "$i";
+    done;
+    function hh () 
+    { 
+        trap '\''echo in-ff-EXIT'\'' EXIT;
+        echo before;
+        ( trap '\''echo in-sub-EXIT'\'' EXIT;
+        echo in subshell );
+        echo after
+    };
+    cmd="echo inside-eval";
+    eval "$cmd";
+    eval "eval \"$cmd\"";
+    trap '\''echo got USR1; sleep .01'\'' USR1;
+    kill -USR1 $BASHPID;
+    echo after-signal;
+    for i in {1..3};
+    do
+        while read x; do
+            if (( x % 2 == 0 )); then
+                echo even "$x";
+            else
+                ( echo odd "$x" );
+            fi;
+        done < <(seq 1 5);
+    done;
+    ( trap '\''echo bye'\'' EXIT;
+    exit );
+    ( trap '\''echo bye'\'' RETURN EXIT;
+    gg 1;
+    exit );
+    ( trap '\''echo exit'\'' EXIT;
+    trap '\''echo return'\'' RETURN;
+    gg 1;
+    exit );
+    ( trap '\'''\'' RETURN EXIT;
+    exit );
+    ( trap - EXIT;
+    exit );
+    ( ( ( ( echo $BASHPID );
+    echo $BASHPID );
+    echo $BASHPID );
+    echo $BASHPID )
+}'
++ bash --debug --rpm-requires -O extglob
++ :
++ mapfile -t F
+++ bash --debug --rpm-requires -O extglob
+++ read -r nn
+++ sed -E 's/^executable\((.*)\)/\1/'
+++ sort -u
+++ grep --color=auto -qF 'is a function'
+++ type cat
+++ read -r nn
+++ grep --color=auto -qF 'is a function'
+++ type date
+++ read -r nn
+++ grep --color=auto -qF 'is a function'
+++ type diff
+++ read -r nn
+++ grep --color=auto -qF 'is a function'
+++ type ff
+++ echo ff
+++ read -r nn
+++ grep --color=auto -qF 'is a function'
+++ type gg
+++ read -r nn
+++ grep --color=auto -qF 'is a function'
+++ type grep
+++ read -r nn
+++ grep --color=auto -qF 'is a function'
+++ type ls
+++ read -r nn
+++ grep --color=auto -qF 'is a function'
+++ type sed
+++ read -r nn
+++ grep --color=auto -qF 'is a function'
+++ type seq
+++ read -r nn
+++ grep --color=auto -qF 'is a function'
+++ type sleep
+++ read -r nn
+++ grep --color=auto -qF 'is a function'
+++ type wc
+++ read -r nn
++ for kk in "${!F[@]}"
++ [[ '' == *\ \f\f\ * ]]
++ FF+=' ff '
++ for nn in "${F[@]}"
++ FF=' ff '
++ _timep_getFuncSrc ff
++ local out FF kk nn
++ local -a F
++ [[ f == \f ]]
+++ _timep_getFuncSrc0 ff
+++ local m n p kk off
+++ local -a A
+++ read -r _ n p
++++ shopt -s extdebug
++++ declare -F ff
+++ (( n-- ))
+++ [[ '' == \m\a\i\n ]]
+++ [[ -f '' ]]
+++ declare -f ff
+++ return
++ out='ff () 
+{ 
+    echo "${*}"
+}'
++ echo 'ff () 
+{ 
+    echo "${*}"
+}'
++ bash --debug --rpm-requires -O extglob
++ :
++ mapfile -t F
+++ bash --debug --rpm-requires -O extglob
+++ sed -E 's/^executable\((.*)\)/\1/'
+++ read -r nn
+++ sort -u
+++ type -p bash
++ timep_runCmd1='#!/usr/bin/bash'
++ printf -v timep_runCmd '%q ' fff
++ [[ -t 0 ]]
++ timep_runCmd+=' <&0'
++ timep_runFuncSrc='#!/usr/bin/bash
+timep_runFunc() '
++ chmod +x /dev/shm/.timep.9DB8353/functions.bash
++ timep_runFuncSrc+='(
 
+    builtin trap - DEBUG EXIT RETURN
+
+    declare timep_BASHPID_PREV timep_BASHPID_STR timep_BASH_SUBSHELL_PREV timep_BG_PID_PREV timep_CHILD_PGID timep_CHILD_TPID timep_CMD_TYPE timep_ENDTIME timep_ENDTIME0 timep_FD timep_FNEST_CUR timep_FUNCNAME_STR timep_IS_BG_INDICATOR timep_IS_BG_FLAG timep_IS_FUNC_FLAG timep_IS_FUNC_FLAG_1 timep_IS_SUBSHELL_FLAG EXEC_0 timep_NEXEC_N timep_NO_PRINT_FLAG timep_NPIDWRAP timep_NPIPE0 timep_PARENT_PGID timep_PARENT_TPID timep_SIMPLEFORK_CUR_FLAG timep_SIMPLEFORK_NEXT_FLAG timep_SKIP_DEBUG_FLAG timep_BASH_SUBSHELL_DIFF timep_BASH_SUBSHELL_DIFF_0 timep_KK
+    declare -a timep_BASH_COMMAND_PREV timep_FNEST timep_NEXEC_A timep_NPIPE timep_STARTTIME timep_A timep_LINENO timep_BASHPID_ADD
+
+    set -m
+    set -T
+
+    : & 2>/dev/null
+
+    declare -gx timep_TMPDIR="/dev/shm/.timep.9DB8353"
+    . "${timep_TMPDIR}/functions.bash"
+    export -f trap
+
+    read -r _ _ _ _ timep_PARENT_PGID _ _ timep_PARENT_TPID _ </proc/${BASHPID}/stat
+    timep_CHILD_PGID="$timep_PARENT_PGID"
+    timep_CHILD_TPID="$timep_PARENT_TPID"
+
+    timep_BASHPID_PREV="$BASHPID"
+    timep_BG_PID_PREV="$!"
+    timep_BASH_SUBSHELL_PREV="$BASH_SUBSHELL"
+    timep_NEXEC_A=('\''0'\'')
+    timep_NPIDWRAP='\''0'\''
+    timep_NEXEC_0="[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
+    timep_BASHPID_STR="${BASHPID}"
+    timep_FUNCNAME_STR="main"
+
+    timep_SIMPLEFORK_NEXT_FLAG=false
+    timep_SIMPLEFORK_CUR_FLAG=false
+    timep_SKIP_DEBUG_FLAG=false
+    timep_NO_PRINT_FLAG=false
+    timep_IS_FUNC_FLAG_1=false
+
+    timep_FNEST=("${#FUNCNAME[@]}")
+    timep_FNEST_CUR="${#FUNCNAME[@]}"
+
+    timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]='\'''\''
+    timep_NPIPE[${timep_FNEST_CUR}]='\''0'\''
+    timep_STARTTIME[${timep_FNEST_CUR}]="${EPOCHREALTIME}"
+    timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
+
+    builtin trap "${timep_RETURN_TRAP_STR}" RETURN
+    builtin trap '\'':'\'' EXIT
+
+    echo "$(( LINENO + 4 ))" >"${timep_TMPDIR}/.log/lineno_offset"
+
+    builtin trap "${timep_DEBUG_TRAP_STR_0}${timep_DEBUG_TRAP_STR_1}" DEBUG
+
+    fff  <&0
+
+    builtin trap - DEBUG EXIT RETURN;
+)'
++ _timep_getFuncSrc /dev/shm/.timep.9DB8353/main.bash
++ local out FF kk nn
++ local -a F
++ [[ f == \f ]]
+++ _timep_getFuncSrc0 /dev/shm/.timep.9DB8353/main.bash
+++ local m n p kk off
+++ local -a A
+++ read -r _ n p
++++ shopt -s extdebug
++++ declare -F /dev/shm/.timep.9DB8353/main.bash
+++ (( n-- ))
+++ [[ '' == \m\a\i\n ]]
+++ [[ -f '' ]]
+++ declare -f /dev/shm/.timep.9DB8353/main.bash
+++ return
++ out=
++ echo ''
++ bash --debug --rpm-requires -O extglob
++ :
++ mapfile -t F
+++ bash --debug --rpm-requires -O extglob
+++ sed -E 's/^executable\((.*)\)/\1/'
+++ read -r nn
+++ sort -u
++ [[ f == \f ]]
++ timep_runFuncSrc+='
+
+timep_runFunc "${@}"'
++ [[ -t 0 ]]
++ timep_runFuncSrc+='
+
+'
++ echo '#!/usr/bin/bash
+timep_runFunc() (
+
+    builtin trap - DEBUG EXIT RETURN
+
+    declare timep_BASHPID_PREV timep_BASHPID_STR timep_BASH_SUBSHELL_PREV timep_BG_PID_PREV timep_CHILD_PGID timep_CHILD_TPID timep_CMD_TYPE timep_ENDTIME timep_ENDTIME0 timep_FD timep_FNEST_CUR timep_FUNCNAME_STR timep_IS_BG_INDICATOR timep_IS_BG_FLAG timep_IS_FUNC_FLAG timep_IS_FUNC_FLAG_1 timep_IS_SUBSHELL_FLAG EXEC_0 timep_NEXEC_N timep_NO_PRINT_FLAG timep_NPIDWRAP timep_NPIPE0 timep_PARENT_PGID timep_PARENT_TPID timep_SIMPLEFORK_CUR_FLAG timep_SIMPLEFORK_NEXT_FLAG timep_SKIP_DEBUG_FLAG timep_BASH_SUBSHELL_DIFF timep_BASH_SUBSHELL_DIFF_0 timep_KK
+    declare -a timep_BASH_COMMAND_PREV timep_FNEST timep_NEXEC_A timep_NPIPE timep_STARTTIME timep_A timep_LINENO timep_BASHPID_ADD
+
+    set -m
+    set -T
+
+    : & 2>/dev/null
+
+    declare -gx timep_TMPDIR="/dev/shm/.timep.9DB8353"
+    . "${timep_TMPDIR}/functions.bash"
+    export -f trap
+
+    read -r _ _ _ _ timep_PARENT_PGID _ _ timep_PARENT_TPID _ </proc/${BASHPID}/stat
+    timep_CHILD_PGID="$timep_PARENT_PGID"
+    timep_CHILD_TPID="$timep_PARENT_TPID"
+
+    timep_BASHPID_PREV="$BASHPID"
+    timep_BG_PID_PREV="$!"
+    timep_BASH_SUBSHELL_PREV="$BASH_SUBSHELL"
+    timep_NEXEC_A=('\''0'\'')
+    timep_NPIDWRAP='\''0'\''
+    timep_NEXEC_0="[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
+    timep_BASHPID_STR="${BASHPID}"
+    timep_FUNCNAME_STR="main"
+
+    timep_SIMPLEFORK_NEXT_FLAG=false
+    timep_SIMPLEFORK_CUR_FLAG=false
+    timep_SKIP_DEBUG_FLAG=false
+    timep_NO_PRINT_FLAG=false
+    timep_IS_FUNC_FLAG_1=false
+
+    timep_FNEST=("${#FUNCNAME[@]}")
+    timep_FNEST_CUR="${#FUNCNAME[@]}"
+
+    timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]='\'''\''
+    timep_NPIPE[${timep_FNEST_CUR}]='\''0'\''
+    timep_STARTTIME[${timep_FNEST_CUR}]="${EPOCHREALTIME}"
+    timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
+
+    builtin trap "${timep_RETURN_TRAP_STR}" RETURN
+    builtin trap '\'':'\'' EXIT
+
+    echo "$(( LINENO + 4 ))" >"${timep_TMPDIR}/.log/lineno_offset"
+
+    builtin trap "${timep_DEBUG_TRAP_STR_0}${timep_DEBUG_TRAP_STR_1}" DEBUG
+
+    fff  <&0
+
+    builtin trap - DEBUG EXIT RETURN;
+)
+
+timep_runFunc "${@}"
+
+'
++ chmod +x /dev/shm/.timep.9DB8353/main.bash
+++ [[ f == \f ]]
+++ printf %s 'fff  <&0'
+++ date
++ printf '\\n
+----------------------------------------------------------------------------
+----------------------- RUNTIME BREAKDOWN BY COMMAND -----------------------
+----------------------------------------------------------------------------
+
+COMMAND PROFILED:
+%s
+
+START TIME:
+%s (%s)
+
+FORMAT (TAB-SEPERATED):
+----------------------------------------------------------------------------
+NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
+----------------------------------------------------------------------------\\n\\n' 'fff  <&0' 'Mon Jun 23 03:36:34 PM EDT 2025' 1750707394.426980
++ [[ -t 0 ]]
++ /dev/shm/.timep.9DB8353/main.bash
+0
+
+1
 2
-A
 3
+A
 4
-6
 5
+6
 B
-7
 8
-11
+7
 9.1
-9.1a
-9.1c
-9
-10
-12
-9.2a
 9.1b
-9.2c
+9.1a
+9.999
+11
+9
 9.2
+9.2a
+9.1c
+9.2b
+12
+9.2c
 13
 14
-9.2b
-9.999
+10
 9.3
-9.4
 15
+9.4
 9.5
 16
 16
 a
 b
 A2
-A1
 A5
+A1
 A3
 A4
 1
@@ -151,7 +989,696 @@ return
 1
 return
 return
-347843
-347842
-347841
-347840
+365131
+365130
+365129
+365128
+++ [[ f == \s ]]
+++ echo function
++ printf '\n\nThe %s being time profiled has finished running!\ntimep will now process the logged timing data.\ntimep will save the time profiles it generates in "%s"\n\n' function /dev/shm/.timep.9DB8353
+
+
+The function being time profiled has finished running!
+timep will now process the logged timing data.
+timep will save the time profiles it generates in "/dev/shm/.timep.9DB8353"
+
++ unset IFS
++ sleep 1
++ mapfile -t timep_LOG_A
+++ sort -V
+++ printf '%s\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.0[0-365050]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.0[0-365051]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.0[0-365051].0[0-365052]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[0-365080]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[0-365082]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[0-365082].0[0-365084]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[0-365082].0[0-365084].0[0-365085]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[1-16838]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[1-16838].0[1-365083]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[1-16838].0[1-365084]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[1-16838].0[1-365084].0[1-365090]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10.3' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.16[0-365096]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.16[0-365096].0[0-365097]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.18[0-365104]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.2[0-365053]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365057]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365058]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365060]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365061]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365062]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365063]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365064]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365065]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365066]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365067]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365067].0[0-365071]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365068]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.51[0-365110]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.56[0-365112]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.6[0-365076]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.6[0-365077]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.61[0-365113]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.65[0-365115]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.70[0-365116]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.75[0-365117]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.79[0-365119]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.8' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.84[0-365120]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.89[0-365121]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365122]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365123]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365123].1' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365123].1.3' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365124]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365124].1' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365124].1.3' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365125]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365126]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365128]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365128].0[0-365129]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365128].0[0-365129].0[0-365130]' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365128].0[0-365129].0[0-365130].0[0-365131]'
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048]
+
++ sort -n -k2
+1	1750707394.431340	1750707394.682992	F:2	main	S:1	365048	N:105	[0-365048].1	406	::	'fff 0<&0' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1
+
++ sort -n -k2
+1	1750707394.431781	1750707394.432112	F:3	main.fff	S:1	365048	N:2	[0-365048].1.0	413	::	'fff 0<&0' (&)
+1	1750707394.432152	        -        	F:3	main.fff	S:2	365048	N:3	[0-365048].1.0[0-365050]	303	::	<< (BACKGROUND FORK) >>
+1	1750707394.432508	1750707394.432553	F:3	main.fff	S:1	365048	N:3	[0-365048].1.1	351	::	'echo 0' 
+1	1750707394.432926	1750707394.433309	F:3	main.fff	S:1	365048	N:4	[0-365048].1.2	353	::	'echo 1' 
+1	1750707394.433309	        -        	F:3	main.fff	S:2	365048	N:5	[0-365048].1.2[0-365053]	311	::	<< (BACKGROUND FORK) >>
+1	1750707394.435020	1750707394.435287	F:3	main.fff	S:1	365048	N:5	[0-365048].1.3	356	::	'echo 3' (&)
+1	1750707394.435686	1750707394.436205	F:3	main.fff	S:1	365048	N:6	[0-365048].1.4	357	::	'echo 4' (&)
+1	1750707394.436205	        -        	F:3	main.fff	S:2	365048	N:7	[0-365048].1.4[0-365057]	316	::	<< (BACKGROUND FORK) >>
+1	1750707394.436520	        -        	F:3	main.fff	S:2	365048	N:7	[0-365048].1.4[0-365058]	317	::	<< (BACKGROUND FORK) >>
+1	1750707394.437967	        -        	F:3	main.fff	S:2	365048	N:3	[0-365048].1.0[0-365051]	306	::	<< (BACKGROUND FORK) >>
+1	1750707394.439712	        -        	F:3	main.fff	S:2	365048	N:7	[0-365048].1.4[0-365061]	318	::	<< (BACKGROUND FORK) >>
+1	1750707394.440199	        -        	F:3	main.fff	S:2	365048	N:7	[0-365048].1.4[0-365060]	318	::	<< (BACKGROUND FORK) >>
+1	1750707394.441260	        -        	F:3	main.fff	S:2	365048	N:7	[0-365048].1.4[0-365063]	320	::	<< (BACKGROUND FORK) >>
+1	1750707394.441305	        -        	F:3	main.fff	S:2	365048	N:7	[0-365048].1.4[0-365062]	319	::	<< (BACKGROUND FORK) >>
+1	1750707394.441369	        -        	F:3	main.fff	S:2	365048	N:7	[0-365048].1.4[0-365064]	323	::	<< (BACKGROUND FORK) >>
+1	1750707394.441496	        -        	F:3	main.fff	S:2	365048	N:7	[0-365048].1.4[0-365065]	324	::	<< (BACKGROUND FORK) >>
+1	1750707394.441678	        -        	F:3	main.fff	S:2	365048	N:7	[0-365048].1.4[0-365066]	325	::	<< (BACKGROUND FORK) >>
+1	1750707394.441699	        -        	F:3	main.fff	S:2	365048	N:7	[0-365048].1.4[0-365067]	326	::	<< (BACKGROUND FORK) >>
+1	1750707394.442226	1750707394.442272	F:3	main.fff	S:1	365048	N:7	[0-365048].1.5	375	::	'echo 11' 
+1	1750707394.442310	        -        	F:3	main.fff	S:2	365048	N:7	[0-365048].1.4[0-365068]	330	::	<< (BACKGROUND FORK) >>
+1	1750707394.442640	1750707394.443152	F:3	main.fff	S:1	365048	N:8	[0-365048].1.6	376	::	'echo 12' (&)
+1	1750707394.443152	        -        	F:3	main.fff	S:2	365048	N:9	[0-365048].1.6[0-365076]	332	::	<< (BACKGROUND FORK) >>
+1	1750707394.443255	        -        	F:3	main.fff	S:2	365048	N:9	[0-365048].1.6[0-365077]	332	::	<< (BACKGROUND FORK) >>
+1	1750707394.444899	1750707394.447520	F:3	main.fff	S:1	365048	N:13	[0-365048].1.8	331	::	'ff 15' 
+1	1750707394.447895	1750707394.453867	F:3	main.fff	S:1	365048	N:23	[0-365048].1.10	335	::	'gg 16' (&)
+1	1750707394.453867	        -        	F:3	main.fff	S:2	365048	N:24	[0-365048].1.10[0-365080]	335	::	<< (BACKGROUND FORK) >>
+1	1750707394.454327	        -        	F:3	main.fff	S:2	365048	N:24	[0-365048].1.10[0-365082]	340	::	<< (BACKGROUND FORK) >>
+1	1750707394.457273	1750707394.457525	F:3	main.fff	S:1	365048	N:24	[0-365048].1.11	385	::	$'cat <<EOF\nfoo\nbar\nbaz\nEOF\n' 
+1	1750707394.457917	1750707394.458168	F:3	main.fff	S:1	365048	N:25	[0-365048].1.12	390	::	'grep --color=auto foo' 
+1	1750707394.458548	1750707394.458804	F:3	main.fff	S:1	365048	N:26	[0-365048].1.13	390	::	'sed '\''s/o/O/g'\''' 
+4	1750707394.459179	1750707394.460247	F:3	main.fff	S:1	365048	N:27	[0-365048].1.14	390	::	'wc -l' 
+1	1750707394.460628	1750707394.461224	F:3	main.fff	S:1	365048	N:28	[0-365048].1.15	391	::	'echo "today is $(date +%Y-%m-%d)"' 
+4	1750707394.461224	        -        	F:3	main.fff	S:2	365048	N:29	[0-365048].1.15[0-365095]	347	::	<< (SUBSHELL) >>
+1	1750707394.462925	1750707394.463750	F:3	main.fff	S:1	365048	N:29	[0-365048].1.16	392	::	'x=$( ( echo nested; echo subshell ) | grep sub)' 
+1	1750707394.463750	        -        	F:3	main.fff	S:2	365048	N:30	[0-365048].1.16[0-365096]	348	::	<< (SUBSHELL) >>
+1	1750707394.466749	1750707394.467334	F:3	main.fff	S:1	365048	N:30	[0-365048].1.17	393	::	'diff <(ls /) <(ls /tmp)' (&)
+1	1750707394.467334	        -        	F:3	main.fff	S:2	365048	N:31	[0-365048].1.17[0-365099]	349	::	<< (SUBSHELL) >>
+1	1750707394.467491	        -        	F:3	main.fff	S:2	365048	N:31	[0-365048].1.17[0-365100]	349	::	<< (SUBSHELL) >>
+1	1750707394.469857	1750707394.470250	F:3	main.fff	S:1	365048	N:31	[0-365048].1.18	394	::	'grep --color=auto pattern <(sed '\''s/^/>>/'\'' > /dev/null)' (&)
+1	1750707394.470250	        -        	F:3	main.fff	S:2	365048	N:32	[0-365048].1.18[0-365102]	350	::	<< (SUBSHELL) >>
+1	1750707394.471400	        -        	F:3	main.fff	S:2	365048	N:32	[0-365048].1.18[0-365104]	352	::	<< (BACKGROUND FORK) >>
+1	1750707394.471901	1750707394.472384	F:3	main.fff	S:1	365048	N:32	[0-365048].1.19	402	::	'read -r n <&${CO[0]}' 
+1	1750707394.472767	1750707394.472814	F:3	main.fff	S:1	365048	N:33	[0-365048].1.20	403	::	'printf "got %s\n" "$n"' 
+1	1750707394.473174	1750707394.486229	F:3	main.fff	S:1	365048	N:34	[0-365048].1.21	402	::	'read -r n <&${CO[0]}' 
+1	1750707394.486848	1750707394.486923	F:3	main.fff	S:1	365048	N:35	[0-365048].1.22	403	::	'printf "got %s\n" "$n"' 
+1	1750707394.487525	1750707394.500625	F:3	main.fff	S:1	365048	N:36	[0-365048].1.23	402	::	'read -r n <&${CO[0]}' 
+1	1750707394.501206	1750707394.501278	F:3	main.fff	S:1	365048	N:37	[0-365048].1.24	403	::	'printf "got %s\n" "$n"' 
+1	1750707394.501866	1750707394.515703	F:3	main.fff	S:1	365048	N:38	[0-365048].1.25	402	::	'read -r n <&${CO[0]}' 
+1	1750707394.516981	1750707394.517126	F:3	main.fff	S:1	365048	N:39	[0-365048].1.26	405	::	'let "x = 5 + 6"' 
+1	1750707394.518383	1750707394.518528	F:3	main.fff	S:1	365048	N:40	[0-365048].1.27	406	::	'arr=(one two three)' 
+1	1750707394.519803	1750707394.519963	F:3	main.fff	S:1	365048	N:41	[0-365048].1.28	407	::	'echo ${arr[@]}' 
+1	1750707394.521225	1750707394.521360	F:3	main.fff	S:1	365048	N:42	[0-365048].1.29	408	::	'((i=0))' 
+1	1750707394.522627	1750707394.522765	F:3	main.fff	S:1	365048	N:43	[0-365048].1.30	408	::	'((i<3))' 
+1	1750707394.523145	1750707394.523186	F:3	main.fff	S:1	365048	N:44	[0-365048].1.31	410	::	'echo "$i"' 
+1	1750707394.523548	1750707394.523591	F:3	main.fff	S:1	365048	N:45	[0-365048].1.32	408	::	'((i++))' 
+1	1750707394.523943	1750707394.523980	F:3	main.fff	S:1	365048	N:46	[0-365048].1.33	408	::	'((i<3))' 
+1	1750707394.524316	1750707394.524358	F:3	main.fff	S:1	365048	N:47	[0-365048].1.34	410	::	'echo "$i"' 
+1	1750707394.524719	1750707394.524757	F:3	main.fff	S:1	365048	N:48	[0-365048].1.35	408	::	'((i++))' 
+1	1750707394.525103	1750707394.525142	F:3	main.fff	S:1	365048	N:49	[0-365048].1.36	408	::	'((i<3))' 
+1	1750707394.525498	1750707394.525539	F:3	main.fff	S:1	365048	N:50	[0-365048].1.37	410	::	'echo "$i"' 
+1	1750707394.525914	1750707394.525950	F:3	main.fff	S:1	365048	N:51	[0-365048].1.38	408	::	'((i++))' 
+1	1750707394.526287	1750707394.526327	F:3	main.fff	S:1	365048	N:52	[0-365048].1.39	408	::	'((i<3))' 
+1	1750707394.526690	1750707394.526727	F:3	main.fff	S:1	365048	N:53	[0-365048].1.40	420	::	'cmd="echo inside-eval"' 
+1	1750707394.527076	1750707394.527117	F:3	main.fff	S:1	365048	N:54	[0-365048].1.41	421	::	'eval "$cmd"' 
+1	1750707394.527455	1750707394.527500	F:3	main.fff	S:1	365048	N:55	[0-365048].1.42	421	::	'echo inside-eval' 
+1	1750707394.527875	1750707394.527915	F:3	main.fff	S:1	365048	N:56	[0-365048].1.43	422	::	'eval "eval \"$cmd\""' 
+1	1750707394.528255	1750707394.528294	F:3	main.fff	S:1	365048	N:57	[0-365048].1.44	422	::	'eval "echo inside-eval"' 
+1	1750707394.533926	1750707394.533973	F:3	main.fff	S:1	365048	N:59	[0-365048].1.45	424	::	'kill -USR1 $BASHPID' 
+1	1750707394.534320	1750707394.534362	F:3	main.fff	S:1	365048	N:60	[0-365048].1.46	142	::	'kill -USR1 $BASHPID' 
+1	1750707394.534716	1750707394.547165	F:3	main.fff	S:1	365048	N:61	[0-365048].1.47	142	::	'kill -USR1 $BASHPID' 
+1	1750707394.547776	1750707394.547822	F:3	main.fff	S:1	365048	N:62	[0-365048].1.48	425	::	'echo after-signal' 
+1	1750707394.548187	1750707394.548471	F:3	main.fff	S:1	365048	N:63	[0-365048].1.49	426	::	'for i in {1..3}' (&)
+1	1750707394.549000	1750707394.552874	F:3	main.fff	S:1	365048	N:64	[0-365048].1.50	428	::	'read x' 
+1	1750707394.549136	        -        	F:3	main.fff	S:2	365048	N:64	[0-365048].1.49[0-365109]	382	::	<< (SUBSHELL) >>
+1	1750707394.553335	1750707394.553961	F:3	main.fff	S:1	365048	N:65	[0-365048].1.51	429	::	'(( x % 2 == 0 ))' 
+1	1750707394.553961	        -        	F:3	main.fff	S:2	365048	N:66	[0-365048].1.51[0-365110]	388	::	<< (BACKGROUND FORK) >>
+1	1750707394.556629	1750707394.556675	F:3	main.fff	S:1	365048	N:66	[0-365048].1.52	428	::	'read x' 
+1	1750707394.557028	1750707394.557066	F:3	main.fff	S:1	365048	N:67	[0-365048].1.53	429	::	'(( x % 2 == 0 ))' 
+1	1750707394.557415	1750707394.557459	F:3	main.fff	S:1	365048	N:68	[0-365048].1.54	430	::	'echo even "$x"' 
+1	1750707394.557818	1750707394.557863	F:3	main.fff	S:1	365048	N:69	[0-365048].1.55	428	::	'read x' 
+1	1750707394.558212	1750707394.558617	F:3	main.fff	S:1	365048	N:70	[0-365048].1.56	429	::	'(( x % 2 == 0 ))' 
+1	1750707394.558617	        -        	F:3	main.fff	S:2	365048	N:71	[0-365048].1.56[0-365112]	388	::	<< (BACKGROUND FORK) >>
+1	1750707394.560195	1750707394.560240	F:3	main.fff	S:1	365048	N:71	[0-365048].1.57	428	::	'read x' 
+1	1750707394.560599	1750707394.560637	F:3	main.fff	S:1	365048	N:72	[0-365048].1.58	429	::	'(( x % 2 == 0 ))' 
+1	1750707394.560987	1750707394.561031	F:3	main.fff	S:1	365048	N:73	[0-365048].1.59	430	::	'echo even "$x"' 
+1	1750707394.561382	1750707394.561427	F:3	main.fff	S:1	365048	N:74	[0-365048].1.60	428	::	'read x' 
+1	1750707394.561783	1750707394.562844	F:3	main.fff	S:1	365048	N:75	[0-365048].1.61	429	::	'(( x % 2 == 0 ))' 
+1	1750707394.562844	        -        	F:3	main.fff	S:2	365048	N:76	[0-365048].1.61[0-365113]	388	::	<< (BACKGROUND FORK) >>
+1	1750707394.565205	1750707394.565256	F:3	main.fff	S:1	365048	N:76	[0-365048].1.62	428	::	'read x' 
+1	1750707394.565609	1750707394.565898	F:3	main.fff	S:1	365048	N:77	[0-365048].1.63	426	::	'for i in {1..3}' (&)
+1	1750707394.566419	1750707394.570184	F:3	main.fff	S:1	365048	N:78	[0-365048].1.64	428	::	'read x' 
+1	1750707394.566550	        -        	F:3	main.fff	S:2	365048	N:78	[0-365048].1.63[0-365114]	382	::	<< (SUBSHELL) >>
+1	1750707394.570618	1750707394.571650	F:3	main.fff	S:1	365048	N:79	[0-365048].1.65	429	::	'(( x % 2 == 0 ))' 
+1	1750707394.571650	        -        	F:3	main.fff	S:2	365048	N:80	[0-365048].1.65[0-365115]	388	::	<< (BACKGROUND FORK) >>
+1	1750707394.574783	1750707394.574828	F:3	main.fff	S:1	365048	N:80	[0-365048].1.66	428	::	'read x' 
+1	1750707394.575181	1750707394.575219	F:3	main.fff	S:1	365048	N:81	[0-365048].1.67	429	::	'(( x % 2 == 0 ))' 
+1	1750707394.575568	1750707394.575619	F:3	main.fff	S:1	365048	N:82	[0-365048].1.68	430	::	'echo even "$x"' 
+1	1750707394.575973	1750707394.576018	F:3	main.fff	S:1	365048	N:83	[0-365048].1.69	428	::	'read x' 
+1	1750707394.576369	1750707394.577511	F:3	main.fff	S:1	365048	N:84	[0-365048].1.70	429	::	'(( x % 2 == 0 ))' 
+1	1750707394.577511	        -        	F:3	main.fff	S:2	365048	N:85	[0-365048].1.70[0-365116]	388	::	<< (BACKGROUND FORK) >>
+1	1750707394.581770	1750707394.581815	F:3	main.fff	S:1	365048	N:85	[0-365048].1.71	428	::	'read x' 
+1	1750707394.582167	1750707394.582205	F:3	main.fff	S:1	365048	N:86	[0-365048].1.72	429	::	'(( x % 2 == 0 ))' 
+1	1750707394.582555	1750707394.582605	F:3	main.fff	S:1	365048	N:87	[0-365048].1.73	430	::	'echo even "$x"' 
+1	1750707394.582956	1750707394.583000	F:3	main.fff	S:1	365048	N:88	[0-365048].1.74	428	::	'read x' 
+1	1750707394.583351	1750707394.583790	F:3	main.fff	S:1	365048	N:89	[0-365048].1.75	429	::	'(( x % 2 == 0 ))' 
+1	1750707394.583790	        -        	F:3	main.fff	S:2	365048	N:90	[0-365048].1.75[0-365117]	388	::	<< (BACKGROUND FORK) >>
+1	1750707394.585419	1750707394.585482	F:3	main.fff	S:1	365048	N:90	[0-365048].1.76	428	::	'read x' 
+1	1750707394.585836	1750707394.586120	F:3	main.fff	S:1	365048	N:91	[0-365048].1.77	426	::	'for i in {1..3}' (&)
+1	1750707394.586654	1750707394.590427	F:3	main.fff	S:1	365048	N:92	[0-365048].1.78	428	::	'read x' 
+1	1750707394.586818	        -        	F:3	main.fff	S:2	365048	N:92	[0-365048].1.77[0-365118]	382	::	<< (SUBSHELL) >>
+1	1750707394.590866	1750707394.591263	F:3	main.fff	S:1	365048	N:93	[0-365048].1.79	429	::	'(( x % 2 == 0 ))' 
+1	1750707394.591263	        -        	F:3	main.fff	S:2	365048	N:94	[0-365048].1.79[0-365119]	388	::	<< (BACKGROUND FORK) >>
+1	1750707394.592844	1750707394.592889	F:3	main.fff	S:1	365048	N:94	[0-365048].1.80	428	::	'read x' 
+1	1750707394.593244	1750707394.593283	F:3	main.fff	S:1	365048	N:95	[0-365048].1.81	429	::	'(( x % 2 == 0 ))' 
+1	1750707394.593638	1750707394.593683	F:3	main.fff	S:1	365048	N:96	[0-365048].1.82	430	::	'echo even "$x"' 
+1	1750707394.594034	1750707394.594078	F:3	main.fff	S:1	365048	N:97	[0-365048].1.83	428	::	'read x' 
+1	1750707394.594430	1750707394.594904	F:3	main.fff	S:1	365048	N:98	[0-365048].1.84	429	::	'(( x % 2 == 0 ))' 
+1	1750707394.594904	        -        	F:3	main.fff	S:2	365048	N:99	[0-365048].1.84[0-365120]	388	::	<< (BACKGROUND FORK) >>
+1	1750707394.596821	1750707394.596866	F:3	main.fff	S:1	365048	N:99	[0-365048].1.85	428	::	'read x' 
+1	1750707394.597219	1750707394.597257	F:3	main.fff	S:1	365048	N:100	[0-365048].1.86	429	::	'(( x % 2 == 0 ))' 
+1	1750707394.597611	1750707394.597656	F:3	main.fff	S:1	365048	N:101	[0-365048].1.87	430	::	'echo even "$x"' 
+1	1750707394.598008	1750707394.598052	F:3	main.fff	S:1	365048	N:102	[0-365048].1.88	428	::	'read x' 
+1	1750707394.598404	1750707394.598804	F:3	main.fff	S:1	365048	N:103	[0-365048].1.89	429	::	'(( x % 2 == 0 ))' 
+1	1750707394.598804	        -        	F:3	main.fff	S:2	365048	N:104	[0-365048].1.89[0-365121]	388	::	<< (BACKGROUND FORK) >>
+1	1750707394.600383	1750707394.606424	F:3	main.fff	S:1	365048	N:104	[0-365048].1.90	428	::	'read x' 
+1	1750707394.606424	        -        	F:3	main.fff	S:2	365048	N:106	[0-365048].1.90[0-365122]	393	::	<< (BACKGROUND FORK) >>
+1	1750707394.615269	        -        	F:3	main.fff	S:2	365048	N:106	[0-365048].1.90[0-365123]	395	::	<< (BACKGROUND FORK) >>
+1	1750707394.634783	        -        	F:3	main.fff	S:2	365048	N:107	[0-365048].1.90[0-365124]	399	::	<< (BACKGROUND FORK) >>
+1	1750707394.650974	        -        	F:3	main.fff	S:2	365048	N:106	[0-365048].1.90[0-365125]	402	::	<< (BACKGROUND FORK) >>
+1	1750707394.657409	        -        	F:3	main.fff	S:2	365048	N:106	[0-365048].1.90[0-365126]	404	::	<< (BACKGROUND FORK) >>
+1	1750707394.673466	        -        	F:3	main.fff	S:2	365048	N:105	[0-365048].1.90[0-365128]	408	::	<< (BACKGROUND FORK) >>
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.0[0-365050]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.0[0-365050]
+
++ sort -n -k2
+1	1750707394.432714	1750707394.432764	F:3	main.fff	S:2	365048.365050	N:4	[0-365048].1.0[0-365050].0	347	::	'echo' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.0[0-365051]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.0[0-365051]
+
++ sort -n -k2
+1	1750707394.432987	        -        	F:3	main.fff	S:3	365048.365051	N:3	[0-365048].1.0[0-365051].0[0-365052]	305	::	<< (BACKGROUND FORK) >>
+1	1750707394.438509	1750707394.438557	F:3	main.fff	S:2	365048.365051	N:4	[0-365048].1.0[0-365051].0	350	::	'echo B' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.0[0-365051].0[0-365052]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.0[0-365051].0[0-365052]
+
++ sort -n -k2
+1	1750707394.435197	1750707394.436020	F:3	main.fff	S:3	365048.365051.365052	N:4	[0-365048].1.0[0-365051].0[0-365052].0	349	::	'echo A' (&)
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.2[0-365053]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.2[0-365053]
+
++ sort -n -k2
+1	1750707394.433941	1750707394.433992	F:3	main.fff	S:2	365048.365053	N:6	[0-365048].1.2[0-365053].0	355	::	'echo 2' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365057]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365057]
+
++ sort -n -k2
+1	1750707394.436751	1750707394.436801	F:3	main.fff	S:2	365048.365057	N:8	[0-365048].1.4[0-365057].0	360	::	'echo 5' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365058]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365058]
+
++ sort -n -k2
+1	1750707394.437614	1750707394.438093	F:3	main.fff	S:2	365048.365058	N:8	[0-365048].1.4[0-365058].0	361	::	'echo 6' (&)
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365060]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365060]
+
++ sort -n -k2
+1	1750707394.441451	1750707394.441504	F:3	main.fff	S:2	365048.365060	N:8	[0-365048].1.4[0-365060].0	362	::	'echo 7' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365061]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365061]
+
++ sort -n -k2
+1	1750707394.440226	1750707394.440275	F:3	main.fff	S:2	365048.365061	N:8	[0-365048].1.4[0-365061].0	362	::	'echo 8' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365062]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365062]
+
++ sort -n -k2
+1	1750707394.441925	1750707394.442227	F:3	main.fff	S:2	365048.365062	N:8	[0-365048].1.4[0-365062].0	363	::	'echo 9' (&)
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365063]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365063]
+
++ sort -n -k2
+1	1750707394.441791	1750707394.441837	F:3	main.fff	S:2	365048.365063	N:8	[0-365048].1.4[0-365063].0	364	::	'echo 9.1' 
+1	1750707394.442199	1750707394.442466	F:3	main.fff	S:2	365048.365063	N:9	[0-365048].1.4[0-365063].1	365	::	'echo 9.2' (&)
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365064]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365064]
+
++ sort -n -k2
+1	1750707394.441913	1750707394.442162	F:3	main.fff	S:2	365048.365064	N:8	[0-365048].1.4[0-365064].0	367	::	'echo 9.1a' (&)
+1	1750707394.442616	1750707394.442680	F:3	main.fff	S:2	365048.365064	N:9	[0-365048].1.4[0-365064].1	367	::	'echo 9.2a' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365065]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365065]
+
++ sort -n -k2
+1	1750707394.442020	1750707394.442066	F:3	main.fff	S:2	365048.365065	N:8	[0-365048].1.4[0-365065].0	368	::	'echo 9.1b' 
+1	1750707394.442431	1750707394.442701	F:3	main.fff	S:2	365048.365065	N:9	[0-365048].1.4[0-365065].1	369	::	'echo 9.2b' (&)
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365066]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365066]
+
++ sort -n -k2
+1	1750707394.442386	1750707394.442707	F:3	main.fff	S:2	365048.365066	N:8	[0-365048].1.4[0-365066].0	369	::	'echo 9.1c' (&)
+1	1750707394.443279	1750707394.443362	F:3	main.fff	S:2	365048.365066	N:9	[0-365048].1.4[0-365066].1	369	::	'echo 9.2c' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365067]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365067]
+
++ sort -n -k2
+1	1750707394.442217	1750707394.442935	F:3	main.fff	S:2	365048.365067	N:8	[0-365048].1.4[0-365067].0	370	::	'echo 9.999' 
+1	1750707394.442935	        -        	F:3	main.fff	S:3	365048.365067	N:9	[0-365048].1.4[0-365067].0[0-365071]	327	::	<< (SUBSHELL) >>
+1	1750707394.447702	1750707394.447752	F:3	main.fff	S:2	365048.365067	N:9	[0-365048].1.4[0-365067].1	372	::	'echo 9.5' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365067].0[0-365071]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365067].0[0-365071]
+
++ sort -n -k2
+1	1750707394.444298	1750707394.444850	F:3	main.fff	S:3	365048.365067.365071	N:10	[0-365048].1.4[0-365067].0[0-365071].0	371	::	'echo 9.3' (&)
+1	1750707394.445845	1750707394.445966	F:3	main.fff	S:3	365048.365067.365071	N:11	[0-365048].1.4[0-365067].0[0-365071].1	371	::	'echo 9.4' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365068]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.4[0-365068]
+
++ sort -n -k2
+1	1750707394.444115	1750707394.444885	F:3	main.fff	S:2	365048.365068	N:8	[0-365048].1.4[0-365068].0	374	::	'echo 10' (&)
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.6[0-365076]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.6[0-365076]
+
++ sort -n -k2
+1	1750707394.443719	1750707394.443770	F:3	main.fff	S:2	365048.365076	N:10	[0-365048].1.6[0-365076].0	376	::	'echo 13' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.6[0-365077]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.6[0-365077]
+
++ sort -n -k2
+1	1750707394.443797	1750707394.443848	F:3	main.fff	S:2	365048.365077	N:10	[0-365048].1.6[0-365077].0	376	::	'echo 14' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.8'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.8
+
++ sort -n -k2
+1	1750707394.445277	1750707394.445312	F:4	main.fff.ff	S:1	365048	N:11	[0-365048].1.8.0	338	::	'ff 15' 
+1	1750707394.445684	1750707394.445737	F:4	main.fff.ff	S:1	365048	N:12	[0-365048].1.8.1	339	::	'echo "${*}"' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10
+
++ sort -n -k2
+1	1750707394.448279	1750707394.448314	F:4	main.fff.gg	S:1	365048	N:16	[0-365048].1.10.0	342	::	'gg 16' 
+1	1750707394.448688	1750707394.448732	F:4	main.fff.gg	S:1	365048	N:17	[0-365048].1.10.1	343	::	'echo "$*"' 
+1	1750707394.449090	1750707394.451698	F:4	main.fff.gg	S:1	365048	N:22	[0-365048].1.10.3	331	::	'ff "$@"' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10.3'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10.3
+
++ sort -n -k2
+1	1750707394.449468	1750707394.449503	F:5	main.fff.gg.ff	S:1	365048	N:20	[0-365048].1.10.3.0	338	::	'ff "$@"' 
+1	1750707394.449877	1750707394.449926	F:5	main.fff.gg.ff	S:1	365048	N:21	[0-365048].1.10.3.1	339	::	'echo "${*}"' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[0-365080]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[0-365080]
+
++ sort -n -k2
+1	1750707394.454395	1750707394.454661	F:3	main.fff	S:2	365048.365080	N:25	[0-365048].1.10[0-365080].0	379	::	'echo a' (&)
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[0-365082]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[0-365082]
+
++ sort -n -k2
+1	1750707394.455044	1750707394.455344	F:3	main.fff	S:2	365048.365082	N:25	[0-365048].1.10[0-365082].0	384	::	'echo A2' (&)
+1	1750707394.455934	1750707394.456002	F:3	main.fff	S:2	365048.365082	N:26	[0-365048].1.10[0-365082].1	384	::	'echo A1' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[0-365082].0[0-365084]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[0-365082].0[0-365084]
+
++ sort -n -k2
+1	1750707394.454545	        -        	F:3	main.fff	S:4	365048.365082.365084	N:24	[0-365048].1.10[0-365082].0[0-365084].0[0-365085]	337	::	<< (BACKGROUND FORK) >>
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[0-365082].0[0-365084].0[0-365085]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[0-365082].0[0-365084].0[0-365085]
+
++ sort -n -k2
+1	1750707394.455252	1750707394.455510	F:3	main.fff	S:4	365048.365082.365084.365085	N:25	[0-365048].1.10[0-365082].0[0-365084].0[0-365085].0	381	::	'echo A5' (&)
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[1-16838]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[1-16838]
+
++ sort -n -k2
+1	1750707394.454189	        -        	F:3	main.fff	S:3	365048.16838	N:24	[0-365048].1.10[1-16838].0[1-365083]	336	::	<< (BACKGROUND FORK) >>
+1	1750707394.456385	        -        	F:3	main.fff	S:3	365048.16838	N:24	[0-365048].1.10[1-16838].0[1-365084]	340	::	<< (BACKGROUND FORK) >>
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[1-16838].0[1-365083]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[1-16838].0[1-365083]
+
++ sort -n -k2
+1	1750707394.454825	1750707394.454879	F:3	main.fff	S:3	365048.16838.365083	N:25	[0-365048].1.10[1-16838].0[1-365083].0	380	::	'echo b' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[1-16838].0[1-365084]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[1-16838].0[1-365084]
+
++ sort -n -k2
+1	1750707394.456450	        -        	F:3	main.fff	S:4	365048.16838.365084	N:24	[0-365048].1.10[1-16838].0[1-365084].0[1-365090]	339	::	<< (BACKGROUND FORK) >>
+1	1750707394.457010	1750707394.457061	F:3	main.fff	S:3	365048.16838.365084	N:25	[0-365048].1.10[1-16838].0[1-365084].0	384	::	'echo A3' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[1-16838].0[1-365084].0[1-365090]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.10[1-16838].0[1-365084].0[1-365090]
+
++ sort -n -k2
+1	1750707394.457152	1750707394.457204	F:3	main.fff	S:4	365048.16838.365084.365090	N:25	[0-365048].1.10[1-16838].0[1-365084].0[1-365090].0	383	::	'echo A4' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.16[0-365096]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.16[0-365096]
+
++ sort -n -k2
+1	1750707394.463833	        -        	F:3	main.fff	S:3	365048.365096	N:30	[0-365048].1.16[0-365096].0[0-365097]	348	::	<< (SUBSHELL) >>
+2	1750707394.464288	1750707394.465646	F:3	main.fff	S:2	365048.365096	N:31	[0-365048].1.16[0-365096].0	392	::	'grep sub' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.16[0-365096].0[0-365097]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.16[0-365096].0[0-365097]
+
++ sort -n -k2
+1	1750707394.464464	1750707394.464508	F:3	main.fff	S:3	365048.365096.365097	N:31	[0-365048].1.16[0-365096].0[0-365097].0	392	::	'echo nested' 
+1	1750707394.464879	1750707394.464925	F:3	main.fff	S:3	365048.365096.365097	N:32	[0-365048].1.16[0-365096].0[0-365097].1	392	::	'echo subshell' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.18[0-365104]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.18[0-365104]
+
++ sort -n -k2
+1	1750707394.471924	1750707394.471967	F:3	main.fff	S:2	365048.365104	N:33	[0-365048].1.18[0-365104].0	396	::	'for i in {1..3}' 
+1	1750707394.472329	1750707394.472373	F:3	main.fff	S:2	365048.365104	N:34	[0-365048].1.18[0-365104].1	398	::	'echo "$i"' 
+1	1750707394.472728	1750707394.484229	F:3	main.fff	S:2	365048.365104	N:35	[0-365048].1.18[0-365104].2	399	::	'sleep .01' 
+1	1750707394.485219	1750707394.485288	F:3	main.fff	S:2	365048.365104	N:36	[0-365048].1.18[0-365104].3	396	::	'for i in {1..3}' 
+1	1750707394.486136	1750707394.486211	F:3	main.fff	S:2	365048.365104	N:37	[0-365048].1.18[0-365104].4	398	::	'echo "$i"' 
+1	1750707394.487053	1750707394.499361	F:3	main.fff	S:2	365048.365104	N:38	[0-365048].1.18[0-365104].5	399	::	'sleep .01' 
+1	1750707394.499999	1750707394.500041	F:3	main.fff	S:2	365048.365104	N:39	[0-365048].1.18[0-365104].6	396	::	'for i in {1..3}' 
+1	1750707394.500538	1750707394.500590	F:3	main.fff	S:2	365048.365104	N:40	[0-365048].1.18[0-365104].7	398	::	'echo "$i"' 
+1	1750707394.501089	1750707394.513312	F:3	main.fff	S:2	365048.365104	N:41	[0-365048].1.18[0-365104].8	399	::	'sleep .01' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.51[0-365110]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.51[0-365110]
+
++ sort -n -k2
+1	1750707394.555017	1750707394.555117	F:3	main.fff	S:2	365048.365110	N:67	[0-365048].1.51[0-365110].0	432	::	'echo odd "$x"' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.56[0-365112]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.56[0-365112]
+
++ sort -n -k2
+1	1750707394.559130	1750707394.559179	F:3	main.fff	S:2	365048.365112	N:72	[0-365048].1.56[0-365112].0	432	::	'echo odd "$x"' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.61[0-365113]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.61[0-365113]
+
++ sort -n -k2
+1	1750707394.563987	1750707394.564051	F:3	main.fff	S:2	365048.365113	N:77	[0-365048].1.61[0-365113].0	432	::	'echo odd "$x"' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.65[0-365115]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.65[0-365115]
+
++ sort -n -k2
+1	1750707394.573458	1750707394.573643	F:3	main.fff	S:2	365048.365115	N:81	[0-365048].1.65[0-365115].0	432	::	'echo odd "$x"' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.70[0-365116]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.70[0-365116]
+
++ sort -n -k2
+1	1750707394.579352	1750707394.579524	F:3	main.fff	S:2	365048.365116	N:86	[0-365048].1.70[0-365116].0	432	::	'echo odd "$x"' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.75[0-365117]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.75[0-365117]
+
++ sort -n -k2
+1	1750707394.584320	1750707394.584371	F:3	main.fff	S:2	365048.365117	N:91	[0-365048].1.75[0-365117].0	432	::	'echo odd "$x"' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.79[0-365119]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.79[0-365119]
+
++ sort -n -k2
+1	1750707394.591781	1750707394.591830	F:3	main.fff	S:2	365048.365119	N:95	[0-365048].1.79[0-365119].0	432	::	'echo odd "$x"' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.84[0-365120]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.84[0-365120]
+
++ sort -n -k2
+1	1750707394.595591	1750707394.595655	F:3	main.fff	S:2	365048.365120	N:100	[0-365048].1.84[0-365120].0	432	::	'echo odd "$x"' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.89[0-365121]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.89[0-365121]
+
++ sort -n -k2
+1	1750707394.599318	1750707394.599369	F:3	main.fff	S:2	365048.365121	N:105	[0-365048].1.89[0-365121].0	432	::	'echo odd "$x"' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365122]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365122]
+
++ sort -n -k2
+1	1750707394.607002	1750707394.607047	F:3	main.fff	S:2	365048.365122	N:107	[0-365048].1.90[0-365122].0	437	::	'exit' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365123]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365123]
+
++ sort -n -k2
+1	1750707394.615725	1750707394.621644	F:3	main.fff	S:2	365048.365123	N:118	[0-365048].1.90[0-365123].1	335	::	'gg 1' 
+1	1750707394.621989	1750707394.622032	F:3	main.fff	S:2	365048.365123	N:119	[0-365048].1.90[0-365123].2	440	::	'exit' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365123].1'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365123].1
+
++ sort -n -k2
+1	1750707394.616083	1750707394.616117	F:4	main.fff.gg	S:2	365048.365123	N:109	[0-365048].1.90[0-365123].1.0	342	::	'gg 1' 
+1	1750707394.616462	1750707394.616505	F:4	main.fff.gg	S:2	365048.365123	N:110	[0-365048].1.90[0-365123].1.1	343	::	'echo "$*"' 
+1	1750707394.616844	1750707394.619629	F:4	main.fff.gg	S:2	365048.365123	N:116	[0-365048].1.90[0-365123].1.3	331	::	'ff "$@"' 
+1	1750707394.619965	1750707394.620009	F:4	main.fff.gg	S:2	365048.365123	N:117	[0-365048].1.90[0-365123].1.4	342	::	'echo "${*}"' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365123].1.3'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365123].1.3
+
++ sort -n -k2
+1	1750707394.617195	1750707394.617229	F:5	main.fff.gg.ff	S:2	365048.365123	N:113	[0-365048].1.90[0-365123].1.3.0	338	::	'ff "$@"' 
+1	1750707394.617568	1750707394.617619	F:5	main.fff.gg.ff	S:2	365048.365123	N:114	[0-365048].1.90[0-365123].1.3.1	339	::	'echo "${*}"' 
+1	1750707394.617954	1750707394.617996	F:5	main.fff.gg.ff	S:2	365048.365123	N:115	[0-365048].1.90[0-365123].1.3.2	338	::	'echo "${*}"' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365124]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365124]
+
++ sort -n -k2
+1	1750707394.635231	1750707394.641163	F:3	main.fff	S:2	365048.365124	N:119	[0-365048].1.90[0-365124].1	335	::	'gg 1' 
+1	1750707394.641506	1750707394.641549	F:3	main.fff	S:2	365048.365124	N:120	[0-365048].1.90[0-365124].2	444	::	'exit' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365124].1'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365124].1
+
++ sort -n -k2
+1	1750707394.635594	1750707394.635629	F:4	main.fff.gg	S:2	365048.365124	N:110	[0-365048].1.90[0-365124].1.0	342	::	'gg 1' 
+1	1750707394.635977	1750707394.636019	F:4	main.fff.gg	S:2	365048.365124	N:111	[0-365048].1.90[0-365124].1.1	343	::	'echo "$*"' 
+1	1750707394.636368	1750707394.639156	F:4	main.fff.gg	S:2	365048.365124	N:117	[0-365048].1.90[0-365124].1.3	331	::	'ff "$@"' 
+1	1750707394.639490	1750707394.639532	F:4	main.fff.gg	S:2	365048.365124	N:118	[0-365048].1.90[0-365124].1.4	342	::	'echo "${*}"' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365124].1.3'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365124].1.3
+
++ sort -n -k2
+1	1750707394.636725	1750707394.636759	F:5	main.fff.gg.ff	S:2	365048.365124	N:114	[0-365048].1.90[0-365124].1.3.0	338	::	'ff "$@"' 
+1	1750707394.637102	1750707394.637148	F:5	main.fff.gg.ff	S:2	365048.365124	N:115	[0-365048].1.90[0-365124].1.3.1	339	::	'echo "${*}"' 
+1	1750707394.637483	1750707394.637525	F:5	main.fff.gg.ff	S:2	365048.365124	N:116	[0-365048].1.90[0-365124].1.3.2	338	::	'echo "${*}"' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365125]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365125]
+
++ sort -n -k2
+1	1750707394.651559	1750707394.651619	F:3	main.fff	S:2	365048.365125	N:107	[0-365048].1.90[0-365125].0	446	::	'exit' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365126]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365126]
+
++ sort -n -k2
+1	1750707394.657860	1750707394.657903	F:3	main.fff	S:2	365048.365126	N:107	[0-365048].1.90[0-365126].0	448	::	'exit' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365128]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365128]
+
++ sort -n -k2
+1	1750707394.669289	        -        	F:3	main.fff	S:3	365048.365128	N:105	[0-365048].1.90[0-365128].0[0-365129]	407	::	<< (BACKGROUND FORK) >>
+1	1750707394.674876	1750707394.675009	F:3	main.fff	S:2	365048.365128	N:106	[0-365048].1.90[0-365128].0	452	::	'echo $BASHPID' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365128].0[0-365129]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365128].0[0-365129]
+
++ sort -n -k2
+1	1750707394.665777	        -        	F:3	main.fff	S:4	365048.365128.365129	N:105	[0-365048].1.90[0-365128].0[0-365129].0[0-365130]	406	::	<< (BACKGROUND FORK) >>
+1	1750707394.671329	1750707394.671492	F:3	main.fff	S:3	365048.365128.365129	N:106	[0-365048].1.90[0-365128].0[0-365129].0	451	::	'echo $BASHPID' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365128].0[0-365129].0[0-365130]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365128].0[0-365129].0[0-365130]
+
++ sort -n -k2
+1	1750707394.661182	        -        	F:3	main.fff	S:5	365048.365128.365129.365130	N:105	[0-365048].1.90[0-365128].0[0-365129].0[0-365130].0[0-365131]	405	::	<< (BACKGROUND FORK) >>
+1	1750707394.667410	1750707394.667527	F:3	main.fff	S:4	365048.365128.365129.365130	N:106	[0-365048].1.90[0-365128].0[0-365129].0[0-365130].0	450	::	'echo $BASHPID' 
++ for nn in "${timep_LOG_A[@]}"
++ printf '\n\n------------------------------------------------------------------\n%s\n\n' '/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365128].0[0-365129].0[0-365130].0[0-365131]'
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.9DB8353/.log/log.[0-365048].1.90[0-365128].0[0-365129].0[0-365130].0[0-365131]
+
++ sort -n -k2
+1	1750707394.663899	1750707394.664077	F:3	main.fff	S:5	365048.365128.365129.365130.365131	N:106	[0-365048].1.90[0-365128].0[0-365129].0[0-365130].0[0-365131].0	449	::	'echo $BASHPID' 
++ :
