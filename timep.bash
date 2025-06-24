@@ -202,9 +202,9 @@ _timep_getFuncSrc() {
 
         # our text blob *should* now start at the start of the function definition, but goes all the way to the EOF.
         # try sourcing just the 1st line, then the first 2, then the first 3, etc. until the function sources correctly.
-		# if pulling the function definition out of the history, its possible that the text blob starts at an old definition for the function.
-		#   --> also require that is produces the same `declare -f` as the orig function. if not keep going
-		#  --> wrap in a 2nd function definition so that any "regular commands" wont get re-run
+        # if pulling the function definition out of the history, its possible that the text blob starts at an old definition for the function.
+        #   --> also require that is produces the same `declare -f` as the orig function. if not keep going
+        #  --> wrap in a 2nd function definition so that any "regular commands" wont get re-run
         funcdef0="$( . /proc/self/fd/0 <<<'_timep_getFuncSrc1() {
 '"$(declare -f "$1")"'
 }; declare -f _timep_getFuncSrc1')"
@@ -239,7 +239,7 @@ _timep_getFuncSrc() {
 
     # feed the function definition through `bash --rpm-requires` to get dependencies, then test each with `type` to find function dependencies.
     # re-call _timep_getFuncSrc for each dependent function, keeping track of which function deps were already listed to avoid duplicates
-	# NOTE: the "--rpm-requires" flag is non-standard, and may only be available on distros based on red hat / fedora
+    # NOTE: the "--rpm-requires" flag is non-standard, and may only be available on distros based on red hat / fedora
     : | bash --debug --rpm-requires -O extglob &>/dev/null && {
         mapfile -t F < <(bash --debug --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type $nn 2>/dev/null | grep -qF 'is a function' && echo "$nn"; done)
         for kk in "${!F[@]}"; do
@@ -252,7 +252,7 @@ _timep_getFuncSrc() {
         for nn in "${F[@]}"; do
             FF="${FF}" _timep_getFuncSrc "${nn}"
         done
-	}
+    }
 }
 
 # generate the code for a wrapper function (timep_runFunc) that wraps around whatever we are running / time profiling.
@@ -370,7 +370,7 @@ if ${timep_IS_SUBSHELL_FLAG}; then
     timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
     unset "timep_KK" "timep_BASHPID_ADD"
     timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
-    ${timep_NO_PRINT_FLAG} || printf '"'"'%s	%s	        -        	F:%s	%s	S:%s	%s	N:%s	%s.%s[%s-%s]	%s	::	<< (%s) >>\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}"  "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_CMD_TYPE}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
+    ${timep_NO_PRINT_FLAG} || printf '"'"'%s\t%s\t-\tF:%s %s\tS:%s %s\tN:%s %s.%s[%s-%s]\t%s\t::\t<< (%s) >>\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}"  "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_CMD_TYPE}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
     timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
     timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
     timep_NEXEC_A+=(0)
@@ -396,7 +396,7 @@ elif [[ ${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]} ]]; then
     } {timep_FD}<"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}"
     exec {timep_FD}>&-
   }
-  ${timep_NO_PRINT_FLAG} || printf '"'"'%s	%s	%s	F:%s	%s	S:%s	%s	N:%s	%s.%s	%s	::	%s %s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}"  "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" "${timep_IS_BG_INDICATOR}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
+  ${timep_NO_PRINT_FLAG} || printf '"'"'%s\t%s\t%s\tF:%s %s\tS:%s %s\tN:%s %s.%s\t%s\t::\t%s %s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}"  "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" "${timep_IS_BG_INDICATOR}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
   (( timep_NEXEC_A[-1]++ ))
   (( timep_NEXEC_N++ ))
 fi
@@ -563,9 +563,9 @@ START TIME:
 %s (%s)
 
 FORMAT (TAB-SEPERATED):
-----------------------------------------------------------------------------
-NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
-----------------------------------------------------------------------------\\n\\n' "$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")" "$(date)" "${EPOCHREALTIME}" >"${timep_TMPDIR}/.log/format"
+---------------------------------------------------------------------------------------------------------------------------
+NPIPE    STARTTIME    ENDTIME    F:FNEST FUNCNAME_A    S:SNEST BASHPID_A    N:NEXEC_N NEXEC    LINENO    ::    BASH_COMMAND
+---------------------------------------------------------------------------------------------------------------------------\\n\\n' "$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")" "$(date)" "${EPOCHREALTIME}" >"${timep_TMPDIR}/.log/format"
 
 # attempt to figure out the controling terminal from this shell or one of its parents/grandparents/...
 timep_PTY_FLAG=false
@@ -617,29 +617,6 @@ else
        "${timep_TMPDIR}/main.bash" <&0
     fi
 fi
-
-#    f)
-#        # source the original functions and then the wrapper function we just generated
-#        . "${timep_TMPDIR}/functions.bash"
-#        export -f trap
-#        . "${timep_TMPDIR}/main.bash"
-#
-#        # now actually run it
-#        if [[ -t 0 ]]; then
-#            echo 'timep_runFunc "${@}"' >>"${timep_TMPDIR}/main.bash"
-#        else
-#            echo 'timep_runFunc "${@}" <&0' >>"${timep_TMPDIR}/main.bash"
-#        fi
-#    ;;
-#    c|s)
-#        # run the script (with added debug trap)
-#        if [[ -t 0 ]]; then
-#           "${timep_TMPDIR}/main.bash"
-#        else
-#           "${timep_TMPDIR}/main.bash" <&0
-#        fi
-#    ;;
-#esac
 
 printf '\n\nThe %s being time profiled has finished running!\ntimep will now process the logged timing data.\ntimep will save the time profiles it generates in "%s"\n\n' "$([[ "${timep_runType}" == 's' ]] && echo 'script' || echo 'function')" "${timep_TMPDIR}" >&2
 unset IFS
