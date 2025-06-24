@@ -572,8 +572,8 @@ timep_PTY_FLAG=false
 timep_PPID=${BASHPID}
 until ${timep_PTY_FLAG}; do
     timep_PPID0=${timep_PPID}
+    IFS=\  read -r _ _ _ timep_PPID _ <"/proc/${timep_PPID0}/stat"
     for kk in 2 0 1; do
-        IFS=\  read -r _ _ _ timep_PPID _ <"/proc/${timep_PPID0}/stat"
         {
             [[ -t "${timep_PTY_FD_TEST}" ]] && { 
                 timep_PTY_FLAG=true
@@ -589,7 +589,6 @@ done
 ${timep_PTY_FLAG} || printf '\n\nWARNING: job control could not be enabled due to lack of controlling PTY. subshells and background forks may not be properly distinguished!\n\n' >&${timep_FD2}
 
 if ${timep_PTY_FLAG}; then
-    export -f timep0
     if [[ -t 0 ]]; then
         "${timep_TMPDIR}/main.bash" 1>"${timep_PTY_FD}" 2>"${timep_PTY_FD}"
     else
