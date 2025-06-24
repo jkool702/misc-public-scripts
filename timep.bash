@@ -567,7 +567,7 @@ FORMAT (TAB-SEPERATED):
 NPIPE  STARTTIME  ENDTIME  LINENO  NEXEC  BASHPID  FUNCNAME  BASH_COMMAND
 ----------------------------------------------------------------------------\\n\\n' "$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")" "$(date)" "${EPOCHREALTIME}" >"${timep_TMPDIR}/.log/format"
 
-
+# attempt to figure out the controling terminal from this shell or one of its parents/grandparents/...
 timep_PTY_FLAG=false
 timep_PPID=${BASHPID}
 until ${timep_PTY_FLAG}; do
@@ -586,7 +586,23 @@ until ${timep_PTY_FLAG}; do
     (( timep_PPID > 1 )) || break
 done
 
-${timep_PTY_FLAG} || printf '\n\nWARNING: job control could not be enabled due to lack of controlling PTY. subshells and background forks may not be properly distinguished!\n\n' >&${timep_FD2}
+# if we couldnt find one in a parent try to use /dev/tty or /dev/pts/_ directly
+${timep_PTY_FLAG} || {
+    if [[ -e /dev/tty ]]; then
+        timep_PTY_FLAG=true
+        timep_PTY_FD='/dev/tty'
+    elif [[ -d /dev/pts ]]; then
+        for nn in /dev/pts/*; do
+            [[ -O "$nn" ]] && { 
+                timep_PTY_FLAG=true
+                timep_PTY_FD="${nn}"
+                break
+            }
+        done
+    fi
+}
+
+${timep_PTY_FLAG} || printf '\n\nWARNING: job control could not be enabled due to lack of controlling TTY/PTY. subshells and background forks may not be properly distinguished!\n\n' >&${timep_FD2}
 
 if ${timep_PTY_FLAG}; then
     if [[ -t 0 ]]; then
