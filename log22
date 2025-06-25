@@ -1,0 +1,14 @@
+bash: 1 - 10358 + : syntax error: operand expected (error token is "+ ")
+/dev/shm/.timep.DDA0CEF/main.bash: line 53: yy: command not found
+
+
+The function being time profiled has finished running!
+timep will now process the logged timing data.
+timep will save the time profiles it generates in "/dev/shm/.timep.DDA0CEF"
+
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.DDA0CEF/.log/log.[0-64759]
+
+1	1750798435.577779	1750798435.578934	F:2 main	S:1 64759	N: [0-64759].0	194	::	'yy 0<&0' 

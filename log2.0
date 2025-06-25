@@ -1,0 +1,21 @@
+done
+
+
+The function being time profiled has finished running!
+timep will now process the logged timing data.
+timep will save the time profiles it generates in "/dev/shm/.timep.1183AA2F"
+
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.1183AA2F/.log/log.[0-64565]
+
+1	1750798342.379224	1750798342.382959	F:2 main	S:1 64565	N:5 [0-64565].1	328	::	'zz 0<&0' 
+
+
+------------------------------------------------------------------
+/dev/shm/.timep.1183AA2F/.log/log.[0-64565].1
+
+1	1750798342.379586	1750798342.379621	F:3 main.zz	S:1 64565	N:2 [0-64565].1.0	335	::	'zz 0<&0' 
+1	1750798342.379975	1750798342.380792	F:3 main.zz	S:1 64565	N:3 [0-64565].1.1	336	::	'cat' 
+1	1750798342.381173	1750798342.381229	F:3 main.zz	S:1 64565	N:4 [0-64565].1.2	337	::	'echo done 1>&2' 

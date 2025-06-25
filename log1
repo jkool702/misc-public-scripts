@@ -1,0 +1,155 @@
+0
+
+1
+2
+3
+4
+A
+6
+5
+7
+8
+B
+9.1
+9
+9.1b
+9.1a
+11
+9.2
+9.2a
+9.2b
+10
+12
+13
+9.999
+14
+9.1c
+9.3
+9.4
+9.2c
+15
+9.5
+16
+16
+a
+b
+A2
+A1
+A5
+A3
+A4
+1
+today is 2025-06-25
+1,47c1,24
+< 0
+< afs
+< bin
+< boot
+< BUILD
+< DATA
+< dev
+< efi
+< efi_BACKUP
+< etc
+< fio
+< forkrun_loadables.c
+< home
+< lib
+< lib64
+< livemedia.log
+< llama-cpp-b3561-1.fc41.src.rpm
+< LLMs
+< localrepo
+< media
+< mnt
+< mySplit.speedtest.bash
+< opt
+< overlay
+< overlay_tmpfs
+< proc
+< program.log
+< root
+< rootfs.img
+< RPMS
+< run
+< sbin
+< SPECS
+< SRPMS
+< srv
+< sys
+< sysroot
+< tmp
+< TMP
+< upper
+< usr
+< usr_new
+< usr.~signed~
+< var
+< vars
+< work
+< zfs-rpm
+---
+> kde-anthony
+> ksocket-anthony
+> plasma-csd-generator.roPEvd
+> sddm--AEoJmt
+> sddm-auth-5be7c2d5-b273-475d-8144-d6d197379713
+> snap-private-tmp
+> ssh-XXXXXX8NXbRc
+> ssh-XXXXXXa8Vlqw
+> Sublime Text.18bba2f919d04e82c4d74b410f5a4aca.sock
+> systemd-private-1d10641f4581443abf2ef60303ee3ad9-abrtd.service-IIPs0r
+> systemd-private-1d10641f4581443abf2ef60303ee3ad9-chronyd.service-CvXSa8
+> systemd-private-1d10641f4581443abf2ef60303ee3ad9-colord.service-YTbZOb
+> systemd-private-1d10641f4581443abf2ef60303ee3ad9-dbus-broker.service-U5Ppor
+> systemd-private-1d10641f4581443abf2ef60303ee3ad9-irqbalance.service-ZJctLk
+> systemd-private-1d10641f4581443abf2ef60303ee3ad9-ModemManager.service-trn9qZ
+> systemd-private-1d10641f4581443abf2ef60303ee3ad9-plocate-updatedb.service-BHjSWa
+> systemd-private-1d10641f4581443abf2ef60303ee3ad9-polkit.service-Ps5Hjk
+> systemd-private-1d10641f4581443abf2ef60303ee3ad9-power-profiles-daemon.service-ZYKess
+> systemd-private-1d10641f4581443abf2ef60303ee3ad9-rtkit-daemon.service-oZbolc
+> systemd-private-1d10641f4581443abf2ef60303ee3ad9-switcheroo-control.service-WTBu8d
+> systemd-private-1d10641f4581443abf2ef60303ee3ad9-systemd-logind.service-OWiiab
+> systemd-private-1d10641f4581443abf2ef60303ee3ad9-systemd-oomd.service-7UKV1J
+> systemd-private-1d10641f4581443abf2ef60303ee3ad9-systemd-resolved.service-v60DIr
+> systemd-private-1d10641f4581443abf2ef60303ee3ad9-upower.service-TDNFrM
+got 1
+got 2
+got 3
+one two three
+0
+1
+2
+inside-eval
+inside-eval
+got USR1
+after-signal
+odd 1
+even 2
+odd 3
+even 4
+odd 5
+odd 1
+even 2
+odd 3
+even 4
+odd 5
+odd 1
+even 2
+odd 3
+even 4
+odd 5
+bye
+1
+1
+bye
+bye
+return
+1
+1
+return
+return
+99410
+99409
+99408
+99407

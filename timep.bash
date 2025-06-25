@@ -63,8 +63,6 @@ timep() {
     ################################################################################################################################################################
 
 (
-  timep0() {
-    (
 
     shopt -s extglob
     #[[ "${SHELLOPTS}" =~ ^(.+\:)?monitor(\:.+)?$ ]] || export SHELLOPTS="${SHELLOPTS}${SHELLOPTS:+:}monitor"
@@ -182,7 +180,15 @@ _timep_getFuncSrc() {
 
         if [[ "${p}" == 'main' ]]; then
             # try to pull function definition out of the bash history
-            off=$(( 1 - $( { history | grep -n '' | grep -E '^[0-9]+:[[:space:]]*[0-9]*[[:space:]]*((function[[:space:]]+'"${1}"')|('"${1}"'[[:space:]]*\(\)))' | tail -n 1; history | grep -n '' | tail -n 1; } | sed -E s/'\:.*$'// | sed -zE s/'\n'/' +'/) ))
+            mapfile -t off_A < <( history | grep -n '' | grep -E '^[0-9]+:[[:space:]]*[0-9]*.*((function[[:space:]]+'"${1}"')|('"${1}"'[[:space:]]*\(\)))' | sed -E s/'\:.*$'//)
+            off=$(history | grep -n '' | tail -n 1 | sed -E s/'\:.*$'// )
+            for kk in "${!off_A[@]}"; do
+                (( off_A[$kk] = 1 + off - off_A[$kk] ))
+            done
+            off=$(printf '%s\n' "${off_A[@]}" | sort -n | tail -n 1)
+            for kk in "${!off_A[@]}"; do
+                (( off_A[$kk] = off - off_A[$kk] ))
+            done            
             mapfile -t A < <(history | tail -n $off | sed -E s/'^[[:space:]]*[0-9]*[[:space:]]*'//)
         elif [[ -f "${p}" ]]; then
             # pull function definition from file
@@ -191,6 +197,7 @@ _timep_getFuncSrc() {
                 ((n--))
             done
             A=("${A[@]:$n}")
+            off_A=(0)
        else
             # cant extract original source. use declare -f.
             declare -f "${1}"
@@ -198,42 +205,37 @@ _timep_getFuncSrc() {
         fi
 
         # return declare -f if A is empty
-        (( ${#A[@]} == 0 )) && { declare -f "$1"; return; }
+        (( ${#A[@]} == 0 )) && { declare -f "${1}"; return; }
 
         # our text blob *should* now start at the start of the function definition, but goes all the way to the EOF.
         # try sourcing just the 1st line, then the first 2, then the first 3, etc. until the function sources correctly.
         # if pulling the function definition out of the history, its possible that the text blob starts at an old definition for the function.
         #   --> also require that is produces the same `declare -f` as the orig function. if not keep going
         #  --> wrap in a 2nd function definition so that any "regular commands" wont get re-run
-        funcdef0="$( . /proc/self/fd/0 <<<'_timep_getFuncSrc1() {
-'"$(declare -f "$1")"'
-}; declare -f _timep_getFuncSrc1')"
-
-        mm=0
-        m=$(kk=1; IFS=$'\n'; until . /proc/self/fd/0 <<< '_timep_getFuncSrc2() {
-'"${A[*]:${mm}:${kk}}"'
-}' &>/dev/null || (( ( mm + kk ) > ${#A[@]} )); do ((kk++)); done; echo "$kk")
-
-        until ( IFS=$'\n'; . /proc/self/fd/0 <<<'_timep_getFuncSrc1() {
-'"${A[*]:${mm}:${m}}"'
-}" &>/dev/null && [[ "$(declare -f _timep_getFuncSrc1)" == "${funcdef0}" ]]' ) || (( ( mm + m ) > ${#A[@]} )); do
-            mm="$m"
-            m=$(kk=1; IFS=$'\n'; until . /proc/self/fd/0 <<< '_timep_getFuncSrc2() {
-'"${A[*]:${mm}:${kk}}"'
-}' &>/dev/null || (( ( mm + kk ) > ${#A[@]} )); do ((kk++)); done; echo "$kk")
+        funcdef0="$(declare -f "${1}")"
+        validFuncDefFlag=false
+        for mm in "${off_A[@]}"; do
+            m=$(kk=1; IFS=$'\n'; until . /proc/self/fd/0 <<<"${A[*]:${mm}:${kk}}" &>/dev/null || (( ( mm + kk ) > ${#A[@]} )); do ((kk++)); done; echo "$kk")  
+            if ( IFS=$'\n'; . /proc/self/fd/0 <<<"unset ${1}; ${A[*]:${mm}:${m}}" &>/dev/null && [[ "$(declare -f ${1})" == "${funcdef0}" ]] ); then
+                validFuncDefFlag=true
+                break
+            elif (( ( mm + m ) > ${#A[@]} )); then
+                break
+            fi
         done
 
-        if (( m == 0 )) || (( m > ${#A[@]} )); then
-            declare -f "$1"
+
+        if ${validFuncDefFlag}; then
+            printf '%s\n' "${A[@]:${mm}:${m}}"
         else
-            printf '%s\n' "${A[@]:0:${m}}"
+            declare -f "${1}"
         fi
     }
 
-    if [[ "${timep_runType}" == 'f' ]] || declare -F "$1" &>/dev/null || ! [[ -f "$1" ]]; then
-        out="$(_timep_getFuncSrc0 "$1")"
+    if [[ "${timep_runType}" == 'f' ]] || declare -F "${1}" &>/dev/null || ! [[ -f "${1}" ]]; then
+        out="$(_timep_getFuncSrc0 "${1}")"
     else
-        out="$(<"$1")"
+        out="$(<"${1}")"
     fi
     echo "$out"
 
@@ -534,7 +536,9 @@ timep_runFuncSrc+='(
 
     builtin trap "${timep_DEBUG_TRAP_STR_0}${timep_DEBUG_TRAP_STR_1}" DEBUG
 
-    '"${timep_runCmd}"'
+    {
+        '"${timep_runCmd}"'
+    }  0<&${timep_FD0} 1>&${timep_FD1} 2>&${timep_FD2}
 
     builtin trap - DEBUG EXIT RETURN;
 )'
@@ -604,11 +608,20 @@ ${timep_PTY_FLAG} || {
 
 ${timep_PTY_FLAG} || printf '\n\nWARNING: job control could not be enabled due to lack of controlling TTY/PTY. subshells and background forks may not be properly distinguished!\n\n' >&${timep_FD2}
 
+export timep_FD0="${timep_FD0}" 
+export timep_FD1="${timep_FD1}"
+export timep_FD2="${timep_FD2}"
+
 if ${timep_PTY_FLAG}; then
     if [[ -t 0 ]]; then
-        "${timep_TMPDIR}/main.bash" 1>"${timep_PTY_FD}" 2>"${timep_PTY_FD}"
+        {
+            "$(type -p bash)" -o monitor -O extglob "${timep_TMPDIR}/main.bash" "${@}"
+        } 1>"${timep_PTY_FD}" 2>"${timep_PTY_FD}"
     else
-        "${timep_TMPDIR}/main.bash" 0<"${timep_PTY_FD}" 1>"${timep_PTY_FD}" 2>"${timep_PTY_FD}"
+        {
+            "$(type -p bash)" -o monitor -O extglob "${timep_TMPDIR}/main.bash" "${@}"
+        } 0<"${timep_PTY_FD}" 1>"${timep_PTY_FD}" 2>"${timep_PTY_FD}"
+
     fi
 else
     if [[ -t 0 ]]; then
@@ -704,9 +717,5 @@ export -nf _timep_check_traps
 #    \rm -r "${timep_TMPDIR}"
 #fi
 EOF
-  ) 0<&${timep_FD0} 1>&${timep_FD1} 2>&${timep_FD2}
-}
-
-timep0 "$@"
 ) {timep_FD0}<&0 {timep_FD1}>&1 {timep_FD2}>&2
 }

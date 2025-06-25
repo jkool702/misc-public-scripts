@@ -1,6 +1,8 @@
 ff() { echo "${*}"; }
 gg() { echo "$*"; ff "$@"; }
 
+: | cat <&0 | cat | tee
+
 { echo ; } &
 { ( echo A & ); echo B; } &
 
