@@ -164,7 +164,6 @@ timep() {
         fi
     fi
 
-
 # helper function to get src code from functions
 _timep_getFuncSrc() {
     local out FF kk nn
@@ -180,6 +179,7 @@ _timep_getFuncSrc() {
 
         if [[ "${p}" == 'main' ]]; then
             # try to pull function definition out of the bash history
+            [[ $(history) ]] || { declare -f "${1}"; return; }
             mapfile -t off_A < <( history | grep -n '' | grep -E '^[0-9]+:[[:space:]]*[0-9]*.*((function[[:space:]]+'"${1}"')|('"${1}"'[[:space:]]*\(\)))' | sed -E s/'\:.*$'//)
             off=$(history | grep -n '' | tail -n 1 | sed -E s/'\:.*$'// )
             for kk in "${!off_A[@]}"; do
@@ -215,7 +215,30 @@ _timep_getFuncSrc() {
         funcdef0="$(declare -f "${1}")"
         validFuncDefFlag=false
         for mm in "${off_A[@]}"; do
-            m=$(kk=1; IFS=$'\n'; until . /proc/self/fd/0 <<<"${A[*]:${mm}:${kk}}" &>/dev/null || (( ( mm + kk ) > ${#A[@]} )); do ((kk++)); done; echo "$kk")  
+		
+		    # remove any preceeding commands on first history line
+            mapfile -t -d '' cmd_rm < <(. /proc/self/fd/0 <<<"trap 'set +n; printf '\"'\"'%s\0'\"'\"' \"\${BASH_COMMAND}\"; set -n'; ${A[$mm]}" 2>/dev/null)
+            for nn in "${cmd_rm[@]}"; do
+                A[$mm]="${A[$mm]//"$nn"//}"
+            done
+			while [[ "${A[$mm]}" =~ ^[[:space:]]*\;+.*$ ]]; do 
+			    A[$mm]="${A[$mm]#*\;}"
+			done
+			
+			# find history line the function ends on by attempting to source progressively larger chunks of the history
+            m=$(kk=1; IFS=$'\n'; set -n; until . /proc/self/fd/0 <<<"${A[*]:${mm}:${kk}}" &>/dev/null || (( ( mm + kk ) > ${#A[@]} )); do ((kk++)); done; echo "$kk")
+			
+		    # remove any trailing commands on last history line			
+            (( mmm = mm + m ))
+            mapfile -t -d '' cmd_rm < <(. /proc/self/fd/0 <<<"IFS=$'\n'; trap 'set +n; printf '\"'\"'%s\0'\"'\"' \"\${BASH_COMMAND}\"; set -n'; ${A[*]:${mm}:${m}}" 2>/dev/null)
+            for nn in "${cmd_rm[@]}"; do
+                A[$mmm]="${A[$mmm]//"$nn"//}"
+            done
+			while [[ "${A[$mmm]}" =~ ^.*\;+[[:space:]]*$ ]]; do 
+			    A[$mmm]="${A[$mmm]%\;*}"
+			done
+			
+			# check if recovered + isolated function definition produces the same declare -f as the original
             if ( IFS=$'\n'; . /proc/self/fd/0 <<<"unset ${1}; ${A[*]:${mm}:${m}}" &>/dev/null && [[ "$(declare -f ${1})" == "${funcdef0}" ]] ); then
                 validFuncDefFlag=true
                 break
