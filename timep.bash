@@ -660,9 +660,42 @@ unset IFS
 #ls -la "${timep_TMPDIR}"/.log/
 #find "${timep_TMPDIR}"/.log/ -empty -exec rm {} +
 
-sleep 1
+# DEBUG OUTPUT - print log contents
 mapfile -t timep_LOG_A < <(printf '%s\n' "${timep_TMPDIR}"/.log/log* | sort -V)
 for nn in "${timep_LOG_A[@]}"; do printf '\n\n------------------------------------------------------------------\n%s\n\n' "$nn"; sort -n -k2 <"$nn"; done >&2
+
+##### POST-PROCESSING #####
+
+# define post-processing function that will:
+# --> re-sort logs based on cmd start time
+# --> combine pipeline commands into single command
+# --> add in end times for subshells (last subshell cmd endtime) / bg forks (next cmd start time)
+# --> compute runtimes for each command (except subshells / bg forks / functions)
+# --> merge up logs + runtimes for any subshells / bg forks / functions
+# --> combine duplicate/repeated commands from loops (in second "combined" log)
+
+_timep_PROCESS_LOG() {
+    :
+}
+
+# get log names
+mapfile -t timep_LOG_NAME < <(find "${timep_TMPDIR}"/.log -name 'log*' | sort -V)
+
+# get nesting lvl for each log
+timep_LOG_NESTING=()
+kk=0
+while read -r nn; do 
+    timep_LOG_NESTING[${#nn}]+="${timep_LOG_NAME[$kk]}"$'\n';
+    ((kk++)); 
+done < <(printf '%s\n' "${timep_LOG_NAME[@]}" | sed -E 's/^.*\/log\.([^\/]*)$/\1/; s/[^\.]//g')
+
+# loop through logs from deepest nested upwards and run each through post processing function
+for (( kk=${#timep_LOG_NESTING[@]}; kk>=0; kk-- )); do
+    mapfile -t timep_LOGS_CUR < <(echo "${timep_LOG_NESTING[$kk]}")
+    for nn in "${timep_LOGS_CUR[@]}"; do
+        _timep_PROCESS_LOG "${nn}"
+    done
+done
 
 # TO DO
 ##### AFTER the code has finished running, a post-processing phase will:
