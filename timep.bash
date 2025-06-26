@@ -166,6 +166,11 @@ timep() {
 
 # helper function to get src code from functions
 _timep_getFuncSrc() {
+## finds the original function source code for a currently loaded bash function
+# will pull the original source out of a file or, if available, out of the bash history
+# limitation: cannot get the source for functions defined interactively via `source <( ... )`
+# if unable to retrieve original function source code, will instead return its `declare -f`
+
     local out FF kk nn
     local -a F
 
@@ -179,6 +184,8 @@ _timep_getFuncSrc() {
 
         if [[ "${p}" == 'main' ]]; then
             # try to pull function definition out of the bash history
+	    # NOTE: the LINENO returned by extdebug + declare -F is unreliable when using the history
+            #       instead grep the history for the function header and find all possible start lines
             [[ $(history) ]] || { declare -f "${1}"; return; }
             mapfile -t off_A < <( history | grep -n '' | grep -E '^[0-9]+:[[:space:]]*[0-9]*.*((function[[:space:]]+'"${1}"')|('"${1}"'[[:space:]]*\(\)))' | sed -E s/'\:.*$'//)
             off=$(history | grep -n '' | tail -n 1 | sed -E s/'\:.*$'// )
@@ -190,6 +197,7 @@ _timep_getFuncSrc() {
                 (( off_A[$kk] = off - off_A[$kk] ))
             done            
             mapfile -t A < <(history | tail -n $off | sed -E s/'^[[:space:]]*[0-9]*[[:space:]]*'//)
+	    
         elif [[ -f "${p}" ]]; then
             # pull function definition from file
             mapfile -t A <"${p}"
@@ -207,38 +215,41 @@ _timep_getFuncSrc() {
         # return declare -f if A is empty
         (( ${#A[@]} == 0 )) && { declare -f "${1}"; return; }
 
-        # our text blob *should* now start at the start of the function definition, but goes all the way to the EOF.
-        # try sourcing just the 1st line, then the first 2, then the first 3, etc. until the function sources correctly.
-        # if pulling the function definition out of the history, its possible that the text blob starts at an old definition for the function.
-        #   --> also require that is produces the same `declare -f` as the orig function. if not keep going
-        #  --> wrap in a 2nd function definition so that any "regular commands" wont get re-run
+        # our text blob *should* now start at the start of a function definition, but goes all the way to the EOF.
+        # try sourcing (with set -n) just the 1st line, then the first 2, then the first 3, etc. until the function sources correctly.
+        # if pulling the function definition out of the history, repeat this for all possible start lines until one gives a function with the same declare -f
+        #  note: "extra" commands need tro be removed from the 1st + last line before sourcing without set -n to check the declare -f
+
+        # get the declare -f for the loaded function
         funcdef0="$(declare -f "${1}")"
         validFuncDefFlag=false
+
+        # loop over all possible start locations
         for mm in "${off_A[@]}"; do
-		
-		    # remove any preceeding commands on first history line
+        
+            # remove any preceeding commands on first history line
             mapfile -t -d '' cmd_rm < <(. /proc/self/fd/0 <<<"trap 'set +n; printf '\"'\"'%s\0'\"'\"' \"\${BASH_COMMAND}\"; set -n'; ${A[$mm]}" 2>/dev/null)
             for nn in "${cmd_rm[@]}"; do
                 A[$mm]="${A[$mm]//"$nn"//}"
             done
-			while [[ "${A[$mm]}" =~ ^[[:space:]]*\;+.*$ ]]; do 
-			    A[$mm]="${A[$mm]#*\;}"
-			done
-			
-			# find history line the function ends on by attempting to source progressively larger chunks of the history
+            while [[ "${A[$mm]}" =~ ^[[:space:]]*\;+.*$ ]]; do 
+                A[$mm]="${A[$mm]#*\;}"
+            done
+            
+            # find history line the function ends on by attempting to source progressively larger chunks of the history
             m=$(kk=1; IFS=$'\n'; set -n; until . /proc/self/fd/0 <<<"${A[*]:${mm}:${kk}}" &>/dev/null || (( ( mm + kk ) > ${#A[@]} )); do ((kk++)); done; echo "$kk")
-			
-		    # remove any trailing commands on last history line			
+            
+            # remove any trailing commands on last history line            
             (( mmm = mm + m ))
             mapfile -t -d '' cmd_rm < <(. /proc/self/fd/0 <<<"IFS=$'\n'; trap 'set +n; printf '\"'\"'%s\0'\"'\"' \"\${BASH_COMMAND}\"; set -n'; ${A[*]:${mm}:${m}}" 2>/dev/null)
             for nn in "${cmd_rm[@]}"; do
                 A[$mmm]="${A[$mmm]//"$nn"//}"
             done
-			while [[ "${A[$mmm]}" =~ ^.*\;+[[:space:]]*$ ]]; do 
-			    A[$mmm]="${A[$mmm]%\;*}"
-			done
-			
-			# check if recovered + isolated function definition produces the same declare -f as the original
+            while [[ "${A[$mmm]}" =~ ^.*\;+[[:space:]]*$ ]]; do 
+                A[$mmm]="${A[$mmm]%\;*}"
+            done
+            
+            # check if recovered + isolated function definition produces the same declare -f as the original
             if ( IFS=$'\n'; . /proc/self/fd/0 <<<"unset ${1}; ${A[*]:${mm}:${m}}" &>/dev/null && [[ "$(declare -f ${1})" == "${funcdef0}" ]] ); then
                 validFuncDefFlag=true
                 break
@@ -246,7 +257,6 @@ _timep_getFuncSrc() {
                 break
             fi
         done
-
 
         if ${validFuncDefFlag}; then
             printf '%s\n' "${A[@]:${mm}:${m}}"
@@ -489,7 +499,7 @@ export -p -f trap &>/dev/null && export -n -f trap
         [[ "${1}" == '"'"'--'"'"' ]] && shift 1
         trapStr="${1%\;}"$'"'"'\n'"'"'
         shift 1
-		trapStr0="${trapStr}"
+        trapStr0="${trapStr}"
         [[ "${trapStr}" == '"'"'-'"'"'$'"'"'\n'"'"' ]] || [[ "${trapStr}" == $'"'"'\n'"'"' ]] || trapStr0="${trapStr}"
     fi
 
