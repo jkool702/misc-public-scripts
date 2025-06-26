@@ -446,7 +446,6 @@ if [[ "$BASH_COMMAND" == exec* ]]; then
     timep_EXEC_ARG="$(type -p "${timep_EXEC_ARG}")
     if [[ "${timep_EXEC_ARG}" == "${timep_BASH_PATH}" ]] || [[ "${timep_EXEC_ARG}" == "/bin/bash" ]] || [[ "${timep_EXEC_ARG}" == "/usr/bin/bash" ]]; then
         timep_SKIP_DEBUG_FLAG=true
-    	(( timep_FNEST_CUR++ ))
         timep_FNEST+=("${timep_FNEST_CUR}")
         timep_FUNCNAME_STR+=".exec"
         timep_NEXEC_0+=".${timep_NEXEC_A[-1]}"
@@ -454,17 +453,21 @@ if [[ "$BASH_COMMAND" == exec* ]]; then
         (( timep_NEXEC_N++ ))
 exec() {
     export -f timep
-    local  -a cmd0=("$1")
+    local  -a cmd0=()
     shift 1
     while [[ "$1" == '-'* ]]; do
         case "$1" in 
-            -o|-O) cmd0+=("$1" "$2"); shift 2 ;;
-            -c) cmd0+=("$1"); shift 1; break ;;
-            *) cmd0+=("$1"); shift 1 ;;
+            -o|-O) { [[ "$1" == "-o" ]] && [[ "$2" == "monitor" ]]; } || { [[ "$1" == "-O" ]] && [[ "$2" == "extglob" ]]; } || cmd0+=("$1" "$2"); shift 2 ;;
+            -c) shift 1; break ;;
+            *) [[ "$1" == [+-]m ]] || [[ "$1" == [+-]i ]] || cmd0+=("$1"); shift 1 ;;
         esac
     done
     unset exec
-    builtin exec "${cmd0} timep ${@}"
+    if [[ -t 0 ]]; then
+        builtin exec "$BASH" -i -m -O extglob ${cmd0[@]} -c timep ${@}"
+    else
+        builtin exec "$BASH" -i -m -O extglob ${cmd0[@]} -c timep ${@}" <&0
+    fi
 }
     fi
 fi
