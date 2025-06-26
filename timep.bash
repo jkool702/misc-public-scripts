@@ -307,8 +307,8 @@ timep_DEBUG_TRAP_STR_1='
 [[ "${BASH_COMMAND}" == trap\ * ]] && {
   timep_SKIP_DEBUG_FLAG=true
   (( timep_FNEST_CUR == ${#FUNCNAME[@]} )) && {
-    timep_FNEST_CUR="${#FUNCNAME[@]}"
-    timep_FNEST+=("${#FUNCNAME[@]}")
+    (( timep_FNEST_CUR++ ))
+    timep_FNEST+=("${timep_FNEST_CUR}")
     timep_FUNCNAME_STR+=".trap"
     timep_NEXEC_0+=".${timep_NEXEC_A[-1]}"
     timep_NEXEC_A+=("0")
@@ -342,7 +342,7 @@ else
   echo "${timep_ENDTIME}" >>"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}"
   (( BASHPID < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
   builtin trap '"'"':'"'"' EXIT
-  IFS=\  read -r _ _ _ _ timep_CHILD_PGID _ _ timep_CHILD_TPID _ </proc/${BASHPID}/stat
+  IFS=' '  read -r _ _ _ _ timep_CHILD_PGID _ _ timep_CHILD_TPID _ </proc/${BASHPID}/stat
   (( timep_CHILD_PGID == timep_PARENT_TPID )) || (( timep_CHILD_PGID == timep_CHILD_TPID )) || { (( timep_CHILD_PGID == timep_PARENT_PGID )) && (( timep_CHILD_TPID == timep_PARENT_TPID )); } || timep_IS_BG_FLAG=true
 fi
 if ${timep_IS_SUBSHELL_FLAG} && ${timep_IS_BG_FLAG}; then
@@ -444,6 +444,35 @@ timep_BASHPID_PREV="$BASHPID"
 timep_STARTTIME[${timep_FNEST_CUR}]="${EPOCHREALTIME}"
 }'
 
+:<<'EOF'
+if [[ "$BASH_COMMAND" == exec* ]]; then
+    timep_EXEC_ARG="$(realpath "$(type -p "$(sed -E s/'^exec[[:space:]]+([^[:space:]])+[[:space:]].*$'/'\1'/ <<<"$BASH_COMMAND")")")"
+    if [[ "${timep_EXEC_ARG}" == "${timep_BASH_PATH}" ]]; then
+        timep_SKIP_DEBUG_FLAG=true
+    	(( timep_FNEST_CUR++ ))
+        timep_FNEST+=("${timep_FNEST_CUR}")
+        timep_FUNCNAME_STR+=".exec"
+        timep_NEXEC_0+=".${timep_NEXEC_A[-1]}"
+        timep_NEXEC_A+=("0")
+        (( timep_NEXEC_N++ ))
+exec() {
+    shift 1
+    export -f timep
+    local  -a cmd0=("$1")
+    while [[ "$1" == '-'* ]]; do
+        case "$1" in 
+            -o|-O) cmd0+=("$1" "$2"); shift 2 ;;
+            -c) cmd0+=("$1"); shift 1; break ;;
+            *) cmd0+=("$1"); shift 1 ;;
+        esac
+    done
+    unset exec
+    builtin exec "${cmd0} timep ${@}"
+}
+    fi
+fi
+EOF
+
 # overload the trap builtin to allow the use of custom EXIT/RETURN/DEBUG traps
 
 export -p -f trap &>/dev/null && export -n -f trap
@@ -484,21 +513,21 @@ trap() {
                 timep_runCmd1="${timep_runCmd%%$'\n'*}"
                 timep_runCmd="${timep_runCmd#*$'\n'}"
             else
-                timep_runCmd1='#!'"$(type -p bash)"
+                timep_runCmd1='#!'"${BASH}"
             fi
             # start of wrapper code
             timep_runFuncSrc="${timep_runCmd1}"$'\n'
         ;;
         c)
             printf -v timep_runCmd '%q ' ${@}
-            timep_runCmd1='#!'"$(type -p bash)"
+            timep_runCmd1='#!'"${BASH}"
 
             # start of wrapper code
             timep_runFuncSrc="${timep_runCmd1}"$'\n'
         ;;
         f)
             _timep_getFuncSrc "$1" >>"${timep_TMPDIR}/functions.bash"
-            timep_runCmd1='#!'"$(type -p bash)"
+            timep_runCmd1='#!'"${BASH}"
 
             printf -v timep_runCmd '%q ' ${@}
             [[ -t 0 ]] || timep_runCmd+=" <&0"
@@ -573,6 +602,8 @@ timep_runFuncSrc+='(
         timep_runFuncSrc+=$'\n\n'
      }
 
+    #timep_BASH_PATH="$(realpath "$BASH")"
+
 
     # save script/function (with added debug trap) in new script file and make it executable
     echo "${timep_runFuncSrc}" >"${timep_TMPDIR}/main.bash"
@@ -599,7 +630,8 @@ timep_PTY_FLAG=false
 timep_PPID=${BASHPID}
 until ${timep_PTY_FLAG}; do
     timep_PPID0=${timep_PPID}
-    IFS=\  read -r _ _ _ timep_PPID _ <"/proc/${timep_PPID0}/stat"
+    [[ -e "/proc/${timep_PPID0}/stat" ]] || break
+    IFS=' ' read -r _ _ _ timep_PPID _ <"/proc/${timep_PPID0}/stat" || break
     for kk in 2 0 1; do
         {
             [[ -t "${timep_PTY_FD_TEST}" ]] && { 
@@ -629,24 +661,28 @@ ${timep_PTY_FLAG} || {
     fi
 }
 
-${timep_PTY_FLAG} || printf '\n\nWARNING: job control could not be enabled due to lack of controlling TTY/PTY. subshells and background forks may not be properly distinguished!\n\n' >&${timep_FD2}
-
 export timep_FD0="${timep_FD0}" 
 export timep_FD1="${timep_FD1}"
 export timep_FD2="${timep_FD2}"
 
 if ${timep_PTY_FLAG}; then
+    if type realpath &>/dev/null; then
+        timep_PTY_FD="$(realpath "${timep_PTY_FD}")"
+    elif type readlink &>/dev/null && [[ $(readlink "${timep_PTY_FD}") ]]; then
+        timep_PTY_FD="$(readlink "${timep_PTY_FD}")"
+    fi
     if [[ -t 0 ]]; then
         {
-            "$(type -p bash)" -o monitor -O extglob "${timep_TMPDIR}/main.bash" "${@}"
+            "${BASH}" -o monitor -O extglob "${timep_TMPDIR}/main.bash" "${@}"
         } 1>"${timep_PTY_FD}" 2>"${timep_PTY_FD}"
     else
         {
-            "$(type -p bash)" -o monitor -O extglob "${timep_TMPDIR}/main.bash" "${@}"
+            "${BASH}" -o monitor -O extglob "${timep_TMPDIR}/main.bash" "${@}"
         } 0<"${timep_PTY_FD}" 1>"${timep_PTY_FD}" 2>"${timep_PTY_FD}"
 
     fi
 else
+    printf '\n\nWARNING: job control could not be enabled due to lack of controlling TTY/PTY. subshells and background forks may not be properly distinguished!\n\n' >&${timep_FD2}
     if [[ -t 0 ]]; then
        "${timep_TMPDIR}/main.bash"
     else
