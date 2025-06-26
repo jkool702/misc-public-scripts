@@ -403,7 +403,7 @@ if ${timep_IS_SUBSHELL_FLAG}; then
   timep_PARENT_TPID="$timep_CHILD_TPID"
   timep_BASH_SUBSHELL_PREV="$BASH_SUBSHELL"
 elif [[ ${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]} ]]; then
-  ${timep_SIMPLEFORK_CUR_FLAG} && (( BASHPID < $! )) && {
+  ${timep_SIMPLEFORK_CUR_FLAG} && (( BASHPID < $! )) && ! ${timep_IS_FUNC_FLAG} && {
     timep_IS_BG_FLAG=true
     timep_CMD_TYPE="SIMPLE FORK *"
   }
