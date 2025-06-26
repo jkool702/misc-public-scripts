@@ -170,9 +170,24 @@ _timep_getFuncSrc() {
 # will pull the original source out of a file or, if available, out of the bash history
 # limitation: cannot get the source for functions defined interactively via `source <( ... )`
 # if unable to retrieve original function source code, will instead return its `declare -f`
+#
+# FLAGS:
+#   -q: dont print definition from primary input (inputs from dependencies may still be printed)
+#   -n: dont recursively find dependencies (ponly get src for primary input)
 
-    local out FF kk nn
+    local out FF kk nn quietFlag recursionFlag
     local -a F
+
+    quietFlag=false
+    recursionFlag=true
+
+    while [[ "$1" == -[qn] ]]; do
+        case "$1" in
+            -q) quietFlag=true ;;
+            -n) recursionFlag=false ;;
+        esac
+        shift 1
+    done
 
     _timep_getFuncSrc0() {
         local m mm n p kk off funcDef0 validFuncDefFlag
@@ -270,12 +285,12 @@ _timep_getFuncSrc() {
     else
         out="$(<"${1}")"
     fi
-    echo "$out"
+    ${quietFlag} || echo "$out"
 
     # feed the function definition through `bash --rpm-requires` to get dependencies, then test each with `type` to find function dependencies.
     # re-call _timep_getFuncSrc for each dependent function, keeping track of which function deps were already listed to avoid duplicates
     # NOTE: the "--rpm-requires" flag is non-standard, and may only be available on distros based on red hat / fedora
-    : | bash --debug --rpm-requires -O extglob &>/dev/null && {
+    ${recursionFlag} && : | bash --debug --rpm-requires -O extglob &>/dev/null && {
         mapfile -t F < <(bash --debug --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type $nn 2>/dev/null | grep -qF 'is a function' && echo "$nn"; done)
         for kk in "${!F[@]}"; do
             if [[ "${FF}" == *" ${F[$kk]} "* ]]; then
@@ -362,6 +377,7 @@ elif ${timep_IS_SUBSHELL_FLAG}; then
 elif [[ "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]}" == " (F) "* ]]; then
   timep_CMD_TYPE="FUNCTION (P)"
   timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]# (F) }"
+  timep_IS_BG_FLAG=false
 elif ${timep_IS_BG_FLAG}; then
   timep_CMD_TYPE="SIMPLE FORK"
 elif ${timep_IS_FUNC_FLAG_1}; then
@@ -404,7 +420,7 @@ if ${timep_IS_SUBSHELL_FLAG}; then
     timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
     unset "timep_KK" "timep_BASHPID_ADD"
     timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
-    ${timep_NO_PRINT_FLAG} || printf '"'"'%s\t%s\t-\tF:%s %s\tS:%s %s\tN:%s %s.%s[%s-%s]\t%s\t::\t'"'"'"'"'"'"'"'"'<< (%s): %s >>'"'"'"'"'"'"'"'"'\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}"  "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_CMD_TYPE}" "${timep_BASHPID_PREV}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
+    ${timep_NO_PRINT_FLAG} || printf '"'"'%s\t%s\t-\tF:%s %s\tS:%s %s\tN:%s %s.%s[%s-%s]\t%s\t::\t'"'"'"'"'"'"'"'"'<< (%s): %s >>'"'"'"'"'"'"'"'"'\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}"  "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${timep_BASH_SUBSHELL_PREV}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_CMD_TYPE}" "${timep_BASHPID_PREV}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
     timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
     timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
     timep_NEXEC_A+=(0)
@@ -413,7 +429,7 @@ if ${timep_IS_SUBSHELL_FLAG}; then
   timep_PARENT_TPID="$timep_CHILD_TPID"
   timep_BASH_SUBSHELL_PREV="$BASH_SUBSHELL"
 elif [[ ${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]} ]]; then
-  ${timep_SIMPLEFORK_CUR_FLAG} && (( BASHPID < $! )) && ! ${timep_IS_FUNC_FLAG} && {
+  ${timep_SIMPLEFORK_CUR_FLAG} && (( BASHPID < $! )) && {
     timep_IS_BG_FLAG=true
     timep_CMD_TYPE="SIMPLE FORK *"
   }
@@ -453,7 +469,7 @@ timep_BASHPID_PREV="$BASHPID"
 if [[ "$BASH_COMMAND" == exec* ]]; then
     timep_EXEC_ARG="${BASH_COMMAND#*[[:space:]]}"
     timep_EXEC_ARG="${BASH_COMMAND%%[[:space:]]*}" 
-    timep_EXEC_ARG="$(type -p "${timep_EXEC_ARG}")
+    timep_EXEC_ARG="$(type -p "${timep_EXEC_ARG}")"
     if [[ "${timep_EXEC_ARG}" == "${timep_BASH_PATH}" ]] || [[ "${timep_EXEC_ARG}" == "/bin/bash" ]] || [[ "${timep_EXEC_ARG}" == "/usr/bin/bash" ]]; then
         timep_SKIP_DEBUG_FLAG=true
         timep_FNEST+=("${timep_FNEST_CUR}")
@@ -463,9 +479,9 @@ if [[ "$BASH_COMMAND" == exec* ]]; then
         (( timep_NEXEC_N++ ))
 exec() {
     export -f timep
-    local  -a cmd0=()
+    local -a cmd0=()
     shift 1
-    while [[ "$1" == '-'* ]]; do
+    while [[ "$1" == '"'"'-'"'"'* ]]; do
         case "$1" in 
             -o|-O) { [[ "$1" == "-o" ]] && [[ "$2" == "monitor" ]]; } || { [[ "$1" == "-O" ]] && [[ "$2" == "extglob" ]]; } || cmd0+=("$1" "$2"); shift 2 ;;
             -c) shift 1; break ;;
@@ -474,9 +490,9 @@ exec() {
     done
     unset exec
     if [[ -t 0 ]]; then
-        builtin exec "$BASH" -i -m -O extglob ${cmd0[@]} -c timep ${@}"
+        builtin exec "${BASH} -i -m -O extglob ${cmd0[@]} -c timep ${@}" >&2
     else
-        builtin exec "$BASH" -i -m -O extglob ${cmd0[@]} -c timep ${@}" <&0
+        builtin exec "${BASH} -i -m -O extglob ${cmd0[@]} -c timep ${@}" <&0 >&2
     fi
 }
     fi
@@ -614,7 +630,7 @@ timep_runFuncSrc+='(
     echo "${timep_runFuncSrc}" >"${timep_TMPDIR}/main.bash"
     chmod +x "${timep_TMPDIR}/main.bash"
 
-   [[ "${timep_runType}" == 'f' ]] || _timep_getFuncSrc "${timep_TMPDIR}/main.bash" >>"${timep_TMPDIR}/functions.bash"
+   [[ "${timep_runType}" == 'f' ]] || _timep_getFuncSrc -q "${timep_TMPDIR}/main.bash" >>"${timep_TMPDIR}/functions.bash"
     
 
     printf '\\n
@@ -660,7 +676,7 @@ ${timep_PTY_FLAG} || {
         timep_PTY_FD='/dev/tty'
     elif [[ -d /dev/pts ]]; then
         for nn in /dev/pts/*; do
-            [[ -O "$nn" ]] && ( ( [[ -t "${timep_PTY_FD}" ]] ) {timep_PTY_FD}<>"${nn]"; ) && { 
+            [[ -O "$nn" ]] && ( ( [[ -t "${timep_PTY_FD}" ]] ) {timep_PTY_FD}<>"${nn}"; ) && { 
                 timep_PTY_FLAG=true
                 timep_PTY_FD="${nn}"
                 break
