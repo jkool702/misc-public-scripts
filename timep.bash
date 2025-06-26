@@ -604,20 +604,18 @@ timep_runFuncSrc+='(
 
     builtin trap - DEBUG EXIT RETURN;
 )'
-    _timep_getFuncSrc "${timep_TMPDIR}/main.bash" >>"${timep_TMPDIR}/functions.bash"
-    
-    [[ "${timep_runType}" == 'f' ]] && {
+     [[ "${timep_runType}" == 'f' ]] && {
         timep_runFuncSrc+=$'\n\n''timep_runFunc "${@}"'
         [[ -t 0 ]] && timep_runFuncSrc+=' <&0'
         timep_runFuncSrc+=$'\n\n'
      }
 
-    #timep_BASH_PATH="$(realpath "$BASH")"
-
-
     # save script/function (with added debug trap) in new script file and make it executable
     echo "${timep_runFuncSrc}" >"${timep_TMPDIR}/main.bash"
     chmod +x "${timep_TMPDIR}/main.bash"
+
+   [[ "${timep_runType}" == 'f' ]] || _timep_getFuncSrc "${timep_TMPDIR}/main.bash" >>"${timep_TMPDIR}/functions.bash"
+    
 
     printf '\\n
 ----------------------------------------------------------------------------
@@ -657,12 +655,12 @@ done
 
 # if we couldnt find one in a parent try to use /dev/tty or /dev/pts/_ directly
 ${timep_PTY_FLAG} || {
-    if [[ -e /dev/tty ]]; then
+    if [[ -e /dev/tty ]] && ( ( [[ -t "${timep_PTY_FD}" ]] ) {timep_PTY_FD}<>/dev/tty; ); then
         timep_PTY_FLAG=true
         timep_PTY_FD='/dev/tty'
     elif [[ -d /dev/pts ]]; then
         for nn in /dev/pts/*; do
-            [[ -O "$nn" ]] && { 
+            [[ -O "$nn" ]] && ( ( [[ -t "${timep_PTY_FD}" ]] ) {timep_PTY_FD}<>"${nn]"; ) && { 
                 timep_PTY_FLAG=true
                 timep_PTY_FD="${nn}"
                 break
