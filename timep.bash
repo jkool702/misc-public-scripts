@@ -170,8 +170,8 @@ _timep_getFuncSrc() {
     local -a F
 
     _timep_getFuncSrc0() {
-        local m n p kk off
-        local -a A
+        local m mm n p kk off funcDef0 validFuncDefFlag
+        local -a A off_A
 
         # get where the function was sourced from. note: extdebug will tell us where thre function definition started, but not where it ends.
         read -r _ n p < <(shopt -s extdebug; declare -F "${1}")
