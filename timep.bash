@@ -440,13 +440,11 @@ timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="${BASH_COMMAND}"
 timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
 timep_BG_PID_PREV="$!"
 timep_BASHPID_PREV="$BASHPID"
-timep_STARTTIME[${timep_FNEST_CUR}]="${EPOCHREALTIME}"
-}'
-
-:<<'EOF'
 if [[ "$BASH_COMMAND" == exec* ]]; then
-    timep_EXEC_ARG="$(realpath "$(type -p "$(sed -E s/'^exec[[:space:]]+([^[:space:]])+[[:space:]].*$'/'\1'/ <<<"$BASH_COMMAND")")")"
-    if [[ "${timep_EXEC_ARG}" == "${timep_BASH_PATH}" ]]; then
+    timep_EXEC_ARG="${BASH_COMMAND#*[[:space:]]}"
+    timep_EXEC_ARG="${BASH_COMMAND%%[[:space:]]*}" 
+    timep_EXEC_ARG="$(type -p "${timep_EXEC_ARG}")
+    if [[ "${timep_EXEC_ARG}" == "${timep_BASH_PATH}" ]] || [[ "${timep_EXEC_ARG}" == "/bin/bash" ]] || [[ "${timep_EXEC_ARG}" == "/usr/bin/bash" ]]; then
         timep_SKIP_DEBUG_FLAG=true
     	(( timep_FNEST_CUR++ ))
         timep_FNEST+=("${timep_FNEST_CUR}")
@@ -455,9 +453,9 @@ if [[ "$BASH_COMMAND" == exec* ]]; then
         timep_NEXEC_A+=("0")
         (( timep_NEXEC_N++ ))
 exec() {
-    shift 1
     export -f timep
     local  -a cmd0=("$1")
+    shift 1
     while [[ "$1" == '-'* ]]; do
         case "$1" in 
             -o|-O) cmd0+=("$1" "$2"); shift 2 ;;
@@ -470,38 +468,37 @@ exec() {
 }
     fi
 fi
-EOF
+timep_STARTTIME[${timep_FNEST_CUR}]="${EPOCHREALTIME}"
+}'
+
 
 # overload the trap builtin to allow the use of custom EXIT/RETURN/DEBUG traps
 
 export -p -f trap &>/dev/null && export -n -f trap
 
-trap() {
-    local trapStr trapType
+    { printf 'declare -gx timep_RETURN_TRAP_STR='"'"'%s'"'"'\n\ndeclare -gx timep_DEBUG_TRAP_STR_0='"'"'%s'"'"'\n\ndeclare -gx timep_DEBUG_TRAP_STR_1='"'"'%s'"'"'\n\n%s\n\n' "${timep_RETURN_TRAP_STR//"'"/"'"'"'"'"'"'"'"}" "${timep_DEBUG_TRAP_STR_0//"'"/"'"'"'"'"'"'"'"}" "${timep_DEBUG_TRAP_STR_1//"'"/"'"'"'"'"'"'"'"}" 'trap() {
+    local trapStr trapStr0 trapType
 
     if [[ "${1}" == -[lp] ]]; then
         builtin trap "${@}"
         return
     else
-        [[ "${1}" == '--' ]] && shift 1
-        trapStr="${1%\;}"$'\n'
+        [[ "${1}" == '"'"'--'"'"' ]] && shift 1
+        trapStr="${1%\;}"$'"'"'\n'"'"'
         shift 1
-        if [[ "${trapStr}" == '-'$'\n' ]] || [[ "$trapStr" == $'\n' ]]; then
-            trapStr=''
-        fi
+		trapStr0="${trapStr}"
+        [[ "${trapStr}" == '"'"'-'"'"'$'"'"'\n'"'"' ]] || [[ "${trapStr}" == $'"'"'\n'"'"' ]] || trapStr0="${trapStr}"
     fi
 
     for trapType in "${@}"; do
         case "${trapType}" in
-            EXIT)    builtin trap "${trapStr}"':' EXIT ;;
-            RETURN)  builtin trap "${trapStr}${timep_RETURN_TRAP_STR}" RETURN ;;
-            DEBUG)   builtin trap "${timep_DEBUG_TRAP_STR_0}${trapStr}${timep_DEBUG_TRAP_STR_1}" DEBUG ;;
+            EXIT)    builtin trap "${trapStr0}"'"'"':'"'"' EXIT ;;
+            RETURN)  builtin trap "${trapStr0}${timep_RETURN_TRAP_STR}" RETURN ;;
+            DEBUG)   builtin trap "${timep_DEBUG_TRAP_STR_0}${trapStr0}${timep_DEBUG_TRAP_STR_1}" DEBUG ;;
             *)       eval "builtin trap ${trapStr@Q} ${trapType}" ;;
         esac
     done
-}
-
-    { printf 'declare -gx timep_RETURN_TRAP_STR='"'"'%s'"'"'\n\ndeclare -gx timep_DEBUG_TRAP_STR_0='"'"'%s'"'"'\n\ndeclare -gx timep_DEBUG_TRAP_STR_1='"'"'%s'"'"'\n\n' "${timep_RETURN_TRAP_STR//"'"/"'"'"'"'"'"'"'"}" "${timep_DEBUG_TRAP_STR_0//"'"/"'"'"'"'"'"'"'"}" "${timep_DEBUG_TRAP_STR_1//"'"/"'"'"'"'"'"'"'"}"; declare -f trap; printf '\n\n'; } >"${timep_TMPDIR}/functions.bash"
+}'; } >"${timep_TMPDIR}/functions.bash"
 
     # setup a string with the command to run
     case "${timep_runType}" in
@@ -565,6 +562,7 @@ timep_runFuncSrc+='(
     timep_NEXEC_0="[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
     timep_BASHPID_STR="${BASHPID}"
     timep_FUNCNAME_STR="main"
+    timep_BASH_PATH="$(type -p $BASH)"
 
     timep_SIMPLEFORK_NEXT_FLAG=false
     timep_SIMPLEFORK_CUR_FLAG=false
