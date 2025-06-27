@@ -513,6 +513,8 @@ fi
 timep_STARTTIME[${timep_FNEST_CUR}]="${EPOCHREALTIME}"
 }'
 
+# builtin exec "$BASH" -i -m -O extglob -c 'timep "$@"' _ "$@"
+
 
 # overload the trap builtin to allow the use of custom EXIT/RETURN/DEBUG traps
 
