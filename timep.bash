@@ -166,25 +166,31 @@ timep() {
 
 # helper function to get src code from functions
 _timep_getFuncSrc() {
-## finds the original function source code for a currently loaded bash function
-# will pull the original source out of a file or, if available, out of the bash history
-# limitation: cannot get the source for functions defined interactively via `source <( ... )`
-# if unable to retrieve original function source code, will instead return its `declare -f`
+## Finds the original function source code for a currently loaded bash function
+# USAGE:    _timep_getFuncSrc [-q] [-r] <funcname>
 #
-# FLAGS:
+# will pull the original source out of a file or, if available, out of the bash history
+# if unable to retrieve original function source code, will instead return its `declare -f`
+# if passed the path to a script file instead of a function, it will print the contents of the script file (e.g., `cat $file`)
+#
+# NOTE: cannot get the original source for functions defined interactively by sourcing a process substitutiion (e.g. `. <( ... )`)
+#
+# FLAGS: all flags must come before <funcname> and mmust be given seperately (use '-q -r', not '-qr')
 #   -q: dont print definition from primary input (inputs from dependencies may still be printed)
-#   -n: dont recursively find dependencies (ponly get src for primary input)
+#   -r: recursively find source for dependent functions too (requires that your bash binary has the --rpm-requires flag))
 
+    # make vars local
     local out FF kk nn quietFlag recursionFlag
     local -a F
 
+    # parse any flags 
     quietFlag=false
-    recursionFlag=true
-
-    while [[ "$1" == -[qn] ]]; do
+    recursionFlag=false
+    while [[ "$1" == -[qr] ]] || [[ "$1" == --[qr]* ]] do
         case "$1" in
-            -q) quietFlag=true ;;
-            -n) recursionFlag=false ;;
+            -q|--quiet) quietFlag=true ;;
+            -r|--recursion) recursionFlag=false ;;
+	    *) break ;;
         esac
         shift 1
     done
@@ -193,7 +199,8 @@ _timep_getFuncSrc() {
         local m mm n p kk off funcDef0 validFuncDefFlag
         local -a A off_A
 
-        # get where the function was sourced from. note: extdebug will tell us where thre function definition started, but not where it ends.
+        # get where the function was sourced from using extdebug + declare -F
+	# NOTE: this will tell us where the function definition started, but not where it ends.
         read -r _ n p < <(shopt -s extdebug; declare -F "${1}")
         ((n--))
 
@@ -251,7 +258,7 @@ _timep_getFuncSrc() {
                 A[$mm]="${A[$mm]#*\;}"
             done
             
-            # find history line the function ends on by attempting to source progressively larger chunks of the history
+            # find history line the function ends on by attempting to source (with set -n) progressively larger chunks of the history
             m=$(kk=1; IFS=$'\n'; set -n; until . /proc/self/fd/0 <<<"${A[*]:${mm}:${kk}}" &>/dev/null || (( ( mm + kk ) > ${#A[@]} )); do ((kk++)); done; echo "$kk")
             
             # remove any trailing commands on last history line            
@@ -264,7 +271,7 @@ _timep_getFuncSrc() {
                 A[$mmm]="${A[$mmm]%\;*}"
             done
             
-            # check if recovered + isolated function definition produces the same declare -f as the original
+            # check if recovered + isolated function definition produces the same declare -f as the original (requires NOT using set -n)
             if ( IFS=$'\n'; . /proc/self/fd/0 <<<"unset ${1}; ${A[*]:${mm}:${m}}" &>/dev/null && [[ "$(declare -f ${1})" == "${funcdef0}" ]] ); then
                 validFuncDefFlag=true
                 break
@@ -280,27 +287,33 @@ _timep_getFuncSrc() {
         fi
     }
 
-    if [[ "${timep_runType}" == 'f' ]] || declare -F "${1}" &>/dev/null || ! [[ -f "${1}" ]]; then
+    if declare -F "${1}" &>/dev/null || ! [[ -f "${1}" ]]; then
+        # input is a defined function and/or doesnt existin filesystem. treat as a function.
         out="$(_timep_getFuncSrc0 "${1}")"
     else
+    # input is not a function and exists in filesystenm. treat as script and cat it.
         out="$(<"${1}")"
     fi
     ${quietFlag} || echo "$out"
 
     # feed the function definition through `bash --rpm-requires` to get dependencies, then test each with `type` to find function dependencies.
-    # re-call _timep_getFuncSrc for each dependent function, keeping track of which function deps were already listed to avoid duplicates
+    # recursively call _timep_getFuncSrc for each not-yet-processed dependent function, keeping track of which function deps were already listed to avoid duplicates
     # NOTE: the "--rpm-requires" flag is non-standard, and may only be available on distros based on red hat / fedora
     ${recursionFlag} && : | bash --debug --rpm-requires -O extglob &>/dev/null && {
+        # get function dependencies
         mapfile -t F < <(bash --debug --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type $nn 2>/dev/null | grep -qF 'is a function' && echo "$nn"; done)
         for kk in "${!F[@]}"; do
             if [[ "${FF}" == *" ${F[$kk]} "* ]]; then
+	        # we already processed this function. remove it from "functions to process" list (F)
                 unset "F[$kk]"
             else
+	        # we have not yet processed this function, keep it on the "functions to process" list (F) and add it to the "already processed functions" list (FF) so we dont process it again after this round
                 FF+=" ${F[$kk]} "
             fi
         done
         for nn in "${F[@]}"; do
-            FF="${FF}" _timep_getFuncSrc "${nn}"
+	    # for each function on the "functions to process" list (F), recursively call _timep_getFuncSrc -r and pass the "already processed functions" list (FF) as an environment variable
+            FF="${FF}" _timep_getFuncSrc -r "${nn}"
         done
     }
 }
@@ -551,7 +564,7 @@ export -p -f trap &>/dev/null && export -n -f trap
             timep_runFuncSrc="${timep_runCmd1}"$'\n'
         ;;
         f)
-            _timep_getFuncSrc "$1" >>"${timep_TMPDIR}/functions.bash"
+            _timep_getFuncSrc -r "$1" >>"${timep_TMPDIR}/functions.bash"
             timep_runCmd1='#!'"${BASH}"
 
             printf -v timep_runCmd '%q ' ${@}
@@ -630,7 +643,7 @@ timep_runFuncSrc+='(
     echo "${timep_runFuncSrc}" >"${timep_TMPDIR}/main.bash"
     chmod +x "${timep_TMPDIR}/main.bash"
 
-   [[ "${timep_runType}" == 'f' ]] || _timep_getFuncSrc -q "${timep_TMPDIR}/main.bash" >>"${timep_TMPDIR}/functions.bash"
+   [[ "${timep_runType}" == 'f' ]] || _timep_getFuncSrc -q -r "${timep_TMPDIR}/main.bash" >>"${timep_TMPDIR}/functions.bash"
     
 
     printf '\\n
