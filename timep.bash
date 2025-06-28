@@ -496,16 +496,16 @@ exec() {
     shift 1
     while [[ "$1" == '"'"'-'"'"'* ]]; do
         case "$1" in 
-            -o|-O) { [[ "$1" == "-o" ]] && [[ "$2" == "monitor" ]]; } || { [[ "$1" == "-O" ]] && [[ "$2" == "extglob" ]]; } || cmd0+=("$1" "$2"); shift 2 ;;
+            -o|-O) { [[ "$1" == "-o" ]] && [[ "$2" == "monitor" ]]; } || { [[ "$1" == "-O" ]] && [[ "$2" == "extglob" ]]; } ||  { [[ "$1" == "-O" ]] && [[ "$2" == "functrace" ]]; } || cmd0+=("$1" "$2"); shift 2 ;;
             -c) shift 1; break ;;
             *) [[ "$1" == [+-]m ]] || [[ "$1" == [+-]i ]] || cmd0+=("$1"); shift 1 ;;
         esac
     done
     unset exec
     if [[ -t 0 ]]; then
-        builtin exec "${BASH}" -m -O extglob ${cmd0[@]} -c '"'"'timep "${@}"'"'"' _ "${@}"
+        builtin exec "${BASH}" -m -O extglob -O functrace ${cmd0[@]} -c '"'"'timep "${@}"'"'"' _ "${@}"
     else
-        builtin exec "${BASH}" -m -O extglob ${cmd0[@]} -c '"'"'timep "${@}" <&0'"'"' _ "${@}"
+        builtin exec "${BASH}" -m -O extglob -O functrace ${cmd0[@]} -c '"'"'timep "${@}" <&0'"'"' _ "${@}"
     fi
 }
     fi
@@ -720,11 +720,11 @@ if ${timep_PTY_FLAG}; then
     fi
     if [[ -t 0 ]]; then
         {
-            "${BASH}" -m -O extglob "${timep_TMPDIR}/main.bash" "${@}"
+            "${BASH}" -m -O extglob -O functrace "${timep_TMPDIR}/main.bash" "${@}"
         } 1>"${timep_PTY_PATH}" 2>"${timep_PTY_PATH}"
     else
         {
-            "${BASH}" -m -O extglob "${timep_TMPDIR}/main.bash" "${@}"
+            "${BASH}" -m -O extglob -O functrace "${timep_TMPDIR}/main.bash" "${@}"
         } 0<"${timep_PTY_PATH}" 1>"${timep_PTY_PATH}" 2>"${timep_PTY_PATH}"
     fi
 else
