@@ -189,8 +189,8 @@ _timep_getFuncSrc() {
     while [[ "$1" == -[qr] ]] || [[ "$1" == --[qr]* ]] do
         case "$1" in
             -q|--quiet) quietFlag=true ;;
-            -r|--recursion) recursionFlag=false ;;
-	    *) break ;;
+            -r|--recursion) recursionFlag=true ;;
+        *) break ;;
         esac
         shift 1
     done
@@ -200,13 +200,13 @@ _timep_getFuncSrc() {
         local -a A off_A
 
         # get where the function was sourced from using extdebug + declare -F
-	# NOTE: this will tell us where the function definition started, but not where it ends.
+        # NOTE: this will tell us where the function definition started, but not where it ends.
         read -r _ n p < <(shopt -s extdebug; declare -F "${1}")
         ((n--))
 
         if [[ "${p}" == 'main' ]]; then
             # try to pull function definition out of the bash history
-	    # NOTE: the LINENO returned by extdebug + declare -F is unreliable when using the history
+            # NOTE: the LINENO returned by extdebug + declare -F is unreliable when using the history
             #       instead grep the history for the function header and find all possible start lines
             [[ $(history) ]] || { declare -f "${1}"; return; }
             mapfile -t off_A < <( history | grep -n '' | grep -E '^[0-9]+:[[:space:]]*[0-9]*.*((function[[:space:]]+'"${1}"')|('"${1}"'[[:space:]]*\(\)))' | sed -E s/'\:.*$'//)
@@ -219,7 +219,7 @@ _timep_getFuncSrc() {
                 (( off_A[$kk] = off - off_A[$kk] ))
             done            
             mapfile -t A < <(history | tail -n $off | sed -E s/'^[[:space:]]*[0-9]*[[:space:]]*'//)
-	    
+        
         elif [[ -f "${p}" ]]; then
             # pull function definition from file
             mapfile -t A <"${p}"
@@ -240,7 +240,7 @@ _timep_getFuncSrc() {
         # our text blob *should* now start at the start of a function definition, but goes all the way to the EOF.
         # try sourcing (with set -n) just the 1st line, then the first 2, then the first 3, etc. until the function sources correctly.
         # if pulling the function definition out of the history, repeat this for all possible start lines until one gives a function with the same declare -f
-        #  note: "extra" commands need tro be removed from the 1st + last line before sourcing without set -n to check the declare -f
+        #  NOTE: "extra" commands need tro be removed from the 1st + last line before sourcing without set -n to check the declare -f
 
         # get the declare -f for the loaded function
         funcdef0="$(declare -f "${1}")"
@@ -304,15 +304,15 @@ _timep_getFuncSrc() {
         mapfile -t F < <(bash --debug --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type $nn 2>/dev/null | grep -qF 'is a function' && echo "$nn"; done)
         for kk in "${!F[@]}"; do
             if [[ "${FF}" == *" ${F[$kk]} "* ]]; then
-	        # we already processed this function. remove it from "functions to process" list (F)
+            # we already processed this function. remove it from "functions to process" list (F)
                 unset "F[$kk]"
             else
-	        # we have not yet processed this function, keep it on the "functions to process" list (F) and add it to the "already processed functions" list (FF) so we dont process it again after this round
+            # we have not yet processed this function, keep it on the "functions to process" list (F) and add it to the "already processed functions" list (FF) so we dont process it again after this round
                 FF+=" ${F[$kk]} "
             fi
         done
         for nn in "${F[@]}"; do
-	    # for each function on the "functions to process" list (F), recursively call _timep_getFuncSrc -r and pass the "already processed functions" list (FF) as an environment variable
+        # for each function on the "functions to process" list (F), recursively call _timep_getFuncSrc -r and pass the "already processed functions" list (FF) as an environment variable
             FF="${FF}" _timep_getFuncSrc -r "${nn}"
         done
     }
@@ -481,7 +481,7 @@ timep_BG_PID_PREV="$!"
 timep_BASHPID_PREV="$BASHPID"
 if [[ "$BASH_COMMAND" == exec* ]]; then
     timep_EXEC_ARG="${BASH_COMMAND#*[[:space:]]}"
-    timep_EXEC_ARG="${BASH_COMMAND%%[[:space:]]*}" 
+    timep_EXEC_ARG="${timep_EXEC_ARG%%[[:space:]]*}" 
     timep_EXEC_ARG="$(type -p "${timep_EXEC_ARG}")"
     if [[ "${timep_EXEC_ARG}" == "${timep_BASH_PATH}" ]] || [[ "${timep_EXEC_ARG}" == "/bin/bash" ]] || [[ "${timep_EXEC_ARG}" == "/usr/bin/bash" ]]; then
         timep_SKIP_DEBUG_FLAG=true
@@ -503,9 +503,9 @@ exec() {
     done
     unset exec
     if [[ -t 0 ]]; then
-        builtin exec "${BASH} -i -m -O extglob ${cmd0[@]} -c timep ${@}" >&2
+        builtin exec "${BASH}" -m -O extglob ${cmd0[@]} -c '"'"'timep "${@}"'"'"' _ "${@}"
     else
-        builtin exec "${BASH} -i -m -O extglob ${cmd0[@]} -c timep ${@}" <&0 >&2
+        builtin exec "${BASH}" -m -O extglob ${cmd0[@]} -c '"'"'timep "${@}" <&0'"'"' _ "${@}"
     fi
 }
     fi
@@ -530,7 +530,6 @@ export -p -f trap &>/dev/null && export -n -f trap
         [[ "${1}" == '"'"'--'"'"' ]] && shift 1
         trapStr="${1%\;}"$'"'"'\n'"'"'
         shift 1
-        trapStr0="${trapStr}"
         [[ "${trapStr}" == '"'"'-'"'"'$'"'"'\n'"'"' ]] || [[ "${trapStr}" == $'"'"'\n'"'"' ]] || trapStr0="${trapStr}"
     fi
 
@@ -582,7 +581,7 @@ timep_runFuncSrc+='(
 
     builtin trap - DEBUG EXIT RETURN
 
-    declare timep_BASHPID_PREV timep_BASHPID_STR timep_BASH_SUBSHELL_PREV timep_BG_PID_PREV timep_CHILD_PGID timep_CHILD_TPID timep_CMD_TYPE timep_ENDTIME timep_ENDTIME0 timep_FD timep_FNEST_CUR timep_FUNCNAME_STR timep_IS_BG_INDICATOR timep_IS_BG_FLAG timep_IS_FUNC_FLAG timep_IS_FUNC_FLAG_1 timep_IS_SUBSHELL_FLAG EXEC_0 timep_NEXEC_N timep_NO_PRINT_FLAG timep_NPIDWRAP timep_NPIPE0 timep_PARENT_PGID timep_PARENT_TPID timep_SIMPLEFORK_CUR_FLAG timep_SIMPLEFORK_NEXT_FLAG timep_SKIP_DEBUG_FLAG timep_BASH_SUBSHELL_DIFF timep_BASH_SUBSHELL_DIFF_0 timep_KK
+    declare timep_BASHPID_PREV timep_BASHPID_STR timep_BASH_SUBSHELL_PREV timep_BASH_PATH timep_EXEC_ARG timep_BG_PID_PREV timep_CHILD_PGID timep_CHILD_TPID timep_CMD_TYPE timep_ENDTIME timep_ENDTIME0 timep_FD timep_FNEST_CUR timep_FUNCNAME_STR timep_IS_BG_INDICATOR timep_IS_BG_FLAG timep_IS_FUNC_FLAG timep_IS_FUNC_FLAG_1 timep_IS_SUBSHELL_FLAG EXEC_0 timep_NEXEC_N timep_NO_PRINT_FLAG timep_NPIDWRAP timep_NPIPE0 timep_PARENT_PGID timep_PARENT_TPID timep_SIMPLEFORK_CUR_FLAG timep_SIMPLEFORK_NEXT_FLAG timep_SKIP_DEBUG_FLAG timep_BASH_SUBSHELL_DIFF timep_BASH_SUBSHELL_DIFF_0 timep_KK
     declare -a timep_BASH_COMMAND_PREV timep_FNEST timep_NEXEC_A timep_NPIPE timep_STARTTIME timep_A timep_LINENO timep_BASHPID_ADD
 
     set -m
@@ -664,23 +663,32 @@ FORMAT (TAB-SEPERATED):
 NPIPE    STARTTIME    ENDTIME    F:FNEST FUNCNAME_A    S:SNEST BASHPID_A    N:NEXEC_N NEXEC    LINENO    ::    BASH_COMMAND
 ---------------------------------------------------------------------------------------------------------------------------\\n\\n' "$([[ "${timep_runType}" == 'f' ]] && printf '%s' "${timep_runCmd}" || printf '%s' "${timep_runCmdPath}")" "$(date)" "${EPOCHREALTIME}" >"${timep_TMPDIR}/.log/format"
 
+echo "timep_TMPDIR = ${timep_TMPDIR}" >&2
+
+export -p -f timep &>/dev/null && export -n -f timep
+export -f timep
+
 # attempt to figure out the controling terminal from this shell or one of its parents/grandparents/...
 timep_PTY_FLAG=false
 timep_PPID=${BASHPID}
 until ${timep_PTY_FLAG}; do
+    for kk in 2 0 1; do
+        if (( kk == 0 )); then
+            exec {timep_PTY_FD_TEST}<"/proc/${timep_PPID}/fd/${kk}"
+        else
+            exec {timep_PTY_FD_TEST}>"/proc/${timep_PPID}/fd/${kk}"
+        fi && {
+            [[ -t "${timep_PTY_FD_TEST}" ]] && { 
+            timep_PTY_FLAG=true
+            timep_PTY_PATH="/proc/${timep_PPID}/fd/${kk}"
+          }
+          exec {timep_PTY_FD_TEST}>&-
+        }
+        ${timep_PTY_FLAG} && break 2
+    done
     timep_PPID0=${timep_PPID}
     [[ -e "/proc/${timep_PPID0}/stat" ]] || break
     IFS=' ' read -r _ _ _ timep_PPID _ <"/proc/${timep_PPID0}/stat" || break
-    for kk in 2 0 1; do
-        {
-            [[ -t "${timep_PTY_FD_TEST}" ]] && { 
-                timep_PTY_FLAG=true
-                timep_PTY_FD="/proc/${timep_PPID}/fd/${kk}"
-            }
-        } {timep_PTY_FD_TEST}<>"/proc/${timep_PPID}/fd/${kk}"
-        exec {timep_PTY_FD_TEST}>&-
-        ${timep_PTY_FLAG} && break
-    done
     (( timep_PPID > 1 )) || break
 done
 
@@ -688,12 +696,12 @@ done
 ${timep_PTY_FLAG} || {
     if [[ -e /dev/tty ]] && ( ( [[ -t "${timep_PTY_FD}" ]] ) {timep_PTY_FD}<>/dev/tty; ); then
         timep_PTY_FLAG=true
-        timep_PTY_FD='/dev/tty'
+        timep_PTY_PATH='/dev/tty'
     elif [[ -d /dev/pts ]]; then
         for nn in /dev/pts/*; do
             [[ -O "$nn" ]] && ( ( [[ -t "${timep_PTY_FD}" ]] ) {timep_PTY_FD}<>"${nn}"; ) && { 
                 timep_PTY_FLAG=true
-                timep_PTY_FD="${nn}"
+                timep_PTY_PATH="${nn}"
                 break
             }
         done
@@ -706,19 +714,18 @@ export timep_FD2="${timep_FD2}"
 
 if ${timep_PTY_FLAG}; then
     if type realpath &>/dev/null; then
-        timep_PTY_FD="$(realpath "${timep_PTY_FD}")"
-    elif type readlink &>/dev/null && [[ $(readlink "${timep_PTY_FD}") ]]; then
-        timep_PTY_FD="$(readlink "${timep_PTY_FD}")"
+        timep_PTY_PATH="$(realpath "${timep_PTY_PATH}")"
+    elif type readlink &>/dev/null && [[ $(readlink "${timep_PTY_PATH}") ]]; then
+        timep_PTY_PATH="$(readlink "${timep_PTY_PATH}")"
     fi
     if [[ -t 0 ]]; then
         {
-            "${BASH}" -o monitor -O extglob "${timep_TMPDIR}/main.bash" "${@}"
-        } 1>"${timep_PTY_FD}" 2>"${timep_PTY_FD}"
+            "${BASH}" -m -O extglob "${timep_TMPDIR}/main.bash" "${@}"
+        } 1>"${timep_PTY_PATH}" 2>"${timep_PTY_PATH}"
     else
         {
-            "${BASH}" -o monitor -O extglob "${timep_TMPDIR}/main.bash" "${@}"
-        } 0<"${timep_PTY_FD}" 1>"${timep_PTY_FD}" 2>"${timep_PTY_FD}"
-
+            "${BASH}" -m -O extglob "${timep_TMPDIR}/main.bash" "${@}"
+        } 0<"${timep_PTY_PATH}" 1>"${timep_PTY_PATH}" 2>"${timep_PTY_PATH}"
     fi
 else
     printf '\n\nWARNING: job control could not be enabled due to lack of controlling TTY/PTY. subshells and background forks may not be properly distinguished!\n\n' >&${timep_FD2}
