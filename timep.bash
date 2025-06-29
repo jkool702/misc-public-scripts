@@ -123,30 +123,30 @@ timep() {
     # determine if command being profiled is a shell script or not
     if [[ "${timep_runType}" == [sfc] ]]; then
         [[ "${timep_runType}" == 's' ]] && {
-            timep_runCmdPath="$(type -p "$1")"
-            if [[ ${timep_runCmdPath} ]]; then
-            # type -p gave a path for this command. Resolve this path if we can.
-                if type realpath &>/dev/null; then
-                    timep_runCmdPath="$(realpath "${timep_runCmdPath}")"
-                elif type readlink &>/dev/null && [[ $(readlink "${timep_runCmdPath}") ]]; then
-                    timep_runCmdPath="$(readlink "${timep_runCmdPath}")"
-                fi
-            fi
+            # see if input is a path to something in the filesystem
+            if type realpath &>/dev/null; then
+                timep_runCmdPath="$(realpath "${1}")"
+            elif type readlink &>/dev/null && [[ $(readlink "${1}") ]]; then
+                timep_runCmdPath="$(readlink "${1}")"
+            else
+                timep_runCmdPath="$1"
+            fi            
+            timep_runCmdPath="$(type -p "${timep_runCmdPath}")"
         }
     else
         if declare -F "$1" &>/dev/null; then
             # command is a function, which takes precedence over a script
             timep_runType=f
         else
-            timep_runCmdPath="$(type -p "$1")"
+            if type realpath &>/dev/null; then
+                timep_runCmdPath="$(realpath "${1}")"
+            elif type readlink &>/dev/null && [[ $(readlink "${1}") ]]; then
+                timep_runCmdPath="$(readlink "${1}")"
+            else
+                timep_runCmdPath="$1"
+            fi            
+            timep_runCmdPath="$(type -p "${timep_runCmdPath}")"
             if [[ ${timep_runCmdPath} ]]; then
-            # type -p gave a path for this command. Resolve this path if we can.
-                if type realpath &>/dev/null; then
-                    timep_runCmdPath="$(realpath "${timep_runCmdPath}")"
-                elif type readlink &>/dev/null && [[ $(readlink "${timep_runCmdPath}") ]]; then
-                    timep_runCmdPath="$(readlink "${timep_runCmdPath}")"
-                fi
-
                 if type file &>/dev/null && { [[ "$(file "${timep_runCmdPath}")" == *shell\ script*executable* ]] || { [[ "$(file "${timep_runCmdPath}")" == *text ]] && [[ -x "${timep_runCmdPath}" ]]; }; }; then
                     # file is text and either starts with a shebang or is executeable. Assume it is a script.
                     timep_runType=s
@@ -154,7 +154,7 @@ timep() {
                 # file name ends in .*sh (e.g., .sh or .bash) and file begins with a shebang. Assume shell script.
                     timep_runType=s
                 else
-                # for all other cases treat it as a shell function.
+                # for all other cases treat it as a raw command
                     timep_runType=c
                 fi
             else
@@ -503,9 +503,9 @@ exec() {
     done
     unset exec
     if [[ -t 0 ]]; then
-        builtin exec "${BASH}" -m -O extglob -O functrace ${cmd0[@]} -c '"'"'timep "${@}"'"'"' _ "${@}"
+        builtin exec "${BASH}" -m -O extglob -o functrace ${cmd0[@]} -c '"'"'timep "${@}"'"'"' _ "${@}"
     else
-        builtin exec "${BASH}" -m -O extglob -O functrace ${cmd0[@]} -c '"'"'timep "${@}" <&0'"'"' _ "${@}"
+        builtin exec "${BASH}" -m -O extglob -o functrace ${cmd0[@]} -c '"'"'timep "${@}" <&0'"'"' _ "${@}"
     fi
 }
     fi
@@ -724,11 +724,11 @@ if ${timep_PTY_FLAG}; then
     fi
     if [[ -t 0 ]]; then
         {
-            "${BASH}" -m -O extglob -O functrace "${timep_TMPDIR}/main.bash" "${@}"
+            "${BASH}" -m -O extglob -o functrace "${timep_TMPDIR}/main.bash" "${@}"
         } 1>"${timep_PTY_PATH}" 2>"${timep_PTY_PATH}"
     else
         {
-            "${BASH}" -m -O extglob -O functrace "${timep_TMPDIR}/main.bash" "${@}"
+            "${BASH}" -m -O extglob -o functrace "${timep_TMPDIR}/main.bash" "${@}"
         } 0<"${timep_PTY_PATH}" 1>"${timep_PTY_PATH}" 2>"${timep_PTY_PATH}"
     fi
 else
