@@ -670,6 +670,7 @@ export -f timep
 
 # attempt to figure out the controling terminal from this shell or one of its parents/grandparents/...
 timep_PTY_FLAG=false
+IFS=' ' read -r _ _ _ _ _ _ timep_TTY_NR _ <"/proc/${BASHPID}/stat"
 timep_PPID=${BASHPID}
 until ${timep_PTY_FLAG}; do
     for kk in 2 0 1; do
@@ -679,8 +680,11 @@ until ${timep_PTY_FLAG}; do
             exec {timep_PTY_FD_TEST}>"/proc/${timep_PPID}/fd/${kk}"
         fi && {
             [[ -t "${timep_PTY_FD_TEST}" ]] && { 
-            timep_PTY_FLAG=true
-            timep_PTY_PATH="/proc/${timep_PPID}/fd/${kk}"
+                read -r _ _ _ _ _ _ timep_TTY_NR_TEST _ <"/proc/${timep_PPID}/stat"
+                (( timep_TTY_NR_TEST == timep_TTY_NR )) && {
+                    timep_PTY_FLAG=true
+                    timep_PTY_PATH="/proc/${timep_PPID}/fd/${kk}"
+                }
           }
           exec {timep_PTY_FD_TEST}>&-
         }
