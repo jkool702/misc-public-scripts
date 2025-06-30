@@ -70,7 +70,7 @@ timep() {
 
     shopt -s extglob
 
-    local timep_runType=''
+    local timep_runType 
     local -gx timep_TMPDIR
 
     # parse flags
@@ -86,10 +86,10 @@ timep() {
     done
 
     # figure out where to setup a tmpdir to use (prefferably on a ramdisk/tmpfs)
-    : "${timep_TMPDIR:=}"
+    [[ "${timep_TMPDIR}" ]] && mkdir -p "${timep_TMPDIR}"
 
     # try /dev/shm
-    [[ -d /dev/shm ]] && {
+    [[ -z "$timep_TMPDIR" ]] && [[ -d /dev/shm ]] && {
         timep_TMPDIR=/dev/shm/.timep."$(printf '%0.4X' "${RANDOM}" "${RANDOM}")"
         until ! [[ -d "$timep_TMPDIR" ]]; do
             timep_TMPDIR=/dev/shm/.timep."$(printf '%0.4X' "${RANDOM}" "${RANDOM}")"
@@ -515,9 +515,9 @@ exec() {
     done
     unset exec
     if [[ -t 0 ]]; then
-        builtin exec "${BASH}" -m -O extglob -o functrace ${cmd0[@]} -c '"'"'timep "${@}"'"'"' _ "${@}"
+        builtin exec timep_TMPDIR="${timep_TMPDIR}/.exec" "${BASH}" -m -O extglob -o functrace "${cmd0[@]}" -c '"'"'timep "${@}"'"'"' _ "${@}"
     else
-        builtin exec "${BASH}" -m -O extglob -o functrace ${cmd0[@]} -c '"'"'timep "${@}" <&0'"'"' _ "${@}"
+        builtin exec timep_TMPDIR="${timep_TMPDIR}/.exec" "${BASH}" -m -O extglob -o functrace "${cmd0[@]}" -c '"'"'timep "${@}" <&0'"'"' _ "${@}"
     fi
 }
     fi
