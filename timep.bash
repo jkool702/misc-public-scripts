@@ -570,7 +570,7 @@ export -p -f trap &>/dev/null && export -n -f trap
             timep_runFuncSrc="${timep_runCmd1}"$'\n'
         ;;
         c)
-            printf -v timep_runCmd '%q ' ${@}
+            printf -v timep_runCmd '%q ' "${@}"
             timep_runCmd1='#!'"${BASH}"
 
             # start of wrapper code
@@ -580,7 +580,7 @@ export -p -f trap &>/dev/null && export -n -f trap
             _timep_getFuncSrc -r "$1" >>"${timep_TMPDIR}/functions.bash"
             timep_runCmd1='#!'"${BASH}"
 
-            printf -v timep_runCmd '%q ' ${@}
+            printf -v timep_runCmd '%q ' "${@}"
             [[ -t 0 ]] || timep_runCmd+=" <&0"
 
             # start of wrapper code
