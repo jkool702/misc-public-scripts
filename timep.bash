@@ -523,9 +523,9 @@ exec() {
     done
     unset exec
     if [[ -t 0 ]]; then
-        timep_TMPDIR="${timep_TMPDIR}/.exec/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}" builtin exec "${BASH}" -m -O extglob -o functrace "${cmd0[@]}" -c '"'"'timep "${@}"'"'"' _ "${@}"
+        timep_TMPDIR="${timep_TMPDIR}/.exec/${timep_NEXEC_0}" builtin exec "${BASH}" -m -O extglob -o functrace "${cmd0[@]}" -c '"'"'timep "${@}"'"'"' _ "${@}"
     else
-        timep_TMPDIR="${timep_TMPDIR}/.exec/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}" builtin exec "${BASH}" -m -O extglob -o functrace "${cmd0[@]}" -c '"'"'timep "${@}" <&0'"'"' _ "${@}"
+        timep_TMPDIR="${timep_TMPDIR}/.exec/${timep_NEXEC_0}" builtin exec "${BASH}" -m -O extglob -o functrace "${cmd0[@]}" -c '"'"'timep "${@}" <&0'"'"' _ "${@}"
     fi
 }
     fi
