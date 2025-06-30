@@ -503,10 +503,12 @@ if [[ "$BASH_COMMAND" == exec* ]]; then
     timep_EXEC_ARG="$(type -p "${timep_EXEC_ARG}")"
     if [[ -x "${timep_EXEC_ARG}" ]] && { [[ "${timep_EXEC_ARG}" == "${timep_BASH_PATH}" ]] || [[ "${timep_EXEC_ARG##*/}" == "bash" ]]; }; then
         timep_SKIP_DEBUG_FLAG=true
-        timep_FNEST+=("${timep_FNEST_CUR}")
+        ${timep_NO_PRINT_FLAG} || printf '"'"'%s\t%s\t%s\tF:%s %s\tS:%s %s\tN:%s %s.%s\t%s\t::\t%s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}"  "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${LINENO}" "${BASH_COMMAND@Q}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
+        timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="${BASH_COMMAND}"
+        timep_FNEST+=("${#FUNCNAME[@]}")
         timep_FUNCNAME_STR+=".exec"
         timep_NEXEC_0+=".${timep_NEXEC_A[-1]}"
-        timep_NEXEC_A+=("0")
+        timep_NEXEC_A+=(0)
         (( timep_NEXEC_N++ ))
 exec() {
     export -f timep
@@ -521,9 +523,9 @@ exec() {
     done
     unset exec
     if [[ -t 0 ]]; then
-        timep_TMPDIR="${timep_TMPDIR}/.exec" builtin exec  "${BASH}" -m -O extglob -o functrace "${cmd0[@]}" -c '"'"'timep "${@}"'"'"' _ "${@}"
+        timep_TMPDIR="${timep_TMPDIR}/.exec/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}" builtin exec "${BASH}" -m -O extglob -o functrace "${cmd0[@]}" -c '"'"'timep "${@}"'"'"' _ "${@}"
     else
-        timep_TMPDIR="${timep_TMPDIR}/.exec" builtin exec "${BASH}" -m -O extglob -o functrace "${cmd0[@]}" -c '"'"'timep "${@}" <&0'"'"' _ "${@}"
+        timep_TMPDIR="${timep_TMPDIR}/.exec/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}" builtin exec "${BASH}" -m -O extglob -o functrace "${cmd0[@]}" -c '"'"'timep "${@}" <&0'"'"' _ "${@}"
     fi
 }
     fi
