@@ -64,8 +64,11 @@ timep() {
 
 (
 
+    # check that basic requirements to run timep are met
+    # to disable this check, call timep via 'timep_DISABLE_CHECKS=1 timep <...>'
+    [[ ${timep_DISABLE_CHECKS} ]] || { [[ -d /proc/self ]] && mount | grep -qE '^proc ' && (( BASH_VERSINFO[0]>= 5 )); } || { printf '\n\nERROR: timep requires a mounted procfs and bash 5+. ABORTING!\n\n' >&2; return 1; }
+
     shopt -s extglob
-    #[[ "${SHELLOPTS}" =~ ^(.+\:)?monitor(\:.+)?$ ]] || export SHELLOPTS="${SHELLOPTS}${SHELLOPTS:+:}monitor"
 
     local timep_runType=''
     local -gx timep_TMPDIR
@@ -87,27 +90,36 @@ timep() {
 
     # try /dev/shm
     [[ -d /dev/shm ]] && {
-        timep_TMPDIR=/dev/shm/.timep."$(printf '%X' ${RANDOM}${RANDOM:1})"
+        timep_TMPDIR=/dev/shm/.timep."$(printf '%0.4X' "${RANDOM}" "${RANDOM}")"
         until ! [[ -d "$timep_TMPDIR" ]]; do
-            timep_TMPDIR=/dev/shm/.timep."$(printf '%X' ${RANDOM}${RANDOM:1})"
+            timep_TMPDIR=/dev/shm/.timep."$(printf '%0.4X' "${RANDOM}" "${RANDOM}")"
+        done
+        mkdir -p "$timep_TMPDIR" &>/dev/null || timep_TMPDIR=''
+    }
+
+    # try $TMPDIR, if set
+    [[ -z "$timep_TMPDIR" ]] && [[ "${TMPDIR}" ]] && {
+        timep_TMPDIR="${TMPDIR}"/.timep."$(printf '%0.4X' "${RANDOM}" "${RANDOM}")"
+        until ! [[ -d "$timep_TMPDIR" ]]; do
+            timep_TMPDIR="${TMPDIR}"/.timep."$(printf '%0.4X' "${RANDOM}" "${RANDOM}")"
         done
         mkdir -p "$timep_TMPDIR" &>/dev/null || timep_TMPDIR=''
     }
 
     # try /tmp
     [[ "$timep_TMPDIR" ]] || {
-        timep_TMPDIR=/tmp/.timep."$(printf '%X' ${RANDOM}${RANDOM:1})"
+        timep_TMPDIR=/tmp/.timep."$(printf '%0.4X' "${RANDOM}" "${RANDOM}")"
         until ! [[ -d "$timep_TMPDIR" ]]; do
-            timep_TMPDIR=/tmp/.timep."$(printf '%X' ${RANDOM}${RANDOM:1})"
+            timep_TMPDIR=/tmp/.timep."$(printf '%0.4X' "${RANDOM}" "${RANDOM}")"
         done
         mkdir -p "$timep_TMPDIR" &>/dev/null || timep_TMPDIR=''
     }
 
     # try $PWD
     [[ "$timep_TMPDIR" ]] || {
-        timep_TMPDIR="$PWD/.timep.$(printf '%X' ${RANDOM}${RANDOM:1})"
+        timep_TMPDIR="$PWD/.timep.$(printf '%0.4X' "${RANDOM}" "${RANDOM}")"
         until ! [[ -d "$timep_TMPDIR" ]]; do
-            timep_TMPDIR="$PWD/.timep.$(printf '%X' ${RANDOM}${RANDOM:1})"
+            timep_TMPDIR="$PWD/.timep.$(printf '%0.4X' "${RANDOM}" "${RANDOM}")"
         done
         mkdir -p "$timep_TMPDIR" &>/dev/null || timep_TMPDIR=''
     }
@@ -342,7 +354,7 @@ timep_DEBUG_TRAP_STR_1='
   printf '"'"'\nWARNING: timep requires job control to be enabled.\n         Running "set +m" is not allowed!\n         Job control will automatically be re-enabled.\n\n'"'"' >&2
   set -m
 }
-[[ "${BASH_COMMAND}" == trap\ * ]] && {
+[[ "${BASH_COMMAND}" == "trap "* ]] && {
   timep_SKIP_DEBUG_FLAG=true
   (( timep_FNEST_CUR == ${#FUNCNAME[@]} )) && {
     timep_FNEST+=("${#FUNCNAME[@]}")
@@ -483,7 +495,7 @@ if [[ "$BASH_COMMAND" == exec* ]]; then
     timep_EXEC_ARG="${BASH_COMMAND#*[[:space:]]}"
     timep_EXEC_ARG="${timep_EXEC_ARG%%[[:space:]]*}" 
     timep_EXEC_ARG="$(type -p "${timep_EXEC_ARG}")"
-    if [[ "${timep_EXEC_ARG}" == "${timep_BASH_PATH}" ]] || [[ "${timep_EXEC_ARG}" == "/bin/bash" ]] || [[ "${timep_EXEC_ARG}" == "/usr/bin/bash" ]]; then
+    if [[ -x "${timep_EXEC_ARG}" ]] && { [[ "${timep_EXEC_ARG}" == "${timep_BASH_PATH}" ]] || [[ "${timep_EXEC_ARG##*/}" == "bash" ]]; }; then
         timep_SKIP_DEBUG_FLAG=true
         timep_FNEST+=("${timep_FNEST_CUR}")
         timep_FUNCNAME_STR+=".exec"
