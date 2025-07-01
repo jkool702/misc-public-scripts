@@ -853,7 +853,7 @@ _timep_PROCESS_LOG() {
     _timep_EPOCHREALTIME_SUM
 
     # write runtime and final endtime to .{end,run}time file
-    echo "${endTimesA[${#logA[@]}]}" >"${1%\/*}/.endtimes/${1##*\/}"
+    echo "${endTimesA[-1]}" >"${1%\/*}/.endtimes/${1##*\/}"
     echo "${runTimeTotal}" >"${1%\/*}/.runtimes/${1##*\/}"
 
     # write out new merged-upward log
@@ -861,7 +861,7 @@ _timep_PROCESS_LOG() {
     inPipeFlag=false
     while (( kk < ${#logA[@]} )); do
         if ${inPipeFlag}; then
-            # we are in a pipeline but not in the 1st element. dont ass line to log
+            # we are in a pipeline but not in the 1st element. dont add line to log
             (( isPipeA[$kk] == 1 )) && inPipeFlag=false
         else
             # add line to log
