@@ -789,10 +789,9 @@ _timep_EPOCHREALTIME_DIFF() {
 }
 
 _timep_EPOCHREALTIME_SUM() {
-    local IFS tSum d d6
-    IFS='+'
-    (( tSum = "${runTimesA[*]//./}" ))
-    unset IFS
+    local tSum d d6
+    printf -v tSum '+10#%s' "${runTimesA[@]//./}"
+    (( tSum = 0${tSum} ))
     printf -v d '%0.7d' "${tSum}"
     (( d6 = ${#d} - 6 ))
     printf -v runTimeTotal '%s.%s' "${d:0:$d6}" "${d:$d6}"
