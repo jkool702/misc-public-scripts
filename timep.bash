@@ -130,7 +130,7 @@ timep() {
          return 1
     }
 
-    mkdir -p "${timep_TMPDIR}"/.log/.endtimes
+    mkdir -p "${timep_TMPDIR}"/.log/.{end,run}times
 
     # determine if command being profiled is a shell script or not
     if [[ "${timep_runType}" == [sfc] ]]; then
@@ -503,7 +503,7 @@ if [[ "$BASH_COMMAND" == exec* ]]; then
     timep_EXEC_ARG="$(type -p "${timep_EXEC_ARG}")"
     if [[ -x "${timep_EXEC_ARG}" ]] && { [[ "${timep_EXEC_ARG}" == "${timep_BASH_PATH}" ]] || [[ "${timep_EXEC_ARG##*/}" == "bash" ]]; }; then
         timep_SKIP_DEBUG_FLAG=true
-        ${timep_NO_PRINT_FLAG} || printf '"'"'%s\t%s\t%s\tF:%s %s\tS:%s %s\tN:%s %s.%s\t%s\t::\t%s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "-" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}"  "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${LINENO}" "${BASH_COMMAND@Q}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
+        ${timep_NO_PRINT_FLAG} || printf '"'"'%s\t%s\t%s\tF:%s %s\tS:%s %s\tN:%s %s.%s\t%s\t::\t%s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "-" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}"  "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${LINENO}" "<< EXEC BASH: ${BASH_COMMAND@Q} >>" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
         timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="${BASH_COMMAND}"
         timep_FNEST+=("${#FUNCNAME[@]}")
         timep_FUNCNAME_STR+=".exec"
@@ -778,8 +778,115 @@ for nn in "${timep_LOG_A[@]}"; do printf '\n\n----------------------------------
 # --> merge up logs + runtimes for any subshells / bg forks / functions
 # --> combine duplicate/repeated commands from loops (in second "combined" log)
 
+# define helper functioons for getting runtime from timestamp differences and for summing runtimes
+
+_timep_EPOCHREALTIME_DIFF() {
+    local tDiff d d6
+    (( tDiff = ${endtimeA[$1]//./} - ${starttimeA[$1]//./} ))
+    printf -v d '%0.7d' "${tDiff}"
+    (( d6 = ${#d} - 6 ))
+    printf -v runtimeA[$1] '%s.%s' "${d:0:$d6}" "${d:$d6}"
+}
+
+_timep_EPOCHREALTIME_SUM() {
+    local IFS tSum d d6
+    IFs='+'
+    (( tSum = "${runtimeA[*]//./}" ))
+    unset IFS
+    printf -v d '%0.7d' "${tSum}"
+    (( d6 = ${#d} - 6 ))
+    printf -v runTimeTotal '%s.%s' "${d:0:$d6}" "${d:$d6}"
+}
+
+
 _timep_PROCESS_LOG() {
-    :
+    local kk runTimeTotal inPipeFlag
+    local -a logA npipeA startTimeA endTimeA runTimeA funcA pidA nexecA linenoA cmdA mergeA execBashA isPipeA logMergeA
+
+    [[ -e "$1" ]] || return 1
+
+    inPipeFlag=false
+
+    # load current log (sorted by NEXEC) into array
+    mapfile -t logA < <(sort -V -k 6 -d $'\t' <"$1")
+
+    # rename log to ___.orig
+    \mv -f "${1}" "${1}.orig"
+
+    # loop through lines in reverse order 
+    for (( kk=(${#logA[@]}-1); kk>=0; kk-- )); do
+        # read log fields into variables
+        IFS=$'\t' read -r npipeA[$kk] startTimeA[$kk] endTimeA[$kk] funcA[$kk] pidA[$kk] nexecA[$kk] linenoA[$kk] _ cmdA[$kk] runTimeA[$kk] <<<"${logA[$kk]}"
+
+        # check if cmd is a subshell/bg fork that needs to be merged up
+        if [[ "${cmd[$kk]}" == '<< SUBSHELL: '*' >>' ]] || [[ "${cmd[$kk]}" == '<< BACKGROUND FORK: '*' >>' ]]; then
+            # record which log to merge up and where
+            mergeA[$kk]="${timep_TMPDIR}/.log/log.${nexecA[$kk]##* }"
+
+            # read in the endtime + runtime from the log
+            read -r runtimeA[$kk] <"${timep_TMPDIR}/.log/.runtimes/log.${nexecA[$kk]##* }"
+            read -r endtimeA[$kk] <"${timep_TMPDIR}/.log/.endtimes/log.${nexecA[$kk]##* }"
+        fi
+
+        # merge pipelines
+        if ${inPipeFlag}; then
+            # we are in a pipeline, but not at the last element
+            # override nPipe and endtimne based on the values from the next command and append next command to current command (with `|` in between)
+            # note that this makes the $kk corresponding to the 1st pipeline element the one we will log
+            (( kk1 = kk + 1 ))
+            (( npipeA[$kk] = npipeA[$kk1] - 1 ))
+            (( isPipeA[$kk] = isPipeA[$kk1] + 1 ))
+            endtimeA[$kk]="${endtimeA[$kk1]}"
+            cmdA[$kk]+=" | ${cmdA[$kk1]}"
+            (( npipeA[$kk] == 1 )) && inPipeFlag=false
+        elif (( nPipe[$kk] > 1 )); then
+            # this is the last element of a pipeline. set flag to inducate this
+            inPipeFlag=true
+            isPipeA[$kk]=1
+        fi
+            
+        # compute runtime from start/end timestamps (unless we are either in the middle of a pipeline OR it is a subshell / bg fork)
+        (( nPipeA[$kk] == 1 )) && [[ -z ${runtimeA[$kk]} ]] && _timep_EPOCHREALTIME_DIFF "$kk"
+
+    done
+
+    # get total runtime
+    _timep_EPOCHREALTIME_SUM
+
+    # write runtime and final endtime to .{end,run}time file
+    echo "${endTimesA[${#logA[@]}]}" >"${1%\/*}/.endtimes/${1##*\/}"
+    echo "${runTimeTotal}" >"${1%\/*}/.runtimes/${1##*\/}"
+
+        # write out new merged-upward log
+    kk=0
+    inPipeFlag=false
+    while (( kk < ${#logA[@]} )); do
+        if ${inPipeFlag}; then
+            # we are in a pipeline but not in the 1st element. dont ass line to log
+            (( isPipeA[$kk] == 1 )) && inPipeFlag=false
+        else
+            # add line to log
+            printf '%s:\t (%ss)   %s   ::   %s %s %s (%s->%s)\n' "${linenoA[$kk]}" "${runTimeA[$kk]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]}" "${starttimeA[$kk]}" "${endtimeA[$kk]}" >>"${1}"
+
+            # check if this is the start of a pipeline
+            [[ ${isPipeA[$kk]} ]] && (( isPipeA[$kk] >= 1 )) && inPipeFlag=true
+        fi
+
+        # add merged up log to log, including for "in the middle of a pipeline" commands
+        [[ ${mergeA[$kk]} ]] && [[ -e "${mergeA[$kk]}" ]] && {
+            mapfile -t logMergeA <"${mergeA[$kk]}"
+            printf '|-- %s\n' "${logMergeA[0]}"
+            if (( ${#logMergeA[@]} == 2 )); then
+                printf '|-- %s\n' "${logMergeA[1]}"
+            elif (( ${#logMergeA[@]} > 2 )); then
+                printf '|   %s\n' "${logMergeA[@]:1:$((${#logMergeA[@]}-2))}"
+                printf '|-- %s\n' "${logMergeA[-1]}"
+            fi
+        }
+            
+        (( kk++ ))
+    done >>"${1}"
+            
 }
 
 # get log names
