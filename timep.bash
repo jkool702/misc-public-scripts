@@ -355,7 +355,7 @@ timep_DEBUG_TRAP_STR_1='
   set -m
 }
 [[ "${FUNCNAME[0]}" == "trap" ]] && ! ${timep_SKIP_DEBUG_FLAG} && {
-  timep_SKIP_DEBUG_FLAG_NEXT=true
+  timep_SKIP_DEBUG_NEXT_FLAG=true
   (( timep_FNEST_CUR < ${#FUNCNAME[@]} )) && {
     timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="${BASH_COMMAND}"
     timep_FNEST+=("${#FUNCNAME[@]}")
@@ -493,8 +493,8 @@ timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="${BASH_COMMAND}"
 timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
 timep_BG_PID_PREV="$!"
 timep_BASHPID_PREV="$BASHPID"
-${timep_SKIP_DEBUG_FLAG_NEXT} && {
-    timep_SKIP_DEBUG_FLAG_NEXT=false
+${timep_SKIP_DEBUG_NEXT_FLAG} && {
+    timep_SKIP_DEBUG_NEXT_FLAG=false
     timep_SKIP_DEBUG_FLAG=true
 }
 if [[ "$BASH_COMMAND" == exec* ]]; then
@@ -503,7 +503,7 @@ if [[ "$BASH_COMMAND" == exec* ]]; then
     timep_EXEC_ARG="$(type -p "${timep_EXEC_ARG}")"
     if [[ -x "${timep_EXEC_ARG}" ]] && { [[ "${timep_EXEC_ARG}" == "${timep_BASH_PATH}" ]] || [[ "${timep_EXEC_ARG##*/}" == "bash" ]]; }; then
         timep_SKIP_DEBUG_FLAG=true
-        ${timep_NO_PRINT_FLAG} || printf '"'"'%s\t%s\t%s\tF:%s %s\tS:%s %s\tN:%s %s.%s\t%s\t::\t%s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}"  "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${LINENO}" "${BASH_COMMAND@Q}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
+        ${timep_NO_PRINT_FLAG} || printf '"'"'%s\t%s\t%s\tF:%s %s\tS:%s %s\tN:%s %s.%s\t%s\t::\t%s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "-" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}"  "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${LINENO}" "${BASH_COMMAND@Q}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
         timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="${BASH_COMMAND}"
         timep_FNEST+=("${#FUNCNAME[@]}")
         timep_FUNCNAME_STR+=".exec"
@@ -517,7 +517,7 @@ exec() {
     while [[ "$1" == '"'"'-'"'"'* ]]; do
         case "$1" in 
             -o|-O) { [[ "$1" == "-o" ]] && [[ "$2" == "monitor" ]]; } || { [[ "$1" == "-O" ]] && [[ "$2" == "extglob" ]]; } ||  { [[ "$1" == "-O" ]] && [[ "$2" == "functrace" ]]; } || cmd0+=("$1" "$2"); shift 2 ;;
-            -c) shift 1; break ;;
+            -c|--) shift 1; break ;;
             *) [[ "$1" == [+-]m ]] || [[ "$1" == [+-]i ]] || cmd0+=("$1"); shift 1 ;;
         esac
     done
@@ -532,9 +532,6 @@ exec() {
 fi
 timep_STARTTIME[${timep_FNEST_CUR}]="${EPOCHREALTIME}"
 }'
-
-# builtin exec "$BASH" -i -m -O extglob -c 'timep "$@"' _ "$@"
-
 
 # overload the trap builtin to allow the use of custom EXIT/RETURN/DEBUG traps
 
@@ -601,7 +598,7 @@ timep_runFuncSrc+='(
 
     builtin trap - DEBUG EXIT RETURN
 
-    declare timep_BASHPID_PREV timep_BASHPID_STR timep_BASH_SUBSHELL_PREV timep_BASH_PATH timep_EXEC_ARG timep_BG_PID_PREV timep_CHILD_PGID timep_CHILD_TPID timep_CMD_TYPE timep_ENDTIME timep_ENDTIME0 timep_FD timep_FNEST_CUR timep_FUNCNAME_STR timep_IS_BG_INDICATOR timep_IS_BG_FLAG timep_IS_FUNC_FLAG timep_IS_FUNC_FLAG_1 timep_IS_SUBSHELL_FLAG EXEC_0 timep_NEXEC_N timep_NO_PRINT_FLAG timep_NPIDWRAP timep_NPIPE0 timep_PARENT_PGID timep_PARENT_TPID timep_SIMPLEFORK_CUR_FLAG timep_SIMPLEFORK_NEXT_FLAG timep_SKIP_DEBUG_FLAG timep_SKIP_DEBUG_FLAG_NEXT timep_BASH_SUBSHELL_DIFF timep_BASH_SUBSHELL_DIFF_0 timep_KK
+    declare timep_BASHPID_PREV timep_BASHPID_STR timep_BASH_SUBSHELL_PREV timep_BASH_PATH timep_EXEC_ARG timep_BG_PID_PREV timep_CHILD_PGID timep_CHILD_TPID timep_CMD_TYPE timep_ENDTIME timep_ENDTIME0 timep_FD timep_FNEST_CUR timep_FUNCNAME_STR timep_IS_BG_INDICATOR timep_IS_BG_FLAG timep_IS_FUNC_FLAG timep_IS_FUNC_FLAG_1 timep_IS_SUBSHELL_FLAG EXEC_0 timep_NEXEC_N timep_NO_PRINT_FLAG timep_NPIDWRAP timep_NPIPE0 timep_PARENT_PGID timep_PARENT_TPID timep_SIMPLEFORK_CUR_FLAG timep_SIMPLEFORK_NEXT_FLAG timep_SKIP_DEBUG_FLAG timep_SKIP_DEBUG_NEXT_FLAG timep_BASH_SUBSHELL_DIFF timep_BASH_SUBSHELL_DIFF_0 timep_KK
     declare -a timep_BASH_COMMAND_PREV timep_FNEST timep_NEXEC_A timep_NPIPE timep_STARTTIME timep_A timep_LINENO timep_BASHPID_ADD
 
     set -mT
@@ -630,7 +627,7 @@ timep_runFuncSrc+='(
     timep_SIMPLEFORK_NEXT_FLAG=false
     timep_SIMPLEFORK_CUR_FLAG=false
     timep_SKIP_DEBUG_FLAG=false
-    timep_SKIP_DEBUG_FLAG_NEXT=false
+    timep_SKIP_DEBUG_NEXT_FLAG=false
     timep_NO_PRINT_FLAG=false
     timep_IS_FUNC_FLAG_1=false
 
