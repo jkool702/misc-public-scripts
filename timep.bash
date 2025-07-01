@@ -882,6 +882,8 @@ _timep_PROCESS_LOG() {
                 printf '|   %s\n' "${logMergeA[@]:1:$((${#logMergeA[@]}-2))}"
                 printf '|-- %s\n' "${logMergeA[-1]}"
             fi
+            # \rm -f "${mergeA[$kk]}"
+            # \mv -f "${mergeA[$kk]}.orig" "${mergeA[$kk]}"
         } 
             
         (( kk++ ))
