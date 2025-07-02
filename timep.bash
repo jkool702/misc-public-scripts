@@ -7,7 +7,7 @@ timep() {
     # timep logs command times+metadata hierarchically based on both function and subshell nesting depth, recreating the complete call-stack tree in its logs.
     #
     # USAGE:     timep [-s|-f|-c] [--] _______          --OR--
-    #    [...] | timep [-s|-f] [--] _______ | [...]
+    #    [...] | timep [-s|-f|-c] [--] _______ | [...]
     #
     # TO DO: UPDATE "OUTPUT" SECTION DOCUMENTATION. THE BELOW SECTION APPLIES TO AN OLDER VERSION OF timep
     # OUTPUT:
