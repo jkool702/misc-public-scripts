@@ -807,9 +807,9 @@ _timep_EPOCHREALTIME_SUM() {
     printf -v runTimeTotal '%s.%s' "${d:0:$d6}" "${d:$d6}"
 }
 
-
+shopt -s extglob
 _timep_PROCESS_LOG() {
-    local kk kk1 runTimeTotal inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd 
+    local kk kk1 runTimeTotal runTimeTotal0 inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd 
     local -a logA nPipeA startTimesA endTimesA runTimesA runTimesPA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA
 
     [[ -e "$1" ]] || return 1
@@ -878,14 +878,21 @@ _timep_PROCESS_LOG() {
 
     # write runtime and final endtime to .{end,run}time file
     echo "${endTimesA[-1]}" >"${1%\/*}/.endtimes/${1##*\/}"
-    echo "${runTimeTotal}" >"${1%\/*}/.runtimes/${1##*\/}"
+    echo "${runTimeTotal:-0.000001}" >"${1%\/*}/.runtimes/${1##*\/}"
+
+    runTimeTotal0="${runTimeTotal//./}"
+    runTimeTotal0="${runTimeTotal0##+(0)}"
 
     # make LINENO's unique and compute runtime as % of total at this depth
     linenoA[0]="${linenoA[0]}.0"
     lineno1=0
-    (( runTimeP = 10000 * runTimesA[0] / runTimeTotal ))
-    printf -v runTimeP '%.04d' "$runTimeP"
-    runTimePA[0]="${runTimeP:0:2}.${runTimeP:2}"
+    runTimeP="${runTimesA[0]//./}"
+    (( runTimeP = ( 10000 * ${runTimeP##+(0)} ) / $runTimeTotal0 ))
+    printf -v runTimeP '%0.4d' "$runTimeP"
+    case "${runTimeP}" in
+        10000) runTimesPA[0]=100 ;;
+        *) runTimesPA[0]="${runTimeP:0:2}.${runTimeP:2}" ;;
+    esac
     for (( kk=1; kk<${#logA[@]}; kk++ )); do
         (( kk1 = kk - 1 ))
         if (( linenoA[$kk] == ${linenoA[$kk1]%.*} )); then
@@ -894,9 +901,13 @@ _timep_PROCESS_LOG() {
             lineno1=0
         fi
         linenoA[$kk]="${linenoA[$kk]}.${lineno1}"
-        (( runTimeP = 10000 * runTimesA[$kk] / runTimeTotal ))
-        printf -v runTimeP '%.04d' "$runTimeP"
-        runTimePA[$kk]="${runTimeP:0:2}.${runTimeP:2}"
+        runTimeP="${runTimesA[$kk]//./}"
+        (( runTimeP = ( 10000 * ${runTimeP##+(0)} ) / $runTimeTotal0 ))
+        printf -v runTimeP '%0.4d' "$runTimeP"
+        case "${runTimeP}" in
+            10000) runTimesPA[$kk]=100 ;;
+            *) runTimesPA[$kk]="${runTimeP:0:2}.${runTimeP:2}" ;;
+        esac
     done
         
 
@@ -909,7 +920,8 @@ _timep_PROCESS_LOG() {
             (( isPipeA[$kk] == 1 )) && inPipeFlag=false
         else
             # add line to log
-            printf '\n%s:\t (%ss|%s%%)\t %s\t\t {{ %s | %s | %s }} (%s->%s)\n' "${linenoA[$kk]}" "${runTimesA[$kk]}" "${runTimesPA[$kk]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]%% *}" "${startTimesA[$kk]}" "${endTimesA[$kk]}" 
+            (( kk == 0  )) || printf '\n\n'
+            printf '%s:\t (%ss|%s%%)\t %s\t\t {{ %s | %s | %s }} (%s->%s)' "${linenoA[$kk]}" "${runTimesA[$kk]}" "${runTimesPA[$kk]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]%% *}" "${startTimesA[$kk]}" "${endTimesA[$kk]}" 
 
             # check if this is the start of a pipeline
             [[ ${isPipeA[$kk]} ]] && (( isPipeA[$kk] >= 1 )) && inPipeFlag=true
@@ -917,13 +929,18 @@ _timep_PROCESS_LOG() {
 
         # add merged up log to log, including for "in the middle of a pipeline" commands
         [[ ${mergeA[$kk]} ]] && [[ -e "${mergeA[$kk]}" ]] && {
-            mapfile -t logMergeA <"${mergeA[$kk]}"
-            printf '|-- %s\n' "${logMergeA[0]}"
+            mapfile -t logMergeA < <(grep -E '.+' <"${mergeA[$kk]}")
+#            jj=0
+#            while [[ -z "${logMergeA[$jj]}" ]]; do
+#                unset "logMergeA[$jj]"
+#                (( jj++ ))
+#            done
+            printf '\n|-- %s\n' "${logMergeA[0]}"
             if (( ${#logMergeA[@]} == 2 )); then
-                printf '|-- %s\n' "${logMergeA[1]}"
+                printf '|-- %s' "${logMergeA[1]}"
             elif (( ${#logMergeA[@]} > 2 )); then
                 printf '|   %s\n' "${logMergeA[@]:1:$((${#logMergeA[@]}-2))}"
-                printf '|-- %s\n' "${logMergeA[-1]}"
+                printf '|-- %s' "${logMergeA[-1]}"
             fi
             # \rm -f "${mergeA[$kk]}"
             # \mv -f "${mergeA[$kk]}.orig" "${mergeA[$kk]}"
