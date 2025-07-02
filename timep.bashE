@@ -794,8 +794,7 @@ _timep_EPOCHREALTIME_DIFF() {
     (( tDiff = ${endTimesA[$1]//./} - ${startTimesA[$1]//./} ))
     printf -v d '%0.7d' "${tDiff}"
     (( d6 = ${#d} - 6 ))
-    printf -v runTime '%s.%s' "${d:0:$d6}" "${d:$d6}"
-    runTimesA[$1]="${runTime}"
+    printf -v runTimesA[$1] '%s.%s' "${d:0:$d6}" "${d:$d6}"
 }
 
 _timep_EPOCHREALTIME_SUM() {
@@ -809,7 +808,7 @@ _timep_EPOCHREALTIME_SUM() {
 
 
 _timep_PROCESS_LOG() {
-    local kk kk1 runTimeTotal inPipeFlag lineno1 nPipe startTime endTime runTime func pid nexec lineno cmd 
+    local kk kk1 runTimeTotal inPipeFlag lineno1
     local -a logA nPipeA startTimesA endTimesA runTimesA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA
 
     [[ -e "$1" ]] || return 1
@@ -823,29 +822,18 @@ _timep_PROCESS_LOG() {
     \mv -f "${1}" "${1}.orig"
 
     # loop through lines in reverse order 
-    for (( kk=${#logA[@]}-1; kk>=0; kk-- )); do
-
+    for (( kk=(${#logA[@]}-1); kk>=0; kk-- )); do
         # read log fields into variables
-        IFS=$'\t' read -r nPipe startTime endTime func pid nexec lineno _ cmd <<<"${logA[$kk]}"
-        nPipeA[$kk]="${nPipe}"
-        startTimesA[$kk]="${startTime}"
-        endTimesA[$kk]="${endTime}"
-        funcA[$kk]="${func}"
-        pidA[$kk]="${pid}"
-        nexecA[$kk]="${nexec}"
-        linenoA[$kk]="${lineno}"
-        cmdA[$kk]="${cmd}"
+        IFS=$'\t' read -r nPipeA[$kk] startTimesA[$kk] endTimesA[$kk] funcA[$kk] pidA[$kk] nexecA[$kk] linenoA[$kk] _ cmdA[$kk] <<<"${logA[$kk]}"
 
         # check if cmd is a subshell/bg fork that needs to be merged up
-        if [[ "${cmdA[$kk]}" == "'"'<< (SUBSHELL): '*' >>'"'" ]] || [[ "${cmdA[$kk]}" == "'"'<< (BACKGROUND FORK): '*' >>'"'" ]]; then
+        if [[ "${cmdA[$kk]}" == '<< SUBSHELL: '*' >>' ]] || [[ "${cmdA[$kk]}" == '<< BACKGROUND FORK: '*' >>' ]]; then
             # record which log to merge up and where
             mergeA[$kk]="${timep_TMPDIR}/.log/log.${nexecA[$kk]##* }"
 
             # read in the endtime + runtime from the log
-            read -r runTime <"${timep_TMPDIR}/.log/.runtimes/log.${nexecA[$kk]##* }"
-            read -r endTime <"${timep_TMPDIR}/.log/.endtimes/log.${nexecA[$kk]##* }"
-            runTimesA[$kk]="${runTime}"
-            endTimesA[$kk]="${endTime}"
+            read -r runTimesA[$kk] <"${timep_TMPDIR}/.log/.runtimes/log.${nexecA[$kk]##* }"
+            read -r endTimesA[$kk] <"${timep_TMPDIR}/.log/.endtimes/log.${nexecA[$kk]##* }"
         fi
 
         # merge pipelines
@@ -871,10 +859,7 @@ _timep_PROCESS_LOG() {
     done
 
     # get total runtime
-    case ${#logA[@]} in
-        1) runTimeTotal="${runTimesA[0]}" ;;
-        *) _timep_EPOCHREALTIME_SUM ;;
-    esac
+    _timep_EPOCHREALTIME_SUM
 
     # write runtime and final endtime to .{end,run}time file
     echo "${endTimesA[-1]}" >"${1%\/*}/.endtimes/${1##*\/}"
@@ -902,7 +887,7 @@ _timep_PROCESS_LOG() {
             (( isPipeA[$kk] == 1 )) && inPipeFlag=false
         else
             # add line to log
-            printf '%s:\t (%ss)\t %s\t {{ %s | %s | %s | (%s->%s) }}\n' "${linenoA[$kk]}" "${runTimesA[$kk]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]}" "${startTimesA[$kk]}" "${endTimesA[$kk]}" 
+            printf '%s:\t (%ss)   %s   ::   %s %s %s (%s->%s)\n' "${linenoA[$kk]}" "${runTimesA[$kk]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]}" "${startTimesA[$kk]}" "${endTimesA[$kk]}" 
 
             # check if this is the start of a pipeline
             [[ ${isPipeA[$kk]} ]] && (( isPipeA[$kk] >= 1 )) && inPipeFlag=true
@@ -940,13 +925,13 @@ done < <(printf '%s\n' "${timep_LOG_NAME[@]}" | sed -E 's/^.*\/log\.([^\/]*)$/\1
 
 # loop through logs from deepest nested upwards and run each through post processing function
 for (( kk=${#timep_LOG_NESTING[@]}; kk>=0; kk-- )); do
-    mapfile -t timep_LOGS_CUR < <(echo "${timep_LOG_NESTING[$kk]%$'\n'}")
+    mapfile -t timep_LOGS_CUR < <(echo "${timep_LOG_NESTING[$kk]}")
     for nn in "${timep_LOGS_CUR[@]}"; do
-        [[ ${nn} ]] && _timep_PROCESS_LOG "${nn}"
+        _timep_PROCESS_LOG "${nn}"
     done
 done
 
-cat "${timep_LOG_NESTING[0]%$'\n'}"
+cat "${#timep_LOG_NESTING[0]}"
 
 # TO DO
 ##### AFTER the code has finished running, a post-processing phase will:
