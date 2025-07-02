@@ -799,7 +799,7 @@ _timep_EPOCHREALTIME_SUM() {
 
 
 _timep_PROCESS_LOG() {
-    local kk runTimeTotal inPipeFlag
+    local kk kk1 runTimeTotal inPipeFlag lineno1
     local -a logA nPipeA startTimesA endTimesA runTimesA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA
 
     [[ -e "$1" ]] || return 1
@@ -855,6 +855,19 @@ _timep_PROCESS_LOG() {
     # write runtime and final endtime to .{end,run}time file
     echo "${endTimesA[-1]}" >"${1%\/*}/.endtimes/${1##*\/}"
     echo "${runTimeTotal}" >"${1%\/*}/.runtimes/${1##*\/}"
+
+    linenoA[0]="${linenoA[0]}.0"
+    lineno1=0
+    for (( kk=1; kk<${#logA[@]}; kk++ )); do
+        (( kk1 = kk - 1 ))
+        if (( linenoA[$kk] == ${linenoA[$kk1]%.*} )); then
+            (( lineno1++ ))
+        else
+            lineno1=0
+        fi
+        linenoA[$kk]="${linenoA[$kk]}.${lineno1}"
+    done
+        
 
     # write out new merged-upward log
     kk=0
