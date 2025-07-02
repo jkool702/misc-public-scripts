@@ -841,16 +841,14 @@ _timep_PROCESS_LOG() {
         if [[ "${cmdA[$kk]#"'"}" == '<< ('*'): '*' >>'* ]]; then
             # record which log to merge up and where
             mergeA[$kk]="${timep_TMPDIR}/.log/log.${nexecA[$kk]##* }"
-            echo "${cmdA[$kk]}" 
 
             # read in the endtime + runtime from the log
             read -r runTime <"${timep_TMPDIR}/.log/.runtimes/log.${nexecA[$kk]##* }"
             [[ ${runTime} ]] && runTimesA[$kk]="${runTime}"
-            [[ "${cmdA[$kk]}" == *'<< (FUNCTION): '* ]] || {
+            [[ "${cmdA[$kk]#"'"}" == '<< ('FUNCTION'): '*' >>'* ]] || {
                 read -r endTime <"${timep_TMPDIR}/.log/.endtimes/log.${nexecA[$kk]##* }"
                 [[ ${endTime} ]] && endTimesA[$kk]="${endTime}"
             }
-            [[ "${cmdA[$kk]}" == *'<< (FUNCTION): '* ]] && declare -p mergeA
         fi
 
         # merge pipelines
