@@ -3,9 +3,10 @@
 shopt -s extglob
 
 timep() {
-    ## TIME Profile - efficiently produces an accurate per-command execution time profile for shell scripts and functions using a DEBUG trap
+    ## TIME Profile - timep efficiently produces an accurate per-command execution time profile for shell scripts and functions using DEBUG, EXIT and RETURN traps.
+    # timep logs command times+metadata hierarchically based on both function and subshell nesting depth, recreating the complete call-stack tree in its logs.
     #
-    # USAGE:     timep [-s|-f] [--] _______          --OR--
+    # USAGE:     timep [-s|-f|-c] [--] _______          --OR--
     #    [...] | timep [-s|-f] [--] _______ | [...]
     #
     # TO DO: UPDATE "OUTPUT" SECTION DOCUMENTATION. THE BELOW SECTION APPLIES TO AN OLDER VERSION OF timep
@@ -25,23 +26,31 @@ timep() {
     #
     # FLAGS:
     #    Flags must be given before the command being profiled. if multiple -s/-f are given the last one is used.
-    #    -s | --shell    : force timep to treat the code being profiled as a shell script
-    #    -f | --function : force timep to treat the code being profiled as a shell function
+    #    -s | --shell    : force timep to treat the code being profiled as a bash script
+    #    -f | --function : force timep to treat the code being profiled as a bash function
+    #    -c | --command  : force timep to treat the code being profiled as raw bash command[s]
     #    --              : stop arg parsing (allows propfiling something with the same name as a flag)
-    #    DEFAULT: Attempt to automatically detect shell scripts (*requires `file` for robust detection).
-    #             Assume a shell function unless detection explicitly indicates a shell script.
+    #    DEFAULT: Attempt to detect type automatically. Detection roughly follows the following decision tree:
+    #        1. if $1 matches a loaded function (tested via declare -F), then treat as a function
+    #        2. if $1 is not a function but exists as a file in the filestystem that ut executable and containsa ascii text, then treat as a script
+    #        3. if neither of the above are true, then treat as raw command[s]
     #
     # RUNTIME CONDITIONS/REQUIREMENTS:
     #    timep adds a several variables (all which start with "timep_") + function(s) to the runtime env of whatever is being profiled. The code being profiled must NOT modify these.
     #        FUNCTIONS:  _timep_*    trap
     #        VARIABLES:  timep_*
     #
-    #    timep works by using DEBUG, EXIT and RETURN traps. To allow profiling bash code which *also* sets these traps, timep defines a `trap` funbction to overload the builtin `trap`. This function will incorporate the traps required by timep into the traps seyt by the bash code.
-    #    for timep to work correctly, any EXIT/RETURN/DEBUG trapos set by the code beiung profiled must NOT be set using `builtin trap` - the overloaded `trap` function must be used (i.e., just call `trap ...`)
+    #    timep works by using DEBUG, EXIT and RETURN traps. 
+    #    To allow profiling bash code which *also* sets these traps, timep defines a `trap` function to overload the builtin `trap`. This function will incorporate the traps required by timep into the traps set by the bash code.
+    #    For timep to work correctly, any EXIT/RETURN/DEBUG traps set by the code being profiled must NOT be set using `builtin trap` - the overloaded `trap` function must be used (i.e., just call `trap ...`)
+    #
+    #    for timep to properly reconstruct the true call-stack tree, job control (set -m) MUST be enabled.
+    #    timep will automaticaly enable job control and, should the code being profiled disable it, timep will automatically re-enable it. Codes that require job control to be disabled cannot be profiled with timep.
     #
     # DEPENDENCIES:
     #    1) bash 5.0+ (required to support the $EPOCHREALTIME variable)
     #    2) sed, grep, sort, mkdir, tail, file*
+    #    3) mounted proc filesystem at '/proc'
     #
     # NOTES:
     #    1. timep attempts to find the raw source code for functions being profiled, but in some instances (example: functions defined via `. <(...)` or functions defined in terminal when historyis off) this isnt possible.
