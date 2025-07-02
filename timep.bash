@@ -423,6 +423,7 @@ else
   timep_CMD_TYPE="NORMAL COMMAND"
 fi
 if ${timep_IS_SUBSHELL_FLAG}; then
+  timep_NPIPE[${timep_FNEST_CUR}]=1
   (( timep_BASH_SUBSHELL_DIFF = BASH_SUBSHELL - timep_BASH_SUBSHELL_PREV ))
   timep_KK=0
   timep_BASHPID_ADD=()
@@ -493,7 +494,7 @@ ${timep_IS_FUNC_FLAG} && {
   (( timep_NEXEC_N++ ))
   timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]=" (F) << (FUNCTION): ${BASH_COMMAND} >>"
   timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
-  timep_NPIPE[${#FUNCNAME[@]}]="${timep_NPIPE[${timep_FNEST_CUR}]}"
+  timep_NPIPE[${#FUNCNAME[@]}]="1"
   timep_FNEST_CUR="${#FUNCNAME[@]}"
   timep_NO_PRINT_FLAG=false
   timep_IS_FUNC_FLAG_1=true
@@ -584,7 +585,7 @@ export -p -f trap &>/dev/null && export -n -f trap
             timep_runFuncSrc="${timep_runCmd1}"$'\n'
         ;;
         c)
-            printf -v timep_runCmd '%q ' "${@}"
+            printf -v timep_runCmd '%s ' "${@}"
             timep_runCmd1='#!'"${BASH}"
 
             # start of wrapper code
@@ -594,7 +595,7 @@ export -p -f trap &>/dev/null && export -n -f trap
             _timep_getFuncSrc -r "$1" >>"${timep_TMPDIR}/functions.bash"
             timep_runCmd1='#!'"${BASH}"
 
-            printf -v timep_runCmd '%q ' "${@}"
+            printf -v timep_runCmd '%s ' "${@}"
             [[ -t 0 ]] || timep_runCmd+=" <&0"
 
             # start of wrapper code
@@ -836,16 +837,20 @@ _timep_PROCESS_LOG() {
         linenoA[$kk]="${lineno}"
         cmdA[$kk]="${cmd}"
 
-        # check if cmd is a subshell/bg fork that needs to be merged up
-        if [[ "${cmdA[$kk]}" == "'"'<< (SUBSHELL): '*' >>'"'" ]] || [[ "${cmdA[$kk]}" == "'"'<< (BACKGROUND FORK): '*' >>'"'" ]] || [[ "${cmdA[$kk]}" == "'"'<< (FUNCTION): '*' >>'"'" ]]; then
+        # check if cmd is a subshell/bg fork/function that needs to be merged up
+        if [[ "${cmdA[$kk]#"'"}" == '<< ('*'): '*' >>'* ]]; then
             # record which log to merge up and where
             mergeA[$kk]="${timep_TMPDIR}/.log/log.${nexecA[$kk]##* }"
+            echo "${cmdA[$kk]}" 
 
             # read in the endtime + runtime from the log
             read -r runTime <"${timep_TMPDIR}/.log/.runtimes/log.${nexecA[$kk]##* }"
-            read -r endTime <"${timep_TMPDIR}/.log/.endtimes/log.${nexecA[$kk]##* }"
-            runTimesA[$kk]="${runTime}"
-            endTimesA[$kk]="${endTime}"
+            [[ ${runTime} ]] && runTimesA[$kk]="${runTime}"
+            [[ "${cmdA[$kk]}" == *'<< (FUNCTION): '* ]] || {
+                read -r endTime <"${timep_TMPDIR}/.log/.endtimes/log.${nexecA[$kk]##* }"
+                [[ ${endTime} ]] && endTimesA[$kk]="${endTime}"
+            }
+            [[ "${cmdA[$kk]}" == *'<< (FUNCTION): '* ]] && declare -p mergeA
         fi
 
         # merge pipelines
@@ -921,7 +926,7 @@ _timep_PROCESS_LOG() {
         else
             # add line to log
             (( kk == 0  )) || printf '\n\n'
-            printf '%s:\t (%ss|%s%%)\t %s\t\t {{ %s | %s | %s }} (%s->%s)' "${linenoA[$kk]}" "${runTimesA[$kk]}" "${runTimesPA[$kk]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]%% *}" "${startTimesA[$kk]}" "${endTimesA[$kk]}" 
+            printf '%s:\t (%ss|%s%%)\t %s\t\t {{ %s | %s | %s }} (%s->%s)' "${linenoA[$kk]}" "${runTimesA[$kk]}" "${runTimesPA[$kk]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]}" "${startTimesA[$kk]}" "${endTimesA[$kk]}" 
 
             # check if this is the start of a pipeline
             [[ ${isPipeA[$kk]} ]] && (( isPipeA[$kk] >= 1 )) && inPipeFlag=true
