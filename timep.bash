@@ -198,7 +198,7 @@ _timep_getFuncSrc() {
     # parse any flags 
     quietFlag=false
     recursionFlag=false
-    while [[ "$1" == -[qr] ]] || [[ "$1" == --[qr]* ]] do
+    while [[ "$1" == -[qr] ]] || [[ "$1" == --[qr]* ]]; do
         case "$1" in
             -q|--quiet) quietFlag=true ;;
             -r|--recursion) recursionFlag=true ;;
@@ -230,7 +230,7 @@ _timep_getFuncSrc() {
             for kk in "${!off_A[@]}"; do
                 (( off_A[$kk] = off - off_A[$kk] ))
             done            
-            mapfile -t A < <(history | tail -n $off | sed -E s/'^[[:space:]]*[0-9]*[[:space:]]*'//)
+            mapfile -t A < <(history | tail -n "$off" | sed -E s/'^[[:space:]]*[0-9]*[[:space:]]*'//)
         
         elif [[ -f "${p}" ]]; then
             # pull function definition from file
@@ -255,7 +255,7 @@ _timep_getFuncSrc() {
         #  NOTE: "extra" commands need tro be removed from the 1st + last line before sourcing without set -n to check the declare -f
 
         # get the declare -f for the loaded function
-        funcdef0="$(declare -f "${1}")"
+        funcDef0="$(declare -f "${1}")"
         validFuncDefFlag=false
 
         # loop over all possible start locations
@@ -284,7 +284,7 @@ _timep_getFuncSrc() {
             done
             
             # check if recovered + isolated function definition produces the same declare -f as the original (requires NOT using set -n)
-            if ( IFS=$'\n'; . /proc/self/fd/0 <<<"unset ${1}; ${A[*]:${mm}:${m}}" &>/dev/null && [[ "$(declare -f ${1})" == "${funcdef0}" ]] ); then
+            if ( IFS=$'\n'; . /proc/self/fd/0 <<<"unset ${1}; ${A[*]:${mm}:${m}}" &>/dev/null && [[ "$(declare -f "${1}")" == "${funcDef0}" ]] ); then
                 validFuncDefFlag=true
                 break
             elif (( ( mm + m ) > ${#A[@]} )); then
@@ -313,7 +313,7 @@ _timep_getFuncSrc() {
     # NOTE: the "--rpm-requires" flag is non-standard, and may only be available on distros based on red hat / fedora
     ${recursionFlag} && : | bash --debug --rpm-requires -O extglob &>/dev/null && {
         # get function dependencies
-        mapfile -t F < <(bash --debug --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type $nn 2>/dev/null | grep -qF 'is a function' && echo "$nn"; done)
+        mapfile -t F < <(bash --debug --rpm-requires -O extglob <<<"$out" | sed -E s/'^executable\((.*)\)'/'\1'/ | sort -u | while read -r nn; do type "$nn" 2>/dev/null | grep -qF 'is a function' && echo "$nn"; done)
         for kk in "${!F[@]}"; do
             if [[ "${FF}" == *" ${F[$kk]} "* ]]; then
             # we already processed this function. remove it from "functions to process" list (F)
