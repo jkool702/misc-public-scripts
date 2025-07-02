@@ -809,8 +809,8 @@ _timep_EPOCHREALTIME_SUM() {
 
 
 _timep_PROCESS_LOG() {
-    local kk kk1 runTimeTotal inPipeFlag lineno1 nPipe startTime endTime runTime func pid nexec lineno cmd 
-    local -a logA nPipeA startTimesA endTimesA runTimesA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA
+    local kk kk1 runTimeTotal inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd 
+    local -a logA nPipeA startTimesA endTimesA runTimesA runTimesPA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA
 
     [[ -e "$1" ]] || return 1
 
@@ -880,8 +880,12 @@ _timep_PROCESS_LOG() {
     echo "${endTimesA[-1]}" >"${1%\/*}/.endtimes/${1##*\/}"
     echo "${runTimeTotal}" >"${1%\/*}/.runtimes/${1##*\/}"
 
+    # make LINENO's unique and compute runtime as % of total at this depth
     linenoA[0]="${linenoA[0]}.0"
     lineno1=0
+    (( runTimeP = 10000 * runTimesA[0] / runTimeTotal ))
+    printf -v runTimeP '%.04d' "$runTimeP"
+    runTimePA[0]="${runTimeP:0:2}.${runTimeP:2}"
     for (( kk=1; kk<${#logA[@]}; kk++ )); do
         (( kk1 = kk - 1 ))
         if (( linenoA[$kk] == ${linenoA[$kk1]%.*} )); then
@@ -890,6 +894,9 @@ _timep_PROCESS_LOG() {
             lineno1=0
         fi
         linenoA[$kk]="${linenoA[$kk]}.${lineno1}"
+        (( runTimeP = 10000 * runTimesA[$kk] / runTimeTotal ))
+        printf -v runTimeP '%.04d' "$runTimeP"
+        runTimePA[$kk]="${runTimeP:0:2}.${runTimeP:2}"
     done
         
 
@@ -902,7 +909,7 @@ _timep_PROCESS_LOG() {
             (( isPipeA[$kk] == 1 )) && inPipeFlag=false
         else
             # add line to log
-            printf '\n%s:\t (%ss)\t %s\t\t {{ %s | %s | %s }} (%s->%s)\n' "${linenoA[$kk]}" "${runTimesA[$kk]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]%% *}" "${startTimesA[$kk]}" "${endTimesA[$kk]}" 
+            printf '\n%s:\t (%ss|%s%%)\t %s\t\t {{ %s | %s | %s }} (%s->%s)\n' "${linenoA[$kk]}" "${runTimesA[$kk]}" "${runTimesPA[$kk]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]%% *}" "${startTimesA[$kk]}" "${endTimesA[$kk]}" 
 
             # check if this is the start of a pipeline
             [[ ${isPipeA[$kk]} ]] && (( isPipeA[$kk] >= 1 )) && inPipeFlag=true
