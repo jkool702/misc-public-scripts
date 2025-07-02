@@ -909,6 +909,8 @@ for (( kk=${#timep_LOG_NESTING[@]}; kk>=0; kk-- )); do
     done
 done
 
+cat "${#timep_LOG_NESTING[0]}"
+
 # TO DO
 ##### AFTER the code has finished running, a post-processing phase will:
 # 1. identify commands that are parts of pipelines by lookig for NPIPE > 1. NPIPE is greater that 1 for a single DEBUG trap firing after a pipeline has finished.
