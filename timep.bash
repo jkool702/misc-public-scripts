@@ -837,7 +837,7 @@ _timep_PROCESS_LOG() {
         cmdA[$kk]="${cmd}"
 
         # check if cmd is a subshell/bg fork that needs to be merged up
-        if [[ "${cmdA[$kk]}" == "'"'<< (SUBSHELL): '*' >>'"'" ]] || [[ "${cmdA[$kk]}" == "'"'<< (BACKGROUND FORK): '*' >>'"'" ]]; then
+        if [[ "${cmdA[$kk]}" == "'"'<< (SUBSHELL): '*' >>'"'" ]] || [[ "${cmdA[$kk]}" == "'"'<< (BACKGROUND FORK): '*' >>'"'" ]] || [[ "${cmdA[$kk]}" == "'"'<< (FUNCTION): '*' >>'"'" ]]; then
             # record which log to merge up and where
             mergeA[$kk]="${timep_TMPDIR}/.log/log.${nexecA[$kk]##* }"
 
@@ -902,7 +902,7 @@ _timep_PROCESS_LOG() {
             (( isPipeA[$kk] == 1 )) && inPipeFlag=false
         else
             # add line to log
-            printf '%s:\t (%ss)\t %s\t {{ %s | %s | %s | (%s->%s) }}\n' "${linenoA[$kk]}" "${runTimesA[$kk]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]}" "${startTimesA[$kk]}" "${endTimesA[$kk]}" 
+            printf '%s:\t (%ss)\t %s\t\t {{ %s | %s | %s }} (%s->%s)\n' "${linenoA[$kk]}" "${runTimesA[$kk]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]%% *}" "${startTimesA[$kk]}" "${endTimesA[$kk]}" 
 
             # check if this is the start of a pipeline
             [[ ${isPipeA[$kk]} ]] && (( isPipeA[$kk] >= 1 )) && inPipeFlag=true
