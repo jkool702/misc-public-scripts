@@ -1078,7 +1078,7 @@ _timep_PROCESS_LOG() {
         else
             # add line to log
             (( kk == 0  )) || printf '\n\n'
-            printf '%s:\t (%ss|%s%%)\t (%sx) %s\t\t {{ %s | %s | %s }} (%s->%s)' "${linenoA[$kk]}" "${linenoUniqTimeA[${linenoUniqA[$kk]}]}" "${linenoUniqTimeA[${linenoUniqA[$kk]}]}" "${linenoUniqCountA[${linenoUniqA[$kk]}]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]%% *}" "${startTimesA[$kk]}" "${endTimesA[$kk]}" 
+            printf '%s:\t (%ss|%s%%)\t (%sx) %s\t\t {{ %s | %s | %s }} (%s->%s)' "${linenoA[$kk]}" "${linenoUniqTimeA[${linenoUniqA[$kk]}]}" "${linenoUniqTimePA[${linenoUniqA[$kk]}]}" "${linenoUniqCountA[${linenoUniqA[$kk]}]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]%% *}" "${startTimesA[$kk]}" "${endTimesA[$kk]}" 
 
             # check if this is the start of a pipeline
             [[ ${isPipeA[$kk]} ]] && (( isPipeA[$kk] >= 1 )) && inPipeFlag=true
