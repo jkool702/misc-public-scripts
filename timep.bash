@@ -344,6 +344,10 @@ _timep_getFuncSrc() {
 # the source code is generated and then sourced (instead of directly defined) so that things like the tmpdir/logfile path are hardcoded.
 # this allows timep to run without adding any new (and potentially conflicting) variables to the code being run / time profiled.
 
+export -p timep_EXIT_TRAP_STR &>/dev/null && export -n timep_EXIT_TRAP_STR
+#timep_EXIT_TRAP_STR='echo "${EPOCHREALTIME}" >>"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}"'
+timep_EXIT_TRAP_STR=':'
+
 export -p timep_RETURN_TRAP_STR &>/dev/null && export -n timep_RETURN_TRAP_STR
 
 timep_RETURN_TRAP_STR='timep_SKIP_DEBUG_FLAG=true
@@ -401,7 +405,7 @@ else
   timep_IS_SUBSHELL_FLAG=true
   echo "${timep_ENDTIME}" >>"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}"
   (( BASHPID < timep_BASHPID_PREV )) && (( timep_NPIDWRAP++ ))
-  builtin trap '"'"':'"'"' EXIT
+  builtin trap '"'${timep_EXIT_TRAP_STR//"'"/"'"'"'"'"'"'"'"}'"' EXIT
   IFS='"'"' '"'"'  read -r _ _ _ _ timep_CHILD_PGID _ _ timep_CHILD_TPID _ </proc/${BASHPID}/stat
   (( timep_CHILD_PGID == timep_PARENT_TPID )) || (( timep_CHILD_PGID == timep_CHILD_TPID )) || { (( timep_CHILD_PGID == timep_PARENT_PGID )) && (( timep_CHILD_TPID == timep_PARENT_TPID )); } || timep_IS_BG_FLAG=true
 fi
@@ -552,7 +556,7 @@ timep_STARTTIME[${timep_FNEST_CUR}]="${EPOCHREALTIME}"
 
 export -p -f trap &>/dev/null && export -n -f trap
 
-    { printf 'declare -gx timep_RETURN_TRAP_STR='"'"'%s'"'"'\n\ndeclare -gx timep_DEBUG_TRAP_STR_0='"'"'%s'"'"'\n\ndeclare -gx timep_DEBUG_TRAP_STR_1='"'"'%s'"'"'\n\n%s\n\n' "${timep_RETURN_TRAP_STR//"'"/"'"'"'"'"'"'"'"}" "${timep_DEBUG_TRAP_STR_0//"'"/"'"'"'"'"'"'"'"}" "${timep_DEBUG_TRAP_STR_1//"'"/"'"'"'"'"'"'"'"}" 'trap() {
+    { printf 'declare -gx timep_EXIT_TRAP_STR='"'"'%s'"'"'\n\ndeclare -gx timep_RETURN_TRAP_STR='"'"'%s'"'"'\n\ndeclare -gx timep_DEBUG_TRAP_STR_0='"'"'%s'"'"'\n\ndeclare -gx timep_DEBUG_TRAP_STR_1='"'"'%s'"'"'\n\n%s\n\n' "${timep_EXIT_TRAP_STR//"'"/"'"'"'"'"'"'"'"}"  "${timep_RETURN_TRAP_STR//"'"/"'"'"'"'"'"'"'"}" "${timep_DEBUG_TRAP_STR_0//"'"/"'"'"'"'"'"'"'"}" "${timep_DEBUG_TRAP_STR_1//"'"/"'"'"'"'"'"'"'"}" 'trap() {
     local trapStr trapStr0 trapType
 
     if [[ "${1}" == -[lp] ]]; then
@@ -567,7 +571,7 @@ export -p -f trap &>/dev/null && export -n -f trap
 
     for trapType in "${@}"; do
         case "${trapType}" in
-            EXIT)    builtin trap "${trapStr0}"'"'"':'"'"' EXIT ;;
+            EXIT)    builtin trap "${trapStr0}${timep_EXIT_TRAP_STR}" EXIT ;;
             RETURN)  builtin trap "${trapStr0}${timep_RETURN_TRAP_STR}" RETURN ;;
             DEBUG)   builtin trap "${timep_DEBUG_TRAP_STR_0}${trapStr0}${timep_DEBUG_TRAP_STR_1}" DEBUG ;;
             *)       eval "builtin trap ${trapStr@Q} ${trapType}" ;;
@@ -656,7 +660,7 @@ timep_runFuncSrc+='(
     timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
 
     builtin trap "${timep_RETURN_TRAP_STR}" RETURN
-    builtin trap '"'"':'"'"' EXIT
+    builtin trap "${timep_EXIT_TRAP_STR}" EXIT
 
     echo "$(( LINENO + 4 ))" >"${timep_TMPDIR}/.log/lineno_offset"
 
@@ -774,6 +778,8 @@ else
     fi
 fi
 
+timep_TIME_DONE="${EPOCHREALTIME}"
+
 printf '\n\nThe %s being time profiled has finished running!\ntimep will now process the logged timing data.\ntimep will save the time profiles it generates in "%s"\n\n' "$([[ "${timep_runType}" == 's' ]] && echo 'script' || echo 'function')" "${timep_TMPDIR}" >&2
 unset IFS
 
@@ -797,7 +803,8 @@ for nn in "${timep_LOG_A[@]}"; do printf '\n\n----------------------------------
 # define helper functioons for getting runtime from timestamp differences and for summing runtimes
 
 _timep_EPOCHREALTIME_DIFF() {
-    local tDiff d d6
+    local tDiff d d6 printFlag
+
     (( tDiff = ${endTimesA[$1]//./} - ${startTimesA[$1]//./} ))
     printf -v d '%0.7d' "${tDiff}"
     (( d6 = ${#d} - 6 ))
@@ -805,8 +812,19 @@ _timep_EPOCHREALTIME_DIFF() {
     runTimesA[$1]="${runTime}"
 }
 
+_timep_EPOCHREALTIME_DIFF_ALT() {
+    local tDiff d d6 
+        
+    (( tDiff = ${2//./} - ${1//./} ))
+    printf -v d '%0.7d' "${tDiff}"
+    (( d6 = ${#d} - 6 ))
+    printf '%s.%s' "${d:0:$d6}" "${d:$d6}"
+}
+
+
 _timep_EPOCHREALTIME_SUM() {
     local tSum d d6
+
     printf -v tSum '+10#%s' "${runTimesA[@]//./}"
     (( tSum = 0${tSum} ))
     printf -v d '%0.7d' "${tSum}"
@@ -814,9 +832,19 @@ _timep_EPOCHREALTIME_SUM() {
     printf -v runTimeTotal '%s.%s' "${d:0:$d6}" "${d:$d6}"
 }
 
+_timep_EPOCHREALTIME_SUM_ALT() {
+    local tSum d d6
+
+    printf -v tSum '+10#%s' "${@//./}"
+    (( tSum = 0${tSum} ))
+    printf -v d '%0.7d' "${tSum}"
+    (( d6 = ${#d} - 6 ))
+    printf '%s.%s' "${d:0:$d6}" "${d:$d6}"
+}
+
 shopt -s extglob
 _timep_PROCESS_LOG() {
-    local kk kk1 runTimeTotal runTimeTotal0 inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd 
+    local kk kk1 runTimeTotal runTimeTotal0 inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd t0 t1
     local -a logA nPipeA startTimesA endTimesA runTimesA runTimesPA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA
 
     [[ -e "$1" ]] || return 1
@@ -856,6 +884,16 @@ _timep_PROCESS_LOG() {
                 [[ ${endTime} ]] && endTimesA[$kk]="${endTime}"
             }
         fi
+
+        [[ "${endTime}" == '+' ]] && {
+            read -r _ t0 t1 _ < <(grep -F "${1%\[*}" <"${1%.*}")
+            if [[ $t0 ]] && [[ $t1 ]]; then
+                endTime="$( _timep_EPOCHREALTIME_SUM_ALT "${startTimesA[$kk]}" "$(_timep_EPOCHREALTIME_DIFF_ALT "$t0" "$t1")" )"
+            else
+                endTime="$( _timep_EPOCHREALTIME_SUM_ALT "${startTimesA[$kk]}" '0.000001' )"
+            fi
+            endTimesA[$kk]="${endTime}"
+        }
 
         # merge pipelines
         if ${inPipeFlag}; then
