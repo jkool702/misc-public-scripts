@@ -457,7 +457,8 @@ if ${timep_IS_SUBSHELL_FLAG}; then
     timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
     unset "timep_KK" "timep_BASHPID_ADD"
     timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
-    ${timep_NO_PRINT_FLAG} || printf '"'"'%s\t%s\t-\tF:%s %s\tS:%s %s\tN:%s %s.%s[%s-%s]\t%s\t::\t'"'"'"'"'"'"'"'"'<< (%s): %s >>'"'"'"'"'"'"'"'"'\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}"  "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${timep_BASH_SUBSHELL_PREV}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_CMD_TYPE}" "${timep_BASHPID_PREV}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
+      timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="<< (${timep_CMD_TYPE}): ${timep_BASHPID_PREV} >>"
+    ${timep_NO_PRINT_FLAG} || printf '"'"'%s\t%s\t-\tF:%s %s\tS:%s %s\tN:%s %s.%s[%s-%s]\t%s\t::\t%s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}"  "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${timep_BASH_SUBSHELL_PREV}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
     timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
     timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
     timep_NEXEC_A+=(0)
@@ -845,7 +846,7 @@ _timep_PROCESS_LOG() {
             # read in the endtime + runtime from the log
             read -r runTime <"${timep_TMPDIR}/.log/.runtimes/log.${nexecA[$kk]##* }"
             [[ ${runTime} ]] && runTimesA[$kk]="${runTime}"
-            [[ "${cmdA[$kk]#"'"}" == '<< ('FUNCTION'): '*' >>'* ]] || {
+            [[ "${cmdA[$kk]#"'"}" == '<< (FUNCTION): '*' >>'* ]] || {
                 read -r endTime <"${timep_TMPDIR}/.log/.endtimes/log.${nexecA[$kk]##* }"
                 [[ ${endTime} ]] && endTimesA[$kk]="${endTime}"
             }

@@ -82,7 +82,7 @@ for i in {1..3}; do
     else
       ( echo odd "$x" )
     fi
-  done < <(seq 1 5)
+  done < <(seq 1 4; :)
 done
 
 (
