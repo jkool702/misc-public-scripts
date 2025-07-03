@@ -346,15 +346,16 @@ _timep_getFuncSrc() {
 
 export -p timep_EXIT_TRAP_STR &>/dev/null && export -n timep_EXIT_TRAP_STR
 #timep_EXIT_TRAP_STR='echo "${EPOCHREALTIME}" >>"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}"'
-timep_EXIT_TRAP_STR=':'
+timep_EXIT_TRAP_STR='echo "${EPOCHREALTIME} >>"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.trap"'
 
 export -p timep_RETURN_TRAP_STR &>/dev/null && export -n timep_RETURN_TRAP_STR
 
 timep_RETURN_TRAP_STR='timep_SKIP_DEBUG_FLAG=true
 unset "timep_FNEST[-1]" "timep_NEXEC_A[-1]" "timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]" "timep_NPIPE[${timep_FNEST_CUR}]" "timep_STARTTIME[${timep_FNEST_CUR}]" "timep_LINENO[${timep_FNEST_CUR}]"
-timep_NEXEC_0="${timep_NEXEC_0%.*}"
 timep_FUNCNAME_STR="${timep_FUNCNAME_STR%.*}"
 timep_FNEST_CUR="${timep_FNEST[-1]}"
+echo "${EPOCHREALTIME} >>"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.trap"
+timep_NEXEC_0="${timep_NEXEC_0%.*}"
 timep_SKIP_DEBUG_FLAG=false'
 
 export -p timep_DEBUG_TRAP_STR_0 &>/dev/null && export -n timep_DEBUG_TRAP_STR_0
@@ -778,7 +779,7 @@ else
     fi
 fi
 
-timep_TIME_DONE="${EPOCHREALTIME}"
+echo "${EPOCHREALTIME} ">>"${timep_TMPDIR}/.log/.endtimes/.trap"
 
 printf '\n\nThe %s being time profiled has finished running!\ntimep will now process the logged timing data.\ntimep will save the time profiles it generates in "%s"\n\n' "$({ [[ "${timep_runType}" == 's' ]] && echo 'script'; } || { [[ "${timep_runType}" == 'f' ]] &&  echo 'function'; } || echo 'commands')" "${timep_TMPDIR}" >&2
 unset IFS
@@ -850,7 +851,7 @@ _timep_EPOCHREALTIME_SUM_ALT() {
 
 shopt -s extglob
 _timep_PROCESS_LOG() {
-    local kk kk1 runTimeTotal runTimeTotal0 inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd t0 t1
+    local kk kk1 runTimeTotal runTimeTotal0 inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd t0 t1 log_tmp
     local -a logA nPipeA startTimesA endTimesA runTimesA runTimesPA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA
 
     [[ -e "$1" ]] || return 1
@@ -891,13 +892,42 @@ _timep_PROCESS_LOG() {
             }
         fi
 
+        # single-command command/process substitutions dont get a endtime logged (uses endTime='+' as indicator), since they wont trigger a EXIT trap
+        # figure out the most reasonable endtimeby looking at starttimes and the .endtimes/<...>.trap file for the parent, then grandparent, etc. 
+        # to get the closest timestamp that is greater than the starttime for this command and use that as the endtime
         [[ "${endTime}" == '+' ]] && {
-            read -r _ t0 t1 _ < <(grep -F "${1%\[*}" <"${1%.*}")
-            if [[ $t0 ]] && [[ $t1 ]]; then
-                endTime="$( _timep_EPOCHREALTIME_SUM_ALT "${startTimesA[$kk]}" "$(_timep_EPOCHREALTIME_DIFF_ALT "$t0" "$t1")" )"
-            else
-                endTime="$( _timep_EPOCHREALTIME_SUM_ALT "${startTimesA[$kk]}" '0.000001' )"
-            fi
+            endTime=0
+            log_tmp="${1%.*}"
+            until [[ "${log_tmp}" == 'log' ]]; do
+                [[ -s "${log_tmp}" ]] && {
+                    while read -r _ endTime _ <"${log_tmp}"; do
+                        if (( ${endTime//./} > ${startTimesA[$kk]//./} )); then
+                            break 2
+                        else
+                            endTime=0
+                        fi
+                    done
+                    [[ -s "${log_tmp%/*}/.endtimes/${log_tmp##*/log.}.trap" ]] && {
+                        read -r endTime <"${log_tmp%/*}/.endtimes/${log_tmp##*/log.}.trap" 
+                        if (( ${endTime//./} > ${startTimesA[$kk]//./} )); then
+                            break
+                        else
+                            endTime=0
+                        fi
+                    }
+                }
+                log_tmp="${log_tmp%.*}"
+            done
+            # if we still dont have a valid end time, figure out how long the parent command/process dsubstitution command ran for and add that to the starttime
+            (( ${endTime//./} > ${startTimesA[$kk]//./} )) || {
+                read -r _ t0 t1 _ < <(grep -F "${1%[*}" <"${1%.*}")
+                if [[ $t0 ]] && [[ $t1 ]]; then
+                    endTime="$( _timep_EPOCHREALTIME_SUM_ALT "${startTimesA[$kk]}" "$(_timep_EPOCHREALTIME_DIFF_ALT "$t0" "$t1")" )"
+                else
+                    # if all else fails, set endtime to 1 us after start time so we still get a log entry and valid logs
+                    endTime="$( _timep_EPOCHREALTIME_SUM_ALT "${startTimesA[$kk]}" '0.000001' )"
+                fi
+            }
             endTimesA[$kk]="${endTime}"
         }
 
