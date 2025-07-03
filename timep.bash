@@ -851,8 +851,8 @@ _timep_EPOCHREALTIME_SUM_ALT() {
 
 shopt -s extglob
 _timep_PROCESS_LOG() {
-    local kk kk1 runTimeTotal runTimeTotal0 inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd t0 t1 log_tmp
-    local -a logA nPipeA startTimesA endTimesA runTimesA runTimesPA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA
+    local kk kk1 runTimeTotal runTimeTotal0 inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd t0 t1 log_tmp linenoUniq
+    local -a logA nPipeA startTimesA endTimesA runTimesA runTimesPA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA linenoUniqA linenoUniqLineA
 
     [[ -e "$1" ]] || return 1
 
@@ -966,7 +966,7 @@ _timep_PROCESS_LOG() {
     runTimeTotal0="${runTimeTotal//./}"
     runTimeTotal0="${runTimeTotal0##+(0)}"
 
-    # make LINENO's unique and compute runtime as % of total at this depth
+    # make LINENO's unique and compute runtime as % of total at this depth and get list of unique lineno's
     linenoA[0]="${linenoA[0]}.0"
     lineno1=0
     runTimeP="${runTimesA[0]//./}"
@@ -976,6 +976,7 @@ _timep_PROCESS_LOG() {
         10000) runTimesPA[0]=100 ;;
         *) runTimesPA[0]="${runTimeP:0:2}.${runTimeP:2}" ;;
     esac
+    linenoUniqA[0]=
     for (( kk=1; kk<${#logA[@]}; kk++ )); do
         (( kk1 = kk - 1 ))
         if (( linenoA[$kk] == ${linenoA[$kk1]%.*} )); then
@@ -991,6 +992,7 @@ _timep_PROCESS_LOG() {
             10000) runTimesPA[$kk]=100 ;;
             *) runTimesPA[$kk]="${runTimeP:0:2}.${runTimeP:2}" ;;
         esac
+        
     done
         
 
@@ -1031,6 +1033,9 @@ _timep_PROCESS_LOG() {
             
         (( kk++ ))
     done >"${1}"
+
+    for kk in "${!linenoA[@]}"; do
+    linenoUniqA
             
 }
 
