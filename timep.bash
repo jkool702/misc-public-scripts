@@ -345,8 +345,7 @@ _timep_getFuncSrc() {
 # this allows timep to run without adding any new (and potentially conflicting) variables to the code being run / time profiled.
 
 export -p timep_EXIT_TRAP_STR &>/dev/null && export -n timep_EXIT_TRAP_STR
-#timep_EXIT_TRAP_STR='echo "${EPOCHREALTIME}" >>"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}"'
-timep_EXIT_TRAP_STR='echo "${EPOCHREALTIME} >>"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.trap"'
+timep_EXIT_TRAP_STR=':'
 
 export -p timep_RETURN_TRAP_STR &>/dev/null && export -n timep_RETURN_TRAP_STR
 
@@ -354,7 +353,6 @@ timep_RETURN_TRAP_STR='timep_SKIP_DEBUG_FLAG=true
 unset "timep_FNEST[-1]" "timep_NEXEC_A[-1]" "timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]" "timep_NPIPE[${timep_FNEST_CUR}]" "timep_STARTTIME[${timep_FNEST_CUR}]" "timep_LINENO[${timep_FNEST_CUR}]"
 timep_FUNCNAME_STR="${timep_FUNCNAME_STR%.*}"
 timep_FNEST_CUR="${timep_FNEST[-1]}"
-echo "${EPOCHREALTIME} >>"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.trap"
 timep_NEXEC_0="${timep_NEXEC_0%.*}"
 timep_SKIP_DEBUG_FLAG=false'
 
@@ -491,7 +489,6 @@ elif [[ ${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]} ]]; then
     } {timep_FD}<"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}"
     exec {timep_FD}>&-
   }
-  ${timep_SUBSHELL_INIT_FLAG} && ! ${timep_NO_PRINT_FLAG} && : >"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}.init"
   timep_SUBSHELL_INIT_FLAG=false
   ${timep_NO_PRINT_FLAG} || printf '"'"'%s\t%s\t%s\tF:%s %s\tS:%s %s\tN:%s %s.%s\t%s\t::\t%s %s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}"  "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" "${timep_IS_BG_INDICATOR}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
   (( timep_NEXEC_A[-1]++ ))
@@ -778,17 +775,16 @@ else
        "${timep_TMPDIR}/main.bash" <&0
     fi
 fi
-
-echo "${EPOCHREALTIME} ">>"${timep_TMPDIR}/.log/.endtimes/.trap"
+timep_TIME_DONE="${EPOCHREALTIME}"
 
 printf '\n\nThe %s being time profiled has finished running!\ntimep will now process the logged timing data.\ntimep will save the time profiles it generates in "%s"\n\n' "$({ [[ "${timep_runType}" == 's' ]] && echo 'script'; } || { [[ "${timep_runType}" == 'f' ]] &&  echo 'function'; } || echo 'commands')" "${timep_TMPDIR}" >&2
 unset IFS
 
 # fold in any remaining subshell init logs
-for nn in "${timep_TMPDIR}/.log/log"*'.init'; do
-  [[ -s "$nn" ]] && echo "$("$nn")" >>"${nn%.init}"
-done
-\rm -f "${timep_TMPDIR}/.log/log"*'.init'
+#for nn in "${timep_TMPDIR}/.log/log"*'.init'; do
+#  [[ -s "$nn" ]] && echo "$("$nn")" >>"${nn%.init}"
+#done
+#\rm -f "${timep_TMPDIR}/.log/log"*'.init'
 
 #ls -la "${timep_TMPDIR}"/.log/
 #find "${timep_TMPDIR}"/.log/ -empty -exec rm {} +
@@ -906,31 +902,27 @@ _timep_PROCESS_LOG() {
         fi
 
         # single-command command/process substitutions dont get a endtime logged (uses endTime='+' as indicator), since they wont trigger a EXIT trap
-        # figure out the most reasonable endtimeby looking at starttimes and the .endtimes/<...>.trap file for the parent, then grandparent, etc. 
+        # figure out the most reasonable endtimeby looking at starttimes for the parent, then grandparent, etc. 
         # to get the closest timestamp that is greater than the starttime for this command and use that as the endtime
         [[ "${endTime}" == '+' ]] && {
             endTime=0
             log_tmp="${1%.*}"
             until [[ "${log_tmp}" == 'log' ]]; do
                 [[ -s "${log_tmp}" ]] && {
-                    while read -r _ endTime _ <"${log_tmp}"; do
+                    while read -r _ endTime _ ; do
                         if (( ${endTime//./} > ${startTimesA[$kk]//./} )); then
                             break 2
                         else
                             endTime=0
                         fi
-                    done
-                    [[ -s "${log_tmp%/*}/.endtimes/${log_tmp##*/log.}.trap" ]] && {
-                        read -r endTime <"${log_tmp%/*}/.endtimes/${log_tmp##*/log.}.trap" 
-                        if (( ${endTime//./} > ${startTimesA[$kk]//./} )); then
-                            break
-                        else
-                            endTime=0
-                        fi
-                    }
+                    done <"${log_tmp}"
                 }
                 log_tmp="${log_tmp%.*}"
             done
+
+            # if we still dont have a valid end time, use the global timep endtime
+            (( ${endTime//./} > ${startTimesA[$kk]//./} )) || endTime="${timep_TIME_DONE}"
+
             # if we still dont have a valid end time, figure out how long the parent command/process dsubstitution command ran for and add that to the starttime
             (( ${endTime//./} > ${startTimesA[$kk]//./} )) || {
                 read -r _ t0 t1 _ < <(grep -F "${1%[*}" <"${1%.*}")
@@ -1121,7 +1113,7 @@ for (( kk=${#timep_LOG_NESTING[@]}; kk>=0; kk-- )); do
 done
 
 cat "${timep_LOG_NESTING[0]%$'\n'}"
-cat "${timep_LOG_NESTING[0]%$'\n'}.combined"
+#cat "${timep_LOG_NESTING[0]%$'\n'}.combined"
 
 # TO DO
 ##### AFTER the code has finished running, a post-processing phase will:
