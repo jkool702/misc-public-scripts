@@ -859,7 +859,7 @@ _timep_EPOCHREALTIME_SUM_ALT() {
 
 shopt -s extglob
 _timep_PROCESS_LOG() {
-    local kk kk1 runTimeTotal runTimeTotal0 inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd t0 t1 log_tmp linenoUniq
+    local kk kk1 runTimeTotal runTimeTotal0 inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd t0 t1 log_tmp linenoUniq merge_init_flag
     local -a logA nPipeA startTimesA endTimesA runTimesA runTimesPA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA linenoUniqA 
     local -A linenoUniqLineA linenoUniqCountA linenoUniqTimeA linenoUniqTimePA
 
@@ -1062,7 +1062,6 @@ _timep_PROCESS_LOG() {
             
         (( kk++ ))
     done >"${1}"
-    echo >>"${1}"
 
 
     # write out new combined (uniq lineno) merged-upward log
@@ -1074,7 +1073,7 @@ _timep_PROCESS_LOG() {
         else
             # add line to log
             (( kk == 0  )) || printf '\n\n'
-            printf '%s:\t (%ss|%s%%)\t (%sx) %s\n' "${linenoA[$kk]}" "${linenoUniqTimeA[${linenoUniqA[$kk]}]}" "${linenoUniqTimePA[${linenoUniqA[$kk]}]}" "${linenoUniqCountA[${linenoUniqA[$kk]}]}" "${cmdA[$kk]/%: * >>"'"/ >>"'"}" 
+            printf '%s:\t (%ss|%s%%)\t (%sx) %s' "${linenoUniqA[$kk]}" "${linenoUniqTimeA[${linenoUniqA[$kk]}]}" "${linenoUniqTimePA[${linenoUniqA[$kk]}]}" "${linenoUniqCountA[${linenoUniqA[$kk]}]}" "${cmdA[$kk]/%: * >>"'"/ >>"'"}" 
 
             # check if this is the start of a pipeline
             [[ ${isPipeA[$kk]} ]] && (( isPipeA[$kk] >= 1 )) && inPipeFlag=true
@@ -1085,17 +1084,17 @@ _timep_PROCESS_LOG() {
         for kk1 in ${linenoUniqLineA[${linenoUniqA[$kk]}]}; do 
             [[ ${mergeA[$kk1]} ]] && [[ -e "${mergeA[$kk1]}.combined" ]] && {
                 mapfile -t logMergeA < <(grep -E '.+' <"${mergeA[$kk1]}.combined")
-                printf '|-- %s\n' "${logMergeA[0]}"
+                printf '\n|-- %s' "${logMergeA[0]}"
                 if (( ${#logMergeA[@]} == 2 )); then
-                    printf '|-- %s' "${logMergeA[1]}"
+                    printf '\n|-- %s' "${logMergeA[1]}"
                 elif (( ${#logMergeA[@]} > 2 )); then
-                    printf '|   %s\n' "${logMergeA[@]:1:$((${#logMergeA[@]}-2))}"
-                    printf '|-- %s' "${logMergeA[-1]}"
+                    printf '\n|   %s' "${logMergeA[@]:1:$((${#logMergeA[@]}-2))}"
+                    printf '\n|-- %s' "${logMergeA[-1]}"
                 fi
+                merge_init_flag=false
             } 
         done
     done >"${1}.combined"
-    echo >>"${1}.combined"
 }
 
 # get log names
@@ -1117,7 +1116,13 @@ for (( kk=${#timep_LOG_NESTING[@]}; kk>=0; kk-- )); do
     done
 done
 
+printf '\n\n' >>"${timep_LOG_NESTING[0]%$'\n'}"
+printf '\n\n' >>"${timep_LOG_NESTING[0]%$'\n'}.combined"
+
+printf '\n\nOUTPUT LOG (FULL)\n\n'
 cat "${timep_LOG_NESTING[0]%$'\n'}"
+
+printf '\n\nOUTPUT LOG (COMBINED)\n\n'
 cat "${timep_LOG_NESTING[0]%$'\n'}.combined"
 
 # TO DO
