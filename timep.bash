@@ -1096,6 +1096,7 @@ _timep_PROCESS_LOG() {
                     printf '|-- %s' "${logMergeA[-1]}"
                 fi
             } 
+        done
     done >"${1}.combined"
             
 }
