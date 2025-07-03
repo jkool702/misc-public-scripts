@@ -897,7 +897,7 @@ _timep_PROCESS_LOG() {
                 read -r runTime <"${timep_TMPDIR}/.log/.runtimes/log.${nexecA[$kk]##* }"
                 [[ ${runTime} ]] && runTimesA[$kk]="${runTime}"
             }
-            [[ "${endTimesA[$kk]}" == '-' ]] && {{
+            [[ "${endTimesA[$kk]}" == '-' ]] && {
                 read -r endTime <"${timep_TMPDIR}/.log/.endtimes/log.${nexecA[$kk]##* }"
                 [[ ${endTime} ]] && endTimesA[$kk]="${endTime}"
             }
@@ -1062,6 +1062,8 @@ _timep_PROCESS_LOG() {
             
         (( kk++ ))
     done >"${1}"
+    echo >>"${1}"
+
 
     # write out new combined (uniq lineno) merged-upward log
     inPipeFlag=false
@@ -1072,17 +1074,18 @@ _timep_PROCESS_LOG() {
         else
             # add line to log
             (( kk == 0  )) || printf '\n\n'
-            printf '%s:\t (%ss|%s%%)\t (%sx) %s\t\t {{ %s | %s | %s }} (%s->%s)' "${linenoA[$kk]}" "${linenoUniqTimeA[${linenoUniqA[$kk]}]}" "${linenoUniqTimePA[${linenoUniqA[$kk]}]}" "${linenoUniqCountA[${linenoUniqA[$kk]}]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]%% *}" "${startTimesA[$kk]}" "${endTimesA[$kk]}" 
+            printf '%s:\t (%ss|%s%%)\t (%sx) %s\n' "${linenoA[$kk]}" "${linenoUniqTimeA[${linenoUniqA[$kk]}]}" "${linenoUniqTimePA[${linenoUniqA[$kk]}]}" "${linenoUniqCountA[${linenoUniqA[$kk]}]}" "${cmdA[$kk]/%: * >>"'"/ >>"'"}" 
 
             # check if this is the start of a pipeline
             [[ ${isPipeA[$kk]} ]] && (( isPipeA[$kk] >= 1 )) && inPipeFlag=true
         fi
 
         # add merged up log to log, including for "in the middle of a pipeline" commands
+        merge_init_flag=true
         for kk1 in ${linenoUniqLineA[${linenoUniqA[$kk]}]}; do 
             [[ ${mergeA[$kk1]} ]] && [[ -e "${mergeA[$kk1]}.combined" ]] && {
                 mapfile -t logMergeA < <(grep -E '.+' <"${mergeA[$kk1]}.combined")
-                printf '\n|-- %s\n' "${logMergeA[0]}"
+                printf '|-- %s\n' "${logMergeA[0]}"
                 if (( ${#logMergeA[@]} == 2 )); then
                     printf '|-- %s' "${logMergeA[1]}"
                 elif (( ${#logMergeA[@]} > 2 )); then
@@ -1092,7 +1095,7 @@ _timep_PROCESS_LOG() {
             } 
         done
     done >"${1}.combined"
-            
+    echo >>"${1}.combined"
 }
 
 # get log names
