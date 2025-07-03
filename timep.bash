@@ -865,7 +865,7 @@ shopt -s extglob
 _timep_PROCESS_LOG() {
     local kk kk1 runTimeTotal runTimeTotal0 inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd t0 t1 log_tmp linenoUniq
     local -a logA nPipeA startTimesA endTimesA runTimesA runTimesPA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA linenoUniqA 
-    local -A linenoUniqLineA linenoUniqCountA linenoUniqTimeA
+    local -A linenoUniqLineA linenoUniqCountA linenoUniqTimeA linenoUniqTimePA
 
     [[ -e "$1" ]] || return 1
 
@@ -1027,6 +1027,13 @@ _timep_PROCESS_LOG() {
     # get runtime sums for the combined uniq lineno's
     for kk in "${!linenoUniqTimeA[@]}"; do
         linenoUniqTimeA[$kk]="$( _timep_EPOCHREALTIME_SUM_ALT ${linenoUniqTimeA[$kk]} )"
+        runTimeP="${linenoUniqTimeA[$kk]//./}"
+        (( runTimeP = ( 10000 * ${runTimeP##+(0)} ) / $runTimeTotal0 ))
+        printf -v runTimeP '%0.4d' "$runTimeP"
+        case "${runTimeP}" in
+            10000) linenoUniqTimePA[$kk]=100 ;;
+            *) linenoUniqTimePA[$kk]="${runTimeP:0:2}.${runTimeP:2}" ;;
+        esac
     done        
 
     # write out new merged-upward log
@@ -1067,27 +1074,28 @@ _timep_PROCESS_LOG() {
     for kk in "${!linenoUniqA[@]}"; do
         if ${inPipeFlag}; then
             # we are in a pipeline but not in the 1st element. dont add line to log
-            (( isPipeA[$kk] == 1 )) && inPipeFlag=false
+            { [[ -z ${isPipeA[$kk]} ]] || (( isPipeA[$kk] == 1 )); } && inPipeFlag=false
         else
             # add line to log
             (( kk == 0  )) || printf '\n\n'
-            printf '%s:\t (%ss|%s%%)\t %s\t\t {{ %s | %s | %s }} (%s->%s)' "${linenoA[$kk]}" "${runTimesA[$kk]}" "${runTimesPA[$kk]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]%% *}" "${startTimesA[$kk]}" "${endTimesA[$kk]}" 
+            printf '%s:\t (%ss|%s%%)\t (%sx) %s\t\t {{ %s | %s | %s }} (%s->%s)' "${linenoA[$kk]}" "${linenoUniqTimeA[${linenoUniqA[$kk]}]}" "${linenoUniqTimeA[${linenoUniqA[$kk]}]}" "${linenoUniqCountA[${linenoUniqA[$kk]}]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]%% *}" "${startTimesA[$kk]}" "${endTimesA[$kk]}" 
 
             # check if this is the start of a pipeline
             [[ ${isPipeA[$kk]} ]] && (( isPipeA[$kk] >= 1 )) && inPipeFlag=true
         fi
 
         # add merged up log to log, including for "in the middle of a pipeline" commands
-        [[ ${mergeA[$kk]} ]] && [[ -e "${mergeA[$kk]}" ]] && {
-            mapfile -t logMergeA < <(grep -E '.+' <"${mergeA[$kk]}")
-            printf '\n|-- %s\n' "${logMergeA[0]}"
-            if (( ${#logMergeA[@]} == 2 )); then
-                printf '|-- %s' "${logMergeA[1]}"
-            elif (( ${#logMergeA[@]} > 2 )); then
-                printf '|   %s\n' "${logMergeA[@]:1:$((${#logMergeA[@]}-2))}"
-                printf '|-- %s' "${logMergeA[-1]}"
-            fi
-        } 
+        for kk1 in ${linenoUniqLineA[${linenoUniqA[$kk]}]}; do 
+            [[ ${mergeA[$kk1]} ]] && [[ -e "${mergeA[$kk1]}.combined" ]] && {
+                mapfile -t logMergeA < <(grep -E '.+' <"${mergeA[$kk1]}.combined")
+                printf '\n|-- %s\n' "${logMergeA[0]}"
+                if (( ${#logMergeA[@]} == 2 )); then
+                    printf '|-- %s' "${logMergeA[1]}"
+                elif (( ${#logMergeA[@]} > 2 )); then
+                    printf '|   %s\n' "${logMergeA[@]:1:$((${#logMergeA[@]}-2))}"
+                    printf '|-- %s' "${logMergeA[-1]}"
+                fi
+            } 
     done >"${1}.combined"
             
 }
@@ -1112,6 +1120,7 @@ for (( kk=${#timep_LOG_NESTING[@]}; kk>=0; kk-- )); do
 done
 
 cat "${timep_LOG_NESTING[0]%$'\n'}"
+cat "${timep_LOG_NESTING[0]%$'\n'}.combined"
 
 # TO DO
 ##### AFTER the code has finished running, a post-processing phase will:
