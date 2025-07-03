@@ -1115,7 +1115,7 @@ for (( kk=${#timep_LOG_NESTING[@]}; kk>=0; kk-- )); do
 done
 
 cat "${timep_LOG_NESTING[0]%$'\n'}"
-#cat "${timep_LOG_NESTING[0]%$'\n'}.combined"
+cat "${timep_LOG_NESTING[0]%$'\n'}.combined"
 
 # TO DO
 ##### AFTER the code has finished running, a post-processing phase will:
