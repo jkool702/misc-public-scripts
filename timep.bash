@@ -489,6 +489,7 @@ elif [[ ${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]} ]]; then
     } {timep_FD}<"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}"
     exec {timep_FD}>&-
   }
+  ${timep_SUBSHELL_INIT_FLAG} && [[ -s "${timep_TMPDIR}/.log/log.${timep_NEXEC_0}.init" ]] && : >"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}.init"
   timep_SUBSHELL_INIT_FLAG=false
   ${timep_NO_PRINT_FLAG} || printf '"'"'%s\t%s\t%s\tF:%s %s\tS:%s %s\tN:%s %s.%s\t%s\t::\t%s %s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_STARTTIME[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${BASH_SUBSHELL}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}"  "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" "${timep_IS_BG_INDICATOR}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
   (( timep_NEXEC_A[-1]++ ))
@@ -781,10 +782,10 @@ printf '\n\nThe %s being time profiled has finished running!\ntimep will now pro
 unset IFS
 
 # fold in any remaining subshell init logs
-#for nn in "${timep_TMPDIR}/.log/log"*'.init'; do
-#  [[ -s "$nn" ]] && echo "$("$nn")" >>"${nn%.init}"
-#done
-#\rm -f "${timep_TMPDIR}/.log/log"*'.init'
+for nn in "${timep_TMPDIR}/.log/log"*'.init'; do
+  [[ -s "$nn" ]] && echo "$("$nn")" >>"${nn%.init}"
+done
+\rm -f "${timep_TMPDIR}/.log/log"*'.init'
 
 #ls -la "${timep_TMPDIR}"/.log/
 #find "${timep_TMPDIR}"/.log/ -empty -exec rm {} +
