@@ -25,7 +25,7 @@ timep() {
     #              and will end the file with + separate data from different PIDs with a NULL.
     #
     # FLAGS:
-    #    Flags must be given before the command being profiled. if multiple -s/-f are given the last one is used.
+    #    Flags must be given before the command being profiled. if multiple -s/-f /-c flags are given, the last one is used.
     #    -s | --shell    : force timep to treat the code being profiled as a bash script
     #    -f | --function : force timep to treat the code being profiled as a bash function
     #    -c | --command  : force timep to treat the code being profiled as raw bash command[s]
