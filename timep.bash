@@ -893,9 +893,11 @@ _timep_PROCESS_LOG() {
             mergeA[$kk]="${timep_TMPDIR}/.log/log.${nexecA[$kk]##* }"
 
             # read in the endtime + runtime from the log
-            read -r runTime <"${timep_TMPDIR}/.log/.runtimes/log.${nexecA[$kk]##* }"
-            [[ ${runTime} ]] && runTimesA[$kk]="${runTime}"
-            [[ "${cmdA[$kk]#"'"}" == '<< (FUNCTION): '*' >>'* ]] || {
+            [[ "${cmdA[$kk]#"'"}" == '<< (BACKGROUND FORK): '*' >>'* ]] || {
+                read -r runTime <"${timep_TMPDIR}/.log/.runtimes/log.${nexecA[$kk]##* }"
+                [[ ${runTime} ]] && runTimesA[$kk]="${runTime}"
+            }
+            [[ "${endTimesA[$kk]}" == '-' ]] && {{
                 read -r endTime <"${timep_TMPDIR}/.log/.endtimes/log.${nexecA[$kk]##* }"
                 [[ ${endTime} ]] && endTimesA[$kk]="${endTime}"
             }
@@ -1001,7 +1003,7 @@ _timep_PROCESS_LOG() {
             10000) runTimesPA[$kk]=100 ;;
             *) runTimesPA[$kk]="${runTimeP:0:2}.${runTimeP:2}" ;;
         esac
-        [[ "${linenoUniq}" == *" ${lineno[$kk]} "* ]] || {
+        [[ "${linenoUniq}" == *" ${linenoA[$kk]} "* ]] || {
             linenoUniqA[$kk]="${linenoA[$kk]}"
             linenoUniq+=" ${linenoA[0]} "
         }
