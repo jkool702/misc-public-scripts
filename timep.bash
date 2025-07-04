@@ -477,8 +477,14 @@ ${timep_SKIP_DEBUG_FLAG} || {
         timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
         timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="<< (${timep_CMD_TYPE}): ${timep_BASHPID_PREV} >>"
         ${timep_NO_PRINT_FLAG} || {
-            [[ -s "${timep_TMPDIR}/.log/log.${timep_NEXEC_0}.init_s" ]] && : >"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}.init_s"
-            printf '"'"'%s\t%s\t-\tF:%s %s\tS:%s %s\tN:%s %s.%s[%s-%s]\t%s\t::\t%s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${timep_BASH_SUBSHELL_PREV}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
+            if [[ -s "${timep_TMPDIR}/.log/log.${timep_NEXEC_0}.init_s" ]]; then
+                mapfile -t timep_A <"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}.init_s"
+                printf '"'"'%s\n'"'"' "${timep_A[@]}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
+                unset timep_A
+                : >"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}.init_s"
+            else
+                printf '"'"'%s\t%s\t-\tF:%s %s\tS:%s %s\tN:%s %s.%s[%s-%s]\t%s\t::\t%s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${timep_BASH_SUBSHELL_PREV}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
+            fi
         }
         timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
         timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
@@ -864,7 +870,7 @@ _timep_EPOCHREALTIME_SUM() {
     }
     
     printf -v tSum '+10#%s' ${runTimesA[@]//./}
-    (( tSum = 0${tSum//'+10#-'/'+10#'} ))
+    (( tSum = 0${tSum} ))
     printf -v d '%0.7d' "${tSum}"
     (( d6 = ${#d} - 6 ))
     printf -v runTimeTotal '%s.%s' "${d:0:$d6}" "${d:$d6}"
@@ -880,7 +886,7 @@ _timep_EPOCHREALTIME_SUM_ALT() {
     }
 
     printf -v tSum '+10#%s' ${@//./}
-    (( tSum = 0${tSum//'+10#-'/'+10#'} ))
+    (( tSum = 0${tSum} ))
     printf -v d '%0.7d' "${tSum}"
     (( d6 = ${#d} - 6 ))
     printf '%s.%s' "${d:0:$d6}" "${d:$d6}"
@@ -1011,7 +1017,7 @@ _timep_PROCESS_LOG() {
 
     # get total runtime
     case ${#logA[@]} in
-        1) runTimeTotal="${runTimesA[0]}" ;;
+        1) runTimeTotal="${runTimesA[*]}" ;;
         *) _timep_EPOCHREALTIME_SUM ;;
     esac
 
@@ -1021,14 +1027,12 @@ _timep_PROCESS_LOG() {
     echo "${endTimesA[-1]}" >"${1%\/*}/.endtimes/${1##*\/}"
     echo "${runTimeTotal}" >"${1%\/*}/.runtimes/${1##*\/}"
 
-    runTimeTotal0="${runTimeTotal//./}"
-    runTimeTotal0="${runTimeTotal0##+(0)}"
+    (( runTimeTotal0= 10#${runTimeTotal//./} ))
 
     # make LINENO's unique and compute runtime as % of total at this depth and get list of unique lineno's
     linenoA[0]="${linenoA[0]}.0"
     lineno1=0
-    runTimeP="${runTimesA[0]//./}"
-    (( runTimeP = ( 10000 * ${runTimeP##+(0)} ) / $runTimeTotal0 ))
+    (( runTimeP = ( 10000 * 10#${runTimesA[0]//./} ) / 10#$runTimeTotal0 ))
     printf -v runTimeP '%0.4d' "$runTimeP"
     case "${runTimeP}" in
         10000) runTimesPA[0]=100 ;;
@@ -1047,8 +1051,7 @@ _timep_PROCESS_LOG() {
             lineno1=0
         fi
         linenoA[$kk]="${linenoA[$kk]}.${lineno1}"
-        runTimeP="${runTimesA[$kk]//./}"
-        (( runTimeP = ( 10000 * ${runTimeP##+(0)} ) / $runTimeTotal0 ))
+        (( runTimeP = ( 10000 * 10#${runTimesA[$kk]//./} ) / 10#$runTimeTotal0 ))
         printf -v runTimeP '%0.4d' "$runTimeP"
         case "${runTimeP}" in
             10000) runTimesPA[$kk]=100 ;;
@@ -1072,8 +1075,7 @@ _timep_PROCESS_LOG() {
     # get runtime sums for the combined uniq lineno's
     for kk in "${!linenoUniqTimeA[@]}"; do
         linenoUniqTimeA[$kk]="$( _timep_EPOCHREALTIME_SUM_ALT ${linenoUniqTimeA[$kk]} )"
-        runTimeP="${linenoUniqTimeA[$kk]//./}"
-        (( runTimeP = ( 10000 * ${runTimeP##+(0)} ) / $runTimeTotal0 ))
+        (( runTimeP = ( 10000 * 10#${linenoUniqTimeA[$kk]//./} ) / 10#$runTimeTotal0 ))
         printf -v runTimeP '%0.4d' "$runTimeP"
         case "${runTimeP}" in
             10000) linenoUniqTimePA[$kk]=100 ;;
