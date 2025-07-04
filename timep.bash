@@ -477,14 +477,8 @@ ${timep_SKIP_DEBUG_FLAG} || {
         timep_LINENO[${timep_FNEST_CUR}]="${LINENO}"
         timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="<< (${timep_CMD_TYPE}): ${timep_BASHPID_PREV} >>"
         ${timep_NO_PRINT_FLAG} || {
-            if [[ -s "${timep_TMPDIR}/.log/log.${timep_NEXEC_0}.init_s" ]]; then
-                mapfile -t timep_A <"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}.init_s"
-                printf '"'"'%s\n'"'"' "${timep_A[@]}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
-                unset timep_A
-                : >"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}.init_s"
-            else
-                printf '"'"'%s\t%s\t-\tF:%s %s\tS:%s %s\tN:%s %s.%s[%s-%s]\t%s\t::\t%s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${timep_BASH_SUBSHELL_PREV}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
-            fi
+            [[ -s "${timep_TMPDIR}/.log/log.${timep_NEXEC_0}.init_s" ]] && : >"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}.init_s"
+            printf '"'"'%s\t%s\t-\tF:%s %s\tS:%s %s\tN:%s %s.%s[%s-%s]\t%s\t::\t%s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${timep_BASH_SUBSHELL_PREV}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${BASHPID}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]@Q}" >>"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}"
         }
         timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
         timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
@@ -841,9 +835,9 @@ for nn in "${timep_LOG_A[@]}"; do printf '\n\n----------------------------------
 # define helper functioons for getting runtime from timestamp differences and for summing runtimes
 
 _timep_EPOCHREALTIME_DIFF() {
-    local tDiff d d6 printFlag
+    local tDiff d d6
 
-    (( tDiff = ${endTimesA[$1]//./} - ${startTimesA[$1]//./} ))
+    (( tDiff = 10#${endTimesA[$1]//./} - 10#${startTimesA[$1]//./} ))
     printf -v d '%0.7d' "${tDiff#-}"
     (( d6 = ${#d} - 6 ))
     printf -v runTime '%s.%s' "${d:0:$d6}" "${d:$d6}"
@@ -853,7 +847,7 @@ _timep_EPOCHREALTIME_DIFF() {
 _timep_EPOCHREALTIME_DIFF_ALT() {
     local tDiff d d6 
         
-    (( tDiff = ${2//./} - ${1//./} ))
+    (( tDiff = 10#${2//./} - 10#${1//./} ))
     printf -v d '%0.7d' "${tDiff#-}"
     (( d6 = ${#d} - 6 ))
     printf '%s.%s' "${d:0:$d6}" "${d:$d6}"
@@ -865,12 +859,12 @@ _timep_EPOCHREALTIME_SUM() {
 
     (( ${#runTimesA[@]} == 1 )) && {
         # short circuit if only 1 time 
-        runTimeTotal="${runTimesA[0]}"
+        runTimeTotal="${runTimesA[*]}"
         return
     }
     
     printf -v tSum '+10#%s' ${runTimesA[@]//./}
-    (( tSum = 0${tSum} ))
+    (( tSum = 0${tSum//'+10#-'/'+10#'} ))
     printf -v d '%0.7d' "${tSum}"
     (( d6 = ${#d} - 6 ))
     printf -v runTimeTotal '%s.%s' "${d:0:$d6}" "${d:$d6}"
@@ -881,12 +875,12 @@ _timep_EPOCHREALTIME_SUM_ALT() {
 
     (( ${#} == 1 )) && {
         # short circuit if only 1 time 
-        echo "${1}"
+        echo "${*}"
         return
     }
 
     printf -v tSum '+10#%s' ${@//./}
-    (( tSum = 0${tSum} ))
+    (( tSum = 0${tSum//'+10#-'/'+10#'} ))
     printf -v d '%0.7d' "${tSum}"
     (( d6 = ${#d} - 6 ))
     printf '%s.%s' "${d:0:$d6}" "${d:$d6}"
@@ -901,6 +895,7 @@ _timep_PROCESS_LOG() {
     [[ -e "$1" ]] || return 1
 
     inPipeFlag=false
+    #trap 'echo "$BASH_COMMAND -- $LINENO" >&2; declare -p kk kk1 runTimeTotal runTimeTotal0 inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd t0 t1 log_tmp linenoUniq merge_init_flag log_dupe_flag logA nPipeA startTimesA endTimesA runTimesA runTimesPA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA linenoUniqA linenoUniqLineA linenoUniqCountA linenoUniqTimeA linenoUniqTimePA FUNCNAME >&2; printf "\n\n\n" >&2' ERR
 
     # load current log (sorted by NEXEC) into array
     mapfile -t logA < <(sort -V -t $'\t' -k6,6 <"$1")
@@ -944,9 +939,12 @@ _timep_PROCESS_LOG() {
             }
             [[ "${endTimesA[$kk]}" == '-' ]] && {
                 read -r endTime <"${timep_TMPDIR}/.log/.endtimes/log.${nexecA[$kk]##* }"
-                [[ ${endTime} ]] && endTimesA[$kk]="${endTime}"
+                [[ ${endTime} ]] && ! [[ "${endTime}" == '-' ]] && endTimesA[$kk]="${endTime}"
+                #[[ ${endTimesA[$kk]} ]] || ! [[ "${endTimesA[$kk]}" == '-' ]] || endTimesA[$kk]="$( _timep_EPOCHREALTIME_SUM_ALT "${startTimesA[$kk]}" '0.000001' )"
             }
         fi
+        #
+
 
         # single-command command/process substitutions dont get a endtime logged (uses endTime='+' as indicator), since they wont trigger a EXIT trap
         # figure out the most reasonable endtimeby looking at starttimes for the parent, then grandparent, etc. 
@@ -957,7 +955,7 @@ _timep_PROCESS_LOG() {
             until [[ "${log_tmp}" == 'log' ]]; do
                 [[ -s "${log_tmp}" ]] && {
                     while read -r _ endTime _ ; do
-                        if (( ${endTime//./} > ${startTimesA[$kk]//./} )); then
+                        if (( 10#${endTime//./} > 10#${startTimesA[$kk]//./} )); then
                             break 2
                         else
                             endTime=0
@@ -968,10 +966,10 @@ _timep_PROCESS_LOG() {
             done
 
             # if we still dont have a valid end time, use the global timep endtime
-            (( ${endTime//./} > ${startTimesA[$kk]//./} )) || endTime="${timep_TIME_DONE}"
+            (( 10#${endTime//./} > 10#${startTimesA[$kk]//./} )) || endTime="${timep_TIME_DONE}"
 
             # if we still dont have a valid end time, figure out how long the parent command/process dsubstitution command ran for and add that to the starttime
-            (( ${endTime//./} > ${startTimesA[$kk]//./} )) || {
+            (( 10#${endTime//./} > 10#${startTimesA[$kk]//./} )) || {
                 read -r _ t0 t1 _ < <(grep -F "${1%[*}" <"${1%.*}")
                 if [[ $t0 ]] && [[ $t1 ]]; then
                     endTime="$( _timep_EPOCHREALTIME_SUM_ALT "${startTimesA[$kk]}" "$(_timep_EPOCHREALTIME_DIFF_ALT "$t0" "$t1")" )"
@@ -1003,8 +1001,8 @@ _timep_PROCESS_LOG() {
         # compute runtime from start/end timestamps (unless we are either in the middle of a pipeline OR it is a subshell / bg fork)
         (( nPipeA[$kk] == 1 )) && [[ -z ${runTimesA[$kk]} ]] && _timep_EPOCHREALTIME_DIFF "$kk"
 
-        [[ ${runTimesA[$kk]} ]] || unset "runTimesA[$kk]"
-        (( runTimesA[$kk] > 0 )) && {
+        [[ ${runTimesA[$kk]} ]] || runTimesA[$kk]='0.000001'
+        (( 10#${runTimesA[$kk]//./} > 0 )) || {
             endTimesA[$kk]="$(_timep_EPOCHREALTIME_SUM_ALT "${startTimesA[$kk]}" '0.000001')"
             runTimesA[$kk]='0.000001'
         }
