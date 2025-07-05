@@ -459,8 +459,8 @@ ${timep_SKIP_DEBUG_FLAG} || {
         fi
         timep_KK="${timep_BASH_SUBSHELL_DIFF}"
         unset "timep_BASH_SUBSHELL_DIFF" "timep_BASH_SUBSHELL_DIFF_0"
+        ((timep_NEXEC_N++))
         while ((timep_KK < (${#timep_BASHPID_ADD[@]} - 1))); do
-            ((timep_NEXEC_N++))
             ((timep_BASHPID_ADD[${timep_KK}] < timep_BASHPID_PREV)) && ((timep_NPIDWRAP++))
             timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
             timep_BASH_COMMAND_PREV[${timep_FNEST_CUR}]="<< (${timep_CMD_TYPE}): ${timep_BASHPID_PREV} >>"
@@ -905,6 +905,7 @@ _timep_PROCESS_LOG() {
 
     # load current log (sorted by NEXEC) into array
     mapfile -t logA < <(sort -V -t $'\t' -k6,6 <"$1")
+   #mapfile -t logA < <(sort -n -t $'\t' -k2,2 <"$1")
 
     log_dupe_flag=false
     for (( kk=1; kk<${#logA[@]}; kk++ )); do
