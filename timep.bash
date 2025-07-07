@@ -404,8 +404,6 @@ ${timep_SKIP_DEBUG_FLAG} || {
         echo "${timep_ENDTIME}" >>"${timep_TMPDIR}/.log/.endtimes/${timep_NEXEC_0}.${timep_NEXEC_A[-1]}"
         ((BASHPID < timep_BASHPID_PREV)) && ((timep_NPIDWRAP++))
         builtin trap '"'${timep_EXIT_TRAP_STR//"'"/"'"'"'"'"'"'"'"}'"' EXIT
-        timep_PARENT_PGID="$timep_CHILD_PGID"
-        timep_PARENT_TPID="$timep_CHILD_TPID"
         IFS='"'"' '"'"' read -r _ _ _ _ timep_CHILD_PGID _ _ timep_CHILD_TPID _ </proc/${BASHPID}/stat
         ((timep_CHILD_PGID == timep_PARENT_TPID)) || ((timep_CHILD_PGID == timep_CHILD_TPID)) || { ((timep_CHILD_PGID == timep_PARENT_PGID)) && ((timep_CHILD_TPID == timep_PARENT_TPID)); } || timep_IS_BG_FLAG=true
     fi
@@ -440,6 +438,8 @@ ${timep_SKIP_DEBUG_FLAG} || {
         timep_BASHPID_PREV_0="$BASHPID"
         timep_ENDTIME_PREV_0="${timep_ENDTIME}"
         timep_BASH_SUBSHELL_PREV_0="${timep_BASH_SUBSHELL_PREV}"
+        timep_PARENT_PGID="$timep_CHILD_PGID"
+        timep_PARENT_TPID="$timep_CHILD_TPID"
     elif ${timep_SUBSHELL_INIT_FLAG}; then
         timep_SUBSHELL_INIT_FLAG=false
         timep_BASHPID_PREV="${timep_BASHPID_PREV_0}"
@@ -462,7 +462,7 @@ ${timep_SKIP_DEBUG_FLAG} || {
             ((timep_BASHPID_ADD[${timep_KK}] < timep_BASHPID_PREV)) && ((timep_NPIDWRAP++))
             timep_BASHPID_PREV="${timep_BASHPID_ADD[${timep_KK}]}"
             timep_BASH_COMMAND_PREV_0="<< (${timep_CMD_TYPE_PREV_0}): ${timep_BASHPID_PREV} >>"
-            [[ -s "${timep_TMPDIR}/.log/log.${timep_NEXEC_0}" ]] || printf '"'"'%s\t%s\t-\tF:%s %s\tS:%s %s\tN:%s %s.%s[%s-%s]\t%s\t::\t%s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME_PREV_0}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${timep_BASH_SUBSHELL_PREV}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${timep_BASHPID_PREV}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_BASH_COMMAND_PREV_0@Q}" >"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}.${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${BASHPID}].init_s"
+            printf '"'"'%s\t%s\t-\tF:%s %s\tS:%s %s\tN:%s %s.%s[%s-%s]\t%s\t::\t%s\n'"'"' "${timep_NPIPE[${timep_FNEST_CUR}]}" "${timep_ENDTIME_PREV_0}" "${timep_FNEST_CUR}" "${timep_FUNCNAME_STR}" "${timep_BASH_SUBSHELL_PREV}" "${timep_BASHPID_STR}" "${timep_NEXEC_N}" "${timep_NEXEC_0}" "${timep_NEXEC_A[-1]}" "${timep_NPIDWRAP}" "${timep_BASHPID_PREV}" "${timep_LINENO[${timep_FNEST_CUR}]}" "${timep_BASH_COMMAND_PREV_0@Q}" >"${timep_TMPDIR}/.log/log.${timep_NEXEC_0}.${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${BASHPID}].init_s"
             timep_BASHPID_STR+=".${timep_BASHPID_PREV}"
             timep_NEXEC_0+=".${timep_NEXEC_A[-1]}[${timep_NPIDWRAP}-${timep_BASHPID_PREV}]"
             timep_NEXEC_A+=(0)
@@ -984,7 +984,7 @@ _timep_PROCESS_LOG() {
 
             # if we still dont have a valid end time, figure out how long the parent command/process dsubstitution command ran for and add that to the starttime
             (( 10#${endTime//./} > 10#${startTimesA[$kk]//./} )) || {
-                #read -r _ t0 t1 _ < <(grep -F "${1%\[*}" <"${1%.*}")
+                read -r _ t0 t1 _ < <(grep -F "${1%\[*}" <"${1%.*}")
                 if [[ $t0 ]] && [[ $t1 ]]; then
                     endTime="$( _timep_EPOCHREALTIME_SUM_ALT "${startTimesA[$kk]}" "$(_timep_EPOCHREALTIME_DIFF_ALT "$t0" "$t1")" )"
                 else
