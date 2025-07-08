@@ -982,14 +982,13 @@ _timep_PERCENT_AVG_ALT() {
 local -g timep_LOG_NESTING_MAX timep_LOG_NESTING_CUR
 shopt -s extglob
 _timep_PROCESS_LOG() {
-    local kk kk1 runTimeTotal runTimeTotal0 inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd t0 t1 log_tmp linenoUniq merge_init_flag log_dupe_flag spacerN lineU logMergeAll
-    local -a logA nPipeA startTimesA endTimesA runTimesA runTimesPA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA linenoUniqA lineUA timeUA
+    local kk kk1 runTimeTotal runTimeTotal0 inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd t0 t1 log_tmp linenoUniq merge_init_flag log_dupe_flag spacerN lineU logMergeAll fg0 ns nf normalCmdFlag IFS0
+    local -a logA nPipeA startTimesA endTimesA runTimesA runTimesPA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA linenoUniqA lineUA timeUA sA fA eA fgA
     local -A linenoUniqLineA linenoUniqCountA linenoUniqTimeA linenoUniqTimePA
 
     [[ -e "${1}" ]] || return 1
 
     inPipeFlag=false
-    #trap 'echo "$BASH_COMMAND -- $LINENO" >&2; declare -p kk kk1 runTimeTotal runTimeTotal0 inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd t0 t1 log_tmp linenoUniq merge_init_flag log_dupe_flag logA nPipeA startTimesA endTimesA runTimesA runTimesPA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA linenoUniqA linenoUniqLineA linenoUniqCountA linenoUniqTimeA linenoUniqTimePA FUNCNAME >&2; printf "\n\n\n" >&2' ERR
 
     # load current log (sorted by NEXEC) into array
     mapfile -t logA < <(sort -V -k9,9 <"${1}")
@@ -1023,6 +1022,8 @@ _timep_PROCESS_LOG() {
 
         # check if cmd is a subshell/bg fork/function that needs to be merged up
         if [[ "${cmdA[$kk]#"'"}" == '<< ('*'): '*' >>'* ]]; then
+            normalCmdFlag=false
+
             # record which log to merge up and where
             mergeA[$kk]="${timep_TMPDIR}/.log/log.${nexecA[$kk]##* }"
 
@@ -1039,8 +1040,9 @@ _timep_PROCESS_LOG() {
                     [[ ${endTime} ]] && ! [[ "${endTime}" == '-' ]] && endTimesA[$kk]="${endTime}"
                 }
             }
+        else
+            normalCmdFlag=true
         fi
-        #
 
 
         # single-command command/process substitutions dont get a endtime logged (uses endTime='+' as indicator), since they wont trigger a EXIT trap
@@ -1094,6 +1096,7 @@ _timep_PROCESS_LOG() {
             inPipeFlag=true
             isPipeA[$kk]=1
         fi
+        ${inPipeFlag} && normalCmdFlag=false
 
         # compute runtime from start/end timestamps (unless we are either in the middle of a pipeline OR it is a subshell / bg fork)
         (( nPipeA[$kk] == 1 )) && [[ -z ${runTimesA[$kk]} ]] && _timep_EPOCHREALTIME_DIFF "$kk"
@@ -1102,6 +1105,37 @@ _timep_PROCESS_LOG() {
         (( 10#${runTimesA[$kk]//./} > 0 )) || {
             endTimesA[$kk]="$(_timep_EPOCHREALTIME_SUM_ALT "${startTimesA[$kk]}" '0.000001')"
             runTimesA[$kk]='0.000001'
+        }
+
+        ${normalCmdFlag} && {
+            if [[ -z "${fg0}" ]]; then
+                fg0="$(IFS0="${IFS}"
+                IFS='.'
+                # get base stack for flamegraph
+                read -r -a fA <<<"${func#* }"
+                read -r -a sA <<<"${pid#* }"
+                read -r -a eA <<<"${nexec#* }"
+                IFS="${IFS0}"
+                unset "eA[-1]" "IFS0"
+                ns=0
+                nf=1
+                for nn in "${eA[@]}"; do 
+                    if [[ "${nn}" == *'{'*'}' ]]; then
+                        [[ ${sA[$ns]} ]] && fgA+=("SUBSHELL (${sA[$ns]})")
+                        ((ns++))
+                    else
+                        [[ ${fA[$nf]} ]] && fgA+=("FUNCTION (${fA[$nf]})")
+                        ((nf++))
+                    fi
+                done
+                printf '%s;' "${fgA[@]}")"
+            fi
+
+            # print stack trace for flamegraph
+            runTime="${runTimesA[$kk]//./}"
+            cmd="${cmdA[$kk]//\(\&\)/\\\(\\\&\\\)}"
+            cmd="$(eval "echo ${cmd//\|/\\\|}")"
+            printf '%s%s\t%s\n' "${fg0}" "${cmd//$'\n'/\$"'"\\n"'"}" "${runTime##+(0)}"  >>"${1%\/*}/out.flamegraph"
         }
 
     done
