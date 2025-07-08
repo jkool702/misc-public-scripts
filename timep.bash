@@ -1324,7 +1324,7 @@ printf '\n\n' >&2
 printf '\n\n' >>"${timep_LOG_NESTING[0]%$'\n'}"
 printf '\n\n' >>"${timep_LOG_NESTING[0]%$'\n'}.combined"
 
-sed -E s/'^(.+)\t([0-9]+)$'/'\1'/ <"${timep_TMPDIR}/.log/out.flamegraph" | sort -u | while read -r u; do printf '%s\t%s\n' "${u#*$'\t'}" "$((0 $(grep -F "$u" <"${timep_TMPDIR}/.log/out.flamegraph" | sed -E s/'^(.+)\t([0-9]+)$'/'+\2'/ | tr -d '\n') ))"; done
+sed -E s/'^(.+)\t([0-9]+)$'/'\1'/ <"${timep_TMPDIR}/.log/out.flamegraph" | sort -u | while read -r u; do printf '%s\t%s\n' "${u#*$'\t'}" "$((0 $(grep -F "$u" <"${timep_TMPDIR}/.log/out.flamegraph" | sed -E s/'^(.+)\t([0-9]+)$'/'+\2'/ | tr -d '\n') ))"; done >"${timep_TMPDIR}/.log/out.merge.flamegraph"
 
 ${timep_DEBUG_FLAG} && {
     printf '\n\nOUTPUT LOG (FULL)\n\n'
@@ -1335,7 +1335,7 @@ printf '\n\nOUTPUT LOG (COMBINED)\n\n'
 cat "${timep_LOG_NESTING[0]%$'\n'}.combined"
 
 printf '\n\nFLAMEGRAPH FOLDED STACK TRACE\n\n'
-cat "${timep_TMPDIR}/.log/out.flamegraph"
+cat "${timep_TMPDIR}/.log/out.merge.flamegraph"
 
 # TO DO
 ##### AFTER the code has finished running, a post-processing phase will:
