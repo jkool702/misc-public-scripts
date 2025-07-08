@@ -1216,7 +1216,7 @@ _timep_PROCESS_LOG() {
         mapfile -t lineUA < <(r=''; sed -E 's/^([^\:]+\:[[:space:]]+)[0-9\|\(\)\.s%]+[[:space:]]*'/'\1\t'/ <<<"${logMergeAll}" | while read -r nn; do [[ $nn ]] || continue; [[ "$r" == *$'\n'"$nn"$'\n'* ]] || { r+=$'\n'"$nn"$'\n'; echo "$nn"; }; done)
         (( ${#lineUA[@]} > 0 )) && for lineU in "${lineUA[@]}"; do  
             mapfile -t timeUA < <(grep -F "${lineU%%$'\t'*}" <<<"${logMergeAll}" | grep -F "${lineU#*$'\t'}" |  sed -E 's/^([^\:]+\:[[:space:]]+)\(([0-9\.s]+)\|([0-9\.%]+)\)[[:space:]]*(.*)$'/'\2 \3'/)
-            printf '\n%s\t(%ss|%s%%)\t(%sx) %s' "${lineU%%$'\t'*}" "$(_timep_EPOCHREALTIME_SUM_ALT "${timeUA[@]%s *}")" "$(_timep_PERCENT_AVG_ALT "${timeUA[@]#* }")" "${#timeUA[@]}" "${lineU#*$'\t'* }"
+            printf '\n%s\t(%ss|%s)\t(%sx) %s' "${lineU%%$'\t'*}" "$(_timep_EPOCHREALTIME_SUM_ALT "${timeUA[@]%s *}")" "$(_timep_PERCENT_AVG_ALT "${timeUA[@]#* }")" "${#timeUA[@]}" "${lineU#*$'\t'* }"
         done
         #)"
         #mapfile -t logMergeAllUA < <(sed -E s/'^([^:]*\:)\t(\([^\)]*\))\t(.*)$'/'\1\t\3'/ <<<"${logMergeAll}" | sort -u -t $'\t')
