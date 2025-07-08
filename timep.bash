@@ -311,6 +311,7 @@ _timep_getFuncSrc() {
     if declare -F "${1}" &>/dev/null || ! [[ -f "${1}" ]]; then
         # input is a defined function and/or doesnt existin filesystem. treat as a function.
         out="$(_timep_getFuncSrc0 "${1}")"
+        [[ "$out" == 'eval '* ]] && out="$(eval "echo ${out#eval }")"
     else
     # input is not a function and exists in filesystenm. treat as script and cat it.
         out="$(<"${1}")"
@@ -635,17 +636,19 @@ export -p -f trap &>/dev/null && export -n -f trap
             timep_runFuncSrc="${timep_runCmd1}"$'\n'
         ;;
         c)
-            printf -v timep_runCmd '"${@}"'
+            printf -v timep_runCmd '"${@}"\n'
             timep_runCmd1='#!'"${BASH}"
 
             # start of wrapper code
             timep_runFuncSrc="${timep_runCmd1}"$'\n'
         ;;
         f)
-            _timep_getFuncSrc -r "$1" >>"${timep_TMPDIR}/functions.bash"
+            timep_funcName="${1}"
+            shift 1
+            _timep_getFuncSrc -r "${timep_funcName}" >>"${timep_TMPDIR}/functions.bash"
             timep_runCmd1='#!'"${BASH}"
 
-            printf -v timep_runCmd '%s ' "${@}"
+            printf -v timep_runCmd '%s "${@}"\n' "${timep_funcName}"
             [[ -t 0 ]] || timep_runCmd+=" <&0"
 
             # start of wrapper code
@@ -819,9 +822,9 @@ if ${timep_PTY_FLAG}; then
 else
     printf '\n\nWARNING: job control could not be enabled due to lack of controlling TTY/PTY. subshells and background forks may not be properly distinguished!\n\n' >&${timep_FD2}
     if [[ -t 0 ]]; then
-       "${timep_TMPDIR}/main.bash"
+       "${timep_TMPDIR}/main.bash" "${@}"
     else
-       "${timep_TMPDIR}/main.bash" <&0
+       "${timep_TMPDIR}/main.bash" "${@}" <&0
     fi
 fi
 timep_TIME_DONE="${EPOCHREALTIME}"
@@ -1153,11 +1156,12 @@ _timep_PROCESS_LOG() {
         else
             # add line to log
             (( kk == 0  )) || printf '\n\n'
-            printf '%s:%'"${spacerN}"'.s\t(%ss|%s%%)\t%s\t{{ %s | %s | %s }}\t(%s->%s)' "${linenoA[$kk]}" "${runTimesA[$kk]}" "${runTimesPA[$kk]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]}" "${startTimesA[$kk]}" "${endTimesA[$kk]}"
+            printf '%s:%'"${spacerN}"'.s\t(%ss|%s%%)\t%s\t{{ %s | %s | %s }}\t(%s->%s)' "${linenoA[$kk]}" '' "${runTimesA[$kk]}" "${runTimesPA[$kk]}" "${cmdA[$kk]}" "${funcA[$kk]}" "${pidA[$kk]}" "${nexecA[$kk]}" "${startTimesA[$kk]}" "${endTimesA[$kk]}"
 
             # check if this is the start of a pipeline
             [[ ${isPipeA[$kk]} ]] && (( isPipeA[$kk] >= 1 )) && inPipeFlag=true
         fi
+        (( timep_LOG_NESTING_CUR == 0 )) && [[ "${timep_runType}" == 'f' ]] && printf '\n|'
 
         # add merged up log to log, including for "in the middle of a pipeline" commands
         [[ ${mergeA[$kk]} ]] && [[ -e "${mergeA[$kk]}" ]] && {
@@ -1172,6 +1176,7 @@ _timep_PROCESS_LOG() {
             # \rm -f "${mergeA[$kk]}"
             # \mv -f "${mergeA[$kk]}.orig" "${mergeA[$kk]}"
         }
+        (( timep_LOG_NESTING_CUR == 1 )) && [[ "${timep_runType}" == 'f' ]] && ! ${inPipeFlag} && printf '\n|'
 
         (( kk++ ))
     done >"${1}"
@@ -1186,11 +1191,12 @@ _timep_PROCESS_LOG() {
         else
             # add line to log
             (( kk == 0  )) || printf '\n\n'
-            printf '%s:%'"${spacerN}"'.s\t(%ss|%s%%)\t(%sx) %s' "${linenoUniqA[$kk]}" "${linenoUniqTimeA[${linenoUniqA[$kk]}]}" "${linenoUniqTimePA[${linenoUniqA[$kk]}]}" "${linenoUniqCountA[${linenoUniqA[$kk]}]}" "${cmdA[$kk]/%: * >>"'"/ >>"'"}"
+            printf '%s:%'"${spacerN}"'.s\t(%ss|%s%%)\t(%sx) %s' "${linenoUniqA[$kk]}" '' "${linenoUniqTimeA[${linenoUniqA[$kk]}]}" "${linenoUniqTimePA[${linenoUniqA[$kk]}]}" "${linenoUniqCountA[${linenoUniqA[$kk]}]}" "${cmdA[$kk]/%: * >>"'"/ >>"'"}"
 
             # check if this is the start of a pipeline
             [[ ${isPipeA[$kk]} ]] && (( isPipeA[$kk] >= 1 )) && inPipeFlag=true
         fi
+        (( timep_LOG_NESTING_CUR == 0 )) && [[ "${timep_runType}" == 'f' ]] && printf '\n|'
 
         # add merged up log to log, including for "in the middle of a pipeline" commands
         #logMergeAll="$(
@@ -1215,6 +1221,7 @@ _timep_PROCESS_LOG() {
         #    mapfile -t logMergeAllUCurTA < <(printf '%s\n' "${logMergeAllUCurA[@]}" | sed -E 's/^[^\t]*\t\(//; s/\)\t.*$//; s/\|/ /; s/[^0-9\. ]//')
         #    printf '\n%s\t(%ss|%s%%)\t%s' "${logMergeAllUCurA[0]%%$'\t'*}" "$(_timep_EPOCHREALTIME_SUM_ALT "${logMergeAllUCurTA[@]% *}")" "$(_timep_PERCENT_AVG_ALT "${logMergeAllUCurTA[@]#* }")" "${logMergeAllUCurA[0]#*$'\t'*$'\t'}" 
         #done
+        (( timep_LOG_NESTING_CUR == 1 )) && [[ "${timep_runType}" == 'f' ]] && ! ${inPipeFlag} && printf '\n|'
     done >"${1}.combined"
 }
 
@@ -1228,7 +1235,7 @@ while read -r nn; do
     timep_LOG_NESTING[${#nn}]+="${timep_LOG_NAME[$kk]}"$'\n';
     ((kk++));
 done < <(printf '%s\n' "${timep_LOG_NAME[@]}" | sed -E 's/^.*\/log\.([^\/]*)$/\1/; s/[^\.]//g')
-timep_LOG_NESTING_MAX=${#timep_LOG_NESTING[@]}
+(( timep_LOG_NESTING_MAX = ${#timep_LOG_NESTING[@]} - 1 ))
 # loop through logs from deepest nested upwards and run each through post processing function
 { 
     for (( timep_LOG_NESTING_CUR=${#timep_LOG_NESTING[@]}; timep_LOG_NESTING_CUR>=0; timep_LOG_NESTING_CUR-- )); do
