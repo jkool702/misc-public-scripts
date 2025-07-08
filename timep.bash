@@ -888,6 +888,7 @@ find  "${timep_TMPDIR}/.log" -maxdepth 1 -name 'log.*' -empty -exec \rm {} +
 _timep_EPOCHREALTIME_DIFF() {
     local tDiff d d6
 
+    { [[ ${endTimesA[$1]} ]] && [[ ${startTimesA[$1]} ]]; } || return
     (( tDiff = 10#${endTimesA[$1]//./} - 10#${startTimesA[$1]//./} ))
     printf -v d '%0.7d' "${tDiff#-}"
     (( d6 = ${#d} - 6 ))
@@ -898,7 +899,7 @@ _timep_EPOCHREALTIME_DIFF() {
 _timep_EPOCHREALTIME_DIFF_ALT() {
     local tDiff d d6
 
-    (( ${#} < 2 )) && return
+    { (( ${#} >= 2 )) && [[ $1 ]] && [[ $2 ]]; } || return
     (( tDiff = 10#${2//./} - 10#${1//./} ))
     printf -v d '%0.7d' "${tDiff#-}"
     (( d6 = ${#d} - 6 ))
@@ -906,7 +907,7 @@ _timep_EPOCHREALTIME_DIFF_ALT() {
 }
 
 _timep_EPOCHREALTIME_SUM() {
-    local tSum d d6
+    local tSum tSum0 d d6
 
     (( ${#runTimesA[@]} == 0 )) && return
     (( ${#runTimesA[@]} == 1 )) && {
@@ -916,8 +917,13 @@ _timep_EPOCHREALTIME_SUM() {
     }
 
     printf -v tSum '+10#%s' ${runTimesA[@]//./}
-    tSum="${tSum//+10#s+/+}"
-    tSum="${tSum//+10#s+/+}"
+    tSum0="${tSum}"
+    tSum="${tSum//+10#+/+}"
+    until [[ "${tSum}" == "${tSum0}" ]]; do
+        tSum0="${tSum}"
+        tSum="${tSum//+10#+/+}"
+    done
+    tSum="${tSum%+10#}"
     (( tSum = 0${tSum} ))
     printf -v d '%0.7d' "${tSum}"
     (( d6 = ${#d} - 6 ))
@@ -925,7 +931,7 @@ _timep_EPOCHREALTIME_SUM() {
 }
 
 _timep_EPOCHREALTIME_SUM_ALT() {
-    local tSum d d6
+    local tSum tSum0 d d6
 
     (( ${#} == 0 )) && return
     (( ${#} == 1 )) && {
@@ -935,8 +941,13 @@ _timep_EPOCHREALTIME_SUM_ALT() {
     }
 
     printf -v tSum '+10#%s' ${@//./}
-    tSum="${tSum//+10#s+/+}"
-    tSum="${tSum//+10#s+/+}"
+    tSum0="${tSum}"
+    tSum="${tSum//+10#+/+}"
+    until [[ "${tSum}" == "${tSum0}" ]]; do
+        tSum0="${tSum}"
+        tSum="${tSum//+10#+/+}"
+    done
+    tSum="${tSum%+10#}"
     (( tSum = 0${tSum//+10#+/+} ))
     printf -v d '%0.7d' "${tSum}"
     (( d6 = ${#d} - 6 ))
@@ -944,7 +955,7 @@ _timep_EPOCHREALTIME_SUM_ALT() {
 }
 
 _timep_PERCENT_AVG_ALT() {
-    local tSum d d2
+    local tSum tSum0 d d2
 
     (( ${#} == 0 )) && return
     (( ${#} == 1 )) && {
@@ -954,8 +965,13 @@ _timep_PERCENT_AVG_ALT() {
     }
 
     printf -v tSum '+10#%s' ${@//./}
-    tSum="${tSum//+10#s+/+}"
-    tSum="${tSum//+10#s+/+}"
+    tSum0="${tSum}"
+    tSum="${tSum//+10#+/+}"
+    until [[ "${tSum}" == "${tSum0}" ]]; do
+        tSum0="${tSum}"
+        tSum="${tSum//+10#+/+}"
+    done
+    tSum="${tSum%+10#}"
     (( tSum = 0${tSum//\%/} ))
     (( tSum = tSum / ${#} ))
     printf -v d '%0.4d' "${tSum}"
@@ -977,8 +993,6 @@ _timep_PROCESS_LOG() {
 
     # load current log (sorted by NEXEC) into array
     mapfile -t logA < <(sort -V -k9,9 <"${1}")
-    #mapfile -t logA < <(sort -V -t $'\t' -k6,6 <"${1}")
-    #mapfile -t logA < <(sort -n -t $'\t' -k2,2 <"${1}")
 
     log_dupe_flag=false
     for (( kk=1; kk<${#logA[@]}; kk++ )); do
@@ -1023,7 +1037,6 @@ _timep_PROCESS_LOG() {
                 [[ -s "${timep_TMPDIR}/.log/.endtimes/log.${nexecA[$kk]##* }" ]] && {
                     read -r endTime <"${timep_TMPDIR}/.log/.endtimes/log.${nexecA[$kk]##* }"
                     [[ ${endTime} ]] && ! [[ "${endTime}" == '-' ]] && endTimesA[$kk]="${endTime}"
-                    #[[ ${endTimesA[$kk]} ]] || ! [[ "${endTimesA[$kk]}" == '-' ]] || endTimesA[$kk]="$( _timep_EPOCHREALTIME_SUM_ALT "${startTimesA[$kk]}" '0.000001' )"
                 }
             }
         fi
@@ -1077,7 +1090,7 @@ _timep_PROCESS_LOG() {
             cmdA[$kk]+=" | ${cmdA[$kk1]}"
             (( nPipeA[$kk] == 1 )) && inPipeFlag=false
         elif (( nPipeA[$kk] > 1 )); then
-            # this is the last element of a pipeline. set flag to inducate this
+            # this is the last element of a pipeline. set flag to indicate this
             inPipeFlag=true
             isPipeA[$kk]=1
         fi
@@ -1247,7 +1260,7 @@ _timep_PROCESS_LOG() {
 }
 
 # get log names
-mapfile -t timep_LOG_NAME < <(find "${timep_TMPDIR}"/.log -name 'log*' | grep -vE '\.init_[cs]$' | sort -V)
+mapfile -t timep_LOG_NAME < <(find "${timep_TMPDIR}"/.log -name 'log*' | grep -vE '\.init_[csr]$' | sort -V)
 
 # get nesting lvl for each log
 timep_LOG_NESTING=()
@@ -1258,18 +1271,22 @@ while read -r nn; do
 done < <(printf '%s\n' "${timep_LOG_NAME[@]}" | sed -E 's/^.*\/log\.([^\/]*)$/\1/; s/[^\.]//g')
 (( timep_LOG_NESTING_MAX = ${#timep_LOG_NESTING[@]} - 1 ))
 # loop through logs from deepest nested upwards and run each through post processing function
+printf '\n\n' >&2
+kk=0
 { 
     for (( timep_LOG_NESTING_CUR=${#timep_LOG_NESTING[@]}; timep_LOG_NESTING_CUR>=0; timep_LOG_NESTING_CUR-- )); do
         mapfile -t timep_LOGS_CUR < <(echo "${timep_LOG_NESTING[$timep_LOG_NESTING_CUR]%$'\n'}" | sort -Vr)
         for nn in "${timep_LOGS_CUR[@]}"; do
-            echo _timep_PROCESS_LOG "${nn}"
+            printf '\rPROCESSING TIMEP LOG #%s of %s' "$kk" "${#timep_LOG_NAME[@]}" >&2
             [[ ${nn} ]] && _timep_PROCESS_LOG "${nn}"
             read -r -u "${fd_sleep}" -t 0.01
+            ((kk++))
         done
     done
 } {fd_sleep}<><(:)
 exec {fd_sleep}>&-
 
+printf '\n\n' >&2
 printf '\n\n' >>"${timep_LOG_NESTING[0]%$'\n'}"
 printf '\n\n' >>"${timep_LOG_NESTING[0]%$'\n'}.combined"
 
