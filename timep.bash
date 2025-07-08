@@ -939,7 +939,7 @@ _timep_PERCENT_AVG_ALT() {
     }
 
     printf -v tSum '+10#%s' ${@//./}
-    (( tSum = 0${tSum} ))
+    (( tSum = 0${tSum//\%/} ))
     (( tSum = tSum / ${#} ))
     printf -v d '%0.4d' "${tSum}"
     (( d2 = ${#d} - 2 ))
@@ -949,8 +949,8 @@ _timep_PERCENT_AVG_ALT() {
 local -g timep_LOG_NESTING_MAX timep_LOG_NESTING_CUR
 shopt -s extglob
 _timep_PROCESS_LOG() {
-    local kk kk1 runTimeTotal runTimeTotal0 inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd t0 t1 log_tmp linenoUniq merge_init_flag log_dupe_flag spacerN
-    local -a logA nPipeA startTimesA endTimesA runTimesA runTimesPA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA linenoUniqA
+    local kk kk1 runTimeTotal runTimeTotal0 inPipeFlag lineno1 nPipe startTime endTime runTime runTimeP func pid nexec lineno cmd t0 t1 log_tmp linenoUniq merge_init_flag log_dupe_flag spacerN lineU logMergeAll
+    local -a logA nPipeA startTimesA endTimesA runTimesA runTimesPA funcA pidA nexecA linenoA cmdA mergeA isPipeA logMergeA linenoUniqA lineUA timeUA
     local -A linenoUniqLineA linenoUniqCountA linenoUniqTimeA linenoUniqTimePA
 
     [[ -e "${1}" ]] || return 1
@@ -1199,8 +1199,7 @@ _timep_PROCESS_LOG() {
         (( timep_LOG_NESTING_CUR == 0 )) && [[ "${timep_runType}" == 'f' ]] && printf '\n|'
 
         # add merged up log to log, including for "in the middle of a pipeline" commands
-        #logMergeAll="$(
-        merge_init_flag=true
+        logMergeAll="$(merge_init_flag=true
         for kk1 in ${linenoUniqLineA[${linenoUniqA[$kk]}]}; do
             [[ ${mergeA[$kk1]} ]] && [[ -e "${mergeA[$kk1]}.combined" ]] && {
                 mapfile -t logMergeA < <(grep -E '.+' <"${mergeA[$kk1]}.combined")
@@ -1213,6 +1212,11 @@ _timep_PROCESS_LOG() {
                 fi
                 merge_init_flag=false
             }
+        done)"
+        mapfile -t lineUA < <(r=''; sed -E 's/^([^\:]+\:[[:space:]]+)[0-9\|\(\)\.s%]+[[:space:]]*'/'\1\t'/ <<<"${logMergeAll}" | while read -r nn; do [[ $nn ]] || continue; [[ "$r" == *$'\n'"$nn"$'\n'* ]] || { r+=$'\n'"$nn"$'\n'; echo "$nn"; }; done)
+        (( ${#lineUA[@]} > 0 )) && for lineU in "${lineUA[@]}"; do  
+            mapfile -t timeUA < <(grep -F "${lineU%%$'\t'*}" <<<"${logMergeAll}" | grep -F "${lineU#*$'\t'}" |  sed -E 's/^([^\:]+\:[[:space:]]+)\(([0-9\.s]+)\|([0-9\.%]+)\)[[:space:]]*(.*)$'/'\2 \3'/)
+            printf '\n%s\t(%ss|%s%%)\t(%sx) %s' "${lineU%%$'\t'*}" "$(_timep_EPOCHREALTIME_SUM_ALT "${timeUA[@]%s *}")" "$(_timep_PERCENT_AVG_ALT "${timeUA[@]#* }")" "${#timeUA[@]}" "${lineU#*$'\t'* }"
         done
         #)"
         #mapfile -t logMergeAllUA < <(sed -E s/'^([^:]*\:)\t(\([^\)]*\))\t(.*)$'/'\1\t\3'/ <<<"${logMergeAll}" | sort -u -t $'\t')
