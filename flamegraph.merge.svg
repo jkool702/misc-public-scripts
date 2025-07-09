@@ -1,0 +1,3434 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" width="3840" height="2340" onload="init(evt)" viewBox="0 0 3840 2340" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples. -->
+<!-- NOTES:  -->
+<defs>
+	<linearGradient id="background" y1="0" y2="1" x1="0" x2="0" >
+		<stop stop-color="#eeeeee" offset="5%" />
+		<stop stop-color="#eeeeb0" offset="95%" />
+	</linearGradient>
+</defs>
+<style type="text/css">
+	text { font-family:Verdana; font-size:10px; fill:rgb(0,0,0); }
+	#search, #ignorecase { opacity:0.1; cursor:pointer; }
+	#search:hover, #search.show, #ignorecase:hover, #ignorecase.show { opacity:1; }
+	#subtitle { text-anchor:middle; font-color:rgb(160,160,160); }
+	#title { text-anchor:middle; font-size:15px}
+	#unzoom { cursor:pointer; }
+	#frames > *:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
+	.hide { display:none; }
+	.parent { opacity:0.5; }
+</style>
+<script type="text/ecmascript">
+<![CDATA[
+	"use strict";
+	var details, searchbtn, unzoombtn, matchedtxt, svg, searching, currentSearchTerm, ignorecase, ignorecaseBtn;
+	function init(evt) {
+		details = document.getElementById("details").firstChild;
+		searchbtn = document.getElementById("search");
+		ignorecaseBtn = document.getElementById("ignorecase");
+		unzoombtn = document.getElementById("unzoom");
+		matchedtxt = document.getElementById("matched");
+		svg = document.getElementsByTagName("svg")[0];
+		searching = 0;
+		currentSearchTerm = null;
+
+		// use GET parameters to restore a flamegraphs state.
+		var params = get_params();
+		if (params.x && params.y)
+			zoom(find_group(document.querySelector('[x="' + params.x + '"][y="' + params.y + '"]')));
+                if (params.s) search(params.s);
+	}
+
+	// event listeners
+	window.addEventListener("click", function(e) {
+		var target = find_group(e.target);
+		if (target) {
+			if (target.nodeName == "a") {
+				if (e.ctrlKey === false) return;
+				e.preventDefault();
+			}
+			if (target.classList.contains("parent")) unzoom(true);
+			zoom(target);
+			if (!document.querySelector('.parent')) {
+				// we have basically done a clearzoom so clear the url
+				var params = get_params();
+				if (params.x) delete params.x;
+				if (params.y) delete params.y;
+				history.replaceState(null, null, parse_params(params));
+				unzoombtn.classList.add("hide");
+				return;
+			}
+
+			// set parameters for zoom state
+			var el = target.querySelector("rect");
+			if (el && el.attributes && el.attributes.y && el.attributes._orig_x) {
+				var params = get_params()
+				params.x = el.attributes._orig_x.value;
+				params.y = el.attributes.y.value;
+				history.replaceState(null, null, parse_params(params));
+			}
+		}
+		else if (e.target.id == "unzoom") clearzoom();
+		else if (e.target.id == "search") search_prompt();
+		else if (e.target.id == "ignorecase") toggle_ignorecase();
+	}, false)
+
+	// mouse-over for info
+	// show
+	window.addEventListener("mouseover", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = "CMD: " + g_to_text(target);
+	}, false)
+
+	// clear
+	window.addEventListener("mouseout", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = ' ';
+	}, false)
+
+	// ctrl-F for search
+	// ctrl-I to toggle case-sensitive search
+	window.addEventListener("keydown",function (e) {
+		if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {
+			e.preventDefault();
+			search_prompt();
+		}
+		else if (e.ctrlKey && e.keyCode === 73) {
+			e.preventDefault();
+			toggle_ignorecase();
+		}
+	}, false)
+
+	// functions
+	function get_params() {
+		var params = {};
+		var paramsarr = window.location.search.substr(1).split('&');
+		for (var i = 0; i < paramsarr.length; ++i) {
+			var tmp = paramsarr[i].split("=");
+			if (!tmp[0] || !tmp[1]) continue;
+			params[tmp[0]]  = decodeURIComponent(tmp[1]);
+		}
+		return params;
+	}
+	function parse_params(params) {
+		var uri = "?";
+		for (var key in params) {
+			uri += key + '=' + encodeURIComponent(params[key]) + '&';
+		}
+		if (uri.slice(-1) == "&")
+			uri = uri.substring(0, uri.length - 1);
+		if (uri == '?')
+			uri = window.location.href.split('?')[0];
+		return uri;
+	}
+	function find_child(node, selector) {
+		var children = node.querySelectorAll(selector);
+		if (children.length) return children[0];
+	}
+	function find_group(node) {
+		var parent = node.parentElement;
+		if (!parent) return;
+		if (parent.id == "frames") return node;
+		return find_group(parent);
+	}
+	function orig_save(e, attr, val) {
+		if (e.attributes["_orig_" + attr] != undefined) return;
+		if (e.attributes[attr] == undefined) return;
+		if (val == undefined) val = e.attributes[attr].value;
+		e.setAttribute("_orig_" + attr, val);
+	}
+	function orig_load(e, attr) {
+		if (e.attributes["_orig_"+attr] == undefined) return;
+		e.attributes[attr].value = e.attributes["_orig_" + attr].value;
+		e.removeAttribute("_orig_"+attr);
+	}
+	function g_to_text(e) {
+		var text = find_child(e, "title").firstChild.nodeValue;
+		return (text)
+	}
+	function g_to_func(e) {
+		var func = g_to_text(e);
+		// if there's any manipulation we want to do to the function
+		// name before it's searched, do it here before returning.
+		return (func);
+	}
+	function update_text(e) {
+		var r = find_child(e, "rect");
+		var t = find_child(e, "text");
+		var w = parseFloat(r.attributes.width.value) -3;
+		var txt = find_child(e, "title").textContent.replace(/\([^(]*\)$/,"");
+		t.attributes.x.value = parseFloat(r.attributes.x.value) + 3;
+
+		// Smaller than this size won't fit anything
+		if (w < 2 * 10 * 0.59) {
+			t.textContent = "";
+			return;
+		}
+
+		t.textContent = txt;
+		var sl = t.getSubStringLength(0, txt.length);
+		// check if only whitespace or if we can fit the entire string into width w
+		if (/^ *$/.test(txt) || sl < w)
+			return;
+
+		// this isn't perfect, but gives a good starting point
+		// and avoids calling getSubStringLength too often
+		var start = Math.floor((w/sl) * txt.length);
+		for (var x = start; x > 0; x = x-2) {
+			if (t.getSubStringLength(0, x + 2) <= w) {
+				t.textContent = txt.substring(0, x) + "..";
+				return;
+			}
+		}
+		t.textContent = "";
+	}
+
+	// zoom
+	function zoom_reset(e) {
+		if (e.attributes != undefined) {
+			orig_load(e, "x");
+			orig_load(e, "width");
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_reset(c[i]);
+		}
+	}
+	function zoom_child(e, x, ratio) {
+		if (e.attributes != undefined) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = (parseFloat(e.attributes.x.value) - x - 10) * ratio + 10;
+				if (e.tagName == "text")
+					e.attributes.x.value = find_child(e.parentNode, "rect[x]").attributes.x.value + 3;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseFloat(e.attributes.width.value) * ratio;
+			}
+		}
+
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_child(c[i], x - 10, ratio);
+		}
+	}
+	function zoom_parent(e) {
+		if (e.attributes) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = 10;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseInt(svg.width.baseVal.value) - (10 * 2);
+			}
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_parent(c[i]);
+		}
+	}
+	function zoom(node) {
+		var attr = find_child(node, "rect").attributes;
+		var width = parseFloat(attr.width.value);
+		var xmin = parseFloat(attr.x.value);
+		var xmax = parseFloat(xmin + width);
+		var ymin = parseFloat(attr.y.value);
+		var ratio = (svg.width.baseVal.value - 2 * 10) / width;
+
+		// XXX: Workaround for JavaScript float issues (fix me)
+		var fudge = 0.0001;
+
+		unzoombtn.classList.remove("hide");
+
+		var el = document.getElementById("frames").children;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var a = find_child(e, "rect").attributes;
+			var ex = parseFloat(a.x.value);
+			var ew = parseFloat(a.width.value);
+			var upstack;
+			// Is it an ancestor
+			if (1 == 0) {
+				upstack = parseFloat(a.y.value) > ymin;
+			} else {
+				upstack = parseFloat(a.y.value) < ymin;
+			}
+			if (upstack) {
+				// Direct ancestor
+				if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+					e.classList.add("parent");
+					zoom_parent(e);
+					update_text(e);
+				}
+				// not in current path
+				else
+					e.classList.add("hide");
+			}
+			// Children maybe
+			else {
+				// no common path
+				if (ex < xmin || ex + fudge >= xmax) {
+					e.classList.add("hide");
+				}
+				else {
+					zoom_child(e, xmin, ratio);
+					update_text(e);
+				}
+			}
+		}
+		search();
+	}
+	function unzoom(dont_update_text) {
+		unzoombtn.classList.add("hide");
+		var el = document.getElementById("frames").children;
+		for(var i = 0; i < el.length; i++) {
+			el[i].classList.remove("parent");
+			el[i].classList.remove("hide");
+			zoom_reset(el[i]);
+			if(!dont_update_text) update_text(el[i]);
+		}
+		search();
+	}
+	function clearzoom() {
+		unzoom();
+
+		// remove zoom state
+		var params = get_params();
+		if (params.x) delete params.x;
+		if (params.y) delete params.y;
+		history.replaceState(null, null, parse_params(params));
+	}
+
+	// search
+	function toggle_ignorecase() {
+		ignorecase = !ignorecase;
+		if (ignorecase) {
+			ignorecaseBtn.classList.add("show");
+		} else {
+			ignorecaseBtn.classList.remove("show");
+		}
+		reset_search();
+		search();
+	}
+	function reset_search() {
+		var el = document.querySelectorAll("#frames rect");
+		for (var i = 0; i < el.length; i++) {
+			orig_load(el[i], "fill")
+		}
+		var params = get_params();
+		delete params.s;
+		history.replaceState(null, null, parse_params(params));
+	}
+	function search_prompt() {
+		if (!searching) {
+			var term = prompt("Enter a search term (regexp " +
+			    "allowed, eg: ^ext4_)"
+			    + (ignorecase ? ", ignoring case" : "")
+			    + "\nPress Ctrl-i to toggle case sensitivity", "");
+			if (term != null) search(term);
+		} else {
+			reset_search();
+			searching = 0;
+			currentSearchTerm = null;
+			searchbtn.classList.remove("show");
+			searchbtn.firstChild.nodeValue = "Search"
+			matchedtxt.classList.add("hide");
+			matchedtxt.firstChild.nodeValue = ""
+		}
+	}
+	function search(term) {
+		if (term) currentSearchTerm = term;
+		if (currentSearchTerm === null) return;
+
+		var re = new RegExp(currentSearchTerm, ignorecase ? 'i' : '');
+		var el = document.getElementById("frames").children;
+		var matches = new Object();
+		var maxwidth = 0;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var func = g_to_func(e);
+			var rect = find_child(e, "rect");
+			if (func == null || rect == null)
+				continue;
+
+			// Save max width. Only works as we have a root frame
+			var w = parseFloat(rect.attributes.width.value);
+			if (w > maxwidth)
+				maxwidth = w;
+
+			if (func.match(re)) {
+				// highlight
+				var x = parseFloat(rect.attributes.x.value);
+				orig_save(rect, "fill");
+				rect.attributes.fill.value = "rgb(230,0,230)";
+
+				// remember matches
+				if (matches[x] == undefined) {
+					matches[x] = w;
+				} else {
+					if (w > matches[x]) {
+						// overwrite with parent
+						matches[x] = w;
+					}
+				}
+				searching = 1;
+			}
+		}
+		if (!searching)
+			return;
+		var params = get_params();
+		params.s = currentSearchTerm;
+		history.replaceState(null, null, parse_params(params));
+
+		searchbtn.classList.add("show");
+		searchbtn.firstChild.nodeValue = "Reset Search";
+
+		// calculate percent matched, excluding vertical overlap
+		var count = 0;
+		var lastx = -1;
+		var lastw = 0;
+		var keys = Array();
+		for (k in matches) {
+			if (matches.hasOwnProperty(k))
+				keys.push(k);
+		}
+		// sort the matched frames by their x location
+		// ascending, then width descending
+		keys.sort(function(a, b){
+			return a - b;
+		});
+		// Step through frames saving only the biggest bottom-up frames
+		// thanks to the sort order. This relies on the tree property
+		// where children are always smaller than their parents.
+		var fudge = 0.0001;	// JavaScript floating point
+		for (var k in keys) {
+			var x = parseFloat(keys[k]);
+			var w = matches[keys[k]];
+			if (x >= lastx + lastw - fudge) {
+				count += w;
+				lastx = x;
+				lastw = w;
+			}
+		}
+		// display matched percent
+		matchedtxt.classList.remove("hide");
+		var pct = 100 * count / maxwidth;
+		if (pct != 100) pct = pct.toFixed(1)
+		matchedtxt.firstChild.nodeValue = "Matched: " + pct + "%";
+	}
+]]>
+</script>
+<rect x="0.0" y="0" width="3840.0" height="2340.0" fill="url(#background)"  />
+<text id="title" x="1920.00" y="20" >forkrun flamegraph</text>
+<text id="details" x="10.00" y="2325" > </text>
+<text id="unzoom" x="10.00" y="20" class="hide">Reset Zoom</text>
+<text id="search" x="3730.00" y="20" >Search</text>
+<text id="ignorecase" x="3814.00" y="20" >ic</text>
+<text id="matched" x="3730.00" y="2325" > </text>
+<g id="frames">
+<g >
+<title>evfd_wait (1,803 us, 0.00%; +0.00%)</title><rect x="1061.4" y="198" width="0.1" height="23.0" fill="rgb(255,207,207)" rx="2" ry="2" />
+<text  x="1064.41" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,395 us, 0.00%)</title><rect x="2774.7" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="2777.70" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,787 us, 0.00%)</title><rect x="1724.7" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="1727.71" y="212.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,234 us, 0.00%; +0.00%)</title><rect x="2376.4" y="198" width="0.1" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="2379.39" y="212.5" ></text>
+</g>
+<g >
+<title>all (132,404,047 us, 100%)</title><rect x="10.0" y="30" width="3820.0" height="23.0" fill="rgb(213,39,9)" rx="2" ry="2" />
+<text  x="13.00" y="44.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,538 us, 0.00%)</title><rect x="1594.3" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="1597.35" y="212.5" ></text>
+</g>
+<g >
+<title> then$'\n'                [[ -n ${tTimeout} ]] &amp;&amp; echo &quot;SECONDS=0&quot;$'\n'printf 'if read -r -d '&quot;''&quot;' -n %s -u %s' &quot;${nBytes}&quot; &quot;${fd_read}&quot;$'\n'[[ -n ${tTimeout} ]] &amp;&amp; printf ' -t %s' &quot;${tTimeout}&quot;$'\n'echo &quot;&quot;&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="486" width="0.0" height="23.0" fill="rgb(215,46,11)" rx="2" ry="2" />
+<text  x="13.40" y="500.5" ></text>
+</g>
+<g >
+<title> (1,350 us, 0.00%)</title><rect x="10.4" y="438" width="0.0" height="23.0" fill="rgb(213,39,9)" rx="2" ry="2" />
+<text  x="13.40" y="452.5" ></text>
+</g>
+<g >
+<title>evfd_wait (1,544 us, 0.00%; +0.00%)</title><rect x="3408.2" y="198" width="0.0" height="23.0" fill="rgb(255,207,207)" rx="2" ry="2" />
+<text  x="3411.18" y="212.5" ></text>
+</g>
+<g >
+<title>true (2,388 us, 0.00%)</title><rect x="1724.4" y="198" width="0.0" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="1727.37" y="212.5" ></text>
+</g>
+<g >
+<title>FUNCTION (forkrun) (132,403,974 us, 100.00%)</title><rect x="10.0" y="78" width="3820.0" height="23.0" fill="rgb(210,26,6)" rx="2" ry="2" />
+<text  x="13.00" y="92.5" >FUNCTION (forkrun)</text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (3,417 us, 0.00%)</title><rect x="1991.8" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="1994.81" y="212.5" ></text>
+</g>
+<g >
+<title>local p15 p15_PID (&amp;) (894 us, 0.00%)</title><rect x="10.7" y="174" width="0.1" height="23.0" fill="rgb(239,160,38)" rx="2" ry="2" />
+<text  x="13.73" y="188.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,053 us, 0.00%)</title><rect x="1464.6" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="1467.64" y="212.5" ></text>
+</g>
+<g >
+<title>break (1,382 us, 0.00%)</title><rect x="2120.2" y="198" width="0.0" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="2123.17" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,222,730 us, 2.43%)</title><rect x="1062.4" y="198" width="93.0" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="1065.42" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,905 us, 0.00%)</title><rect x="1992.7" y="198" width="0.0" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="1995.67" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (8,829 us, 0.01%)</title><rect x="2775.3" y="246" width="0.3" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="2778.30" y="260.5" ></text>
+</g>
+<g >
+<title>break (2,905 us, 0.00%)</title><rect x="2376.1" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="2379.09" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p11 (2,269 us, 0.00%)</title><rect x="1464.7" y="198" width="0.1" height="23.0" fill="rgb(246,189,45)" rx="2" ry="2" />
+<text  x="1467.70" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330789) (4,388,630 us, 3.31%)</title><rect x="2901.5" y="174" width="126.6" height="23.0" fill="rgb(238,155,37)" rx="2" ry="2" />
+<text  x="2904.45" y="188.5" >SUBSHELL (330789)</text>
+</g>
+<g >
+<title>SUBSHELL (330768) (4,462,093 us, 3.37%)</title><rect x="1991.0" y="174" width="128.8" height="23.0" fill="rgb(208,14,3)" rx="2" ry="2" />
+<text  x="1994.02" y="188.5" >SUBSHELL (330768)</text>
+</g>
+<g >
+<title>SUBSHELL (330771) (4,429,159 us, 3.35%)</title><rect x="2119.8" y="174" width="127.7" height="23.0" fill="rgb(246,192,46)" rx="2" ry="2" />
+<text  x="2122.75" y="188.5" >SUBSHELL (330771)</text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (8,726 us, 0.01%)</title><rect x="1595.0" y="246" width="0.3" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="1598.03" y="260.5" ></text>
+</g>
+<g >
+<title> } &amp;&amp; printf '%s ' '-t'$'\n'echo &quot;&quot;&quot;${delimiterReadStr} A$'\n'    }&quot;&quot;&quot;$'\n'${pipeReadFlag} \|\| { ${nullDelimiterFlag} &amp;&amp; [[ -z ${nullDelimiterProg} ]] (1,350 us, 0.00%)</title><rect x="10.4" y="990" width="0.0" height="23.0" fill="rgb(249,205,49)" rx="2" ry="2" />
+<text  x="13.40" y="1004.5" ></text>
+</g>
+<g >
+<title> } (1,350 us, 0.00%)</title><rect x="10.4" y="1542" width="0.0" height="23.0" fill="rgb(249,203,48)" rx="2" ry="2" />
+<text  x="13.40" y="1556.5" ></text>
+</g>
+<g >
+<title> then$'\n'            echo &quot;[[ \${#REPLY} == 0 ]] \|\| {&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="1062" width="0.0" height="23.0" fill="rgb(209,21,5)" rx="2" ry="2" />
+<text  x="13.40" y="1076.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p1 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p1 (11,572 us, 0.01%)</title><rect x="143.4" y="222" width="0.3" height="23.0" fill="rgb(228,106,25)" rx="2" ry="2" />
+<text  x="146.37" y="236.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (937,121 us, 0.71%)</title><rect x="3380.6" y="198" width="27.0" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="3383.57" y="212.5" >sh..</text>
+</g>
+<g >
+<title> } &amp;&amp; {$'\n'        printf '%s\\n' \${#A[@]} &gt;&amp;\${fd_nAuto0}$'\n'        (( \${nLinesCur} &lt; ${nLinesMax} )) \|\| nLinesAutoFlag=false$'\n'    }&quot;&quot;&quot;$'\n'${fallocateFlag} &amp;&amp; printf '%s' ' \|\| ' \|\| echo (1,350 us, 0.00%)</title><rect x="10.4" y="1782" width="0.0" height="23.0" fill="rgb(226,99,23)" rx="2" ry="2" />
+<text  x="13.40" y="1796.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330787) (4,401,524 us, 3.32%)</title><rect x="2774.5" y="174" width="127.0" height="23.0" fill="rgb(251,214,51)" rx="2" ry="2" />
+<text  x="2777.46" y="188.5" >SUBSHELL (330787)</text>
+</g>
+<g >
+<title>true (2,189 us, 0.00%)</title><rect x="3279.9" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="3282.95" y="212.5" ></text>
+</g>
+<g >
+<title>true (2,154 us, 0.00%)</title><rect x="3028.0" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="3031.01" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,424 us, 0.00%)</title><rect x="144.4" y="198" width="0.0" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="147.37" y="212.5" ></text>
+</g>
+<g >
+<title>true (2,476 us, 0.00%)</title><rect x="1990.9" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="1993.95" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (1,909 us, 0.00%)</title><rect x="1203.4" y="198" width="0.0" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="1206.37" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (16,215 us, 0.01%)</title><rect x="2515.9" y="198" width="0.5" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="2518.95" y="212.5" ></text>
+</g>
+<g >
+<title>mkdir -p &quot;${tmpDir}&quot;/.run (1,575 us, 0.00%)</title><rect x="10.1" y="126" width="0.0" height="23.0" fill="rgb(221,75,18)" rx="2" ry="2" />
+<text  x="13.05" y="140.5" ></text>
+</g>
+<g >
+<title> } (1,350 us, 0.00%)</title><rect x="10.4" y="1878" width="0.0" height="23.0" fill="rgb(249,203,48)" rx="2" ry="2" />
+<text  x="13.40" y="1892.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p12 (2,239 us, 0.00%)</title><rect x="1594.7" y="198" width="0.0" height="23.0" fill="rgb(239,159,38)" rx="2" ry="2" />
+<text  x="1597.67" y="212.5" ></text>
+</g>
+<g >
+<title>(( ${fd_read_pos} &gt; ${fd_read_pos_old} )) (993 us, 0.00%)</title><rect x="3665.5" y="174" width="0.0" height="23.0" fill="rgb(241,168,40)" rx="2" ry="2" />
+<text  x="3668.46" y="188.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p23 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p23 (8,739 us, 0.01%)</title><rect x="3028.9" y="222" width="0.3" height="23.0" fill="rgb(206,5,1)" rx="2" ry="2" />
+<text  x="3031.94" y="236.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p11 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p11 (8,700 us, 0.01%)</title><rect x="1465.1" y="222" width="0.2" height="23.0" fill="rgb(245,184,44)" rx="2" ry="2" />
+<text  x="1468.05" y="236.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,491,928 us, 2.64%)</title><rect x="801.1" y="198" width="100.7" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="804.07" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title> kill -HUP ${PID0} \${BASHPID}' HUP$'\n'trap 'trap - TERM INT HUP USR1' USR1$'\n'$'\n'while true (1,350 us, 0.00%)</title><rect x="10.4" y="270" width="0.0" height="23.0" fill="rgb(249,204,48)" rx="2" ry="2" />
+<text  x="13.40" y="284.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,941 us, 0.00%)</title><rect x="2377.4" y="198" width="0.0" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="2380.39" y="212.5" ></text>
+</g>
+<g >
+<title>evfd_wait (1,804 us, 0.00%; +0.00%)</title><rect x="1202.4" y="198" width="0.1" height="23.0" fill="rgb(255,207,207)" rx="2" ry="2" />
+<text  x="1205.41" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'fi$'\n'${pipeReadFlag} \|\| { ${nullDelimiterFlag} &amp;&amp; [[ -z ${nullDelimiterProg} ]] (1,350 us, 0.00%)</title><rect x="10.4" y="1566" width="0.0" height="23.0" fill="rgb(252,216,51)" rx="2" ry="2" />
+<text  x="13.40" y="1580.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p16 (2,546 us, 0.00%)</title><rect x="2120.3" y="198" width="0.1" height="23.0" fill="rgb(213,40,9)" rx="2" ry="2" />
+<text  x="2123.28" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,265,142 us, 2.47%)</title><rect x="2516.5" y="198" width="94.2" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="2519.53" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (659,407 us, 0.50%)</title><rect x="3260.9" y="198" width="19.0" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="3263.92" y="212.5" >s..</text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,528 us, 0.00%)</title><rect x="3535.7" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="3538.74" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,075 us, 0.00%)</title><rect x="3537.1" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="3540.09" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,642 us, 0.00%)</title><rect x="2774.6" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="2777.56" y="212.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p15 (2,538 us, 0.00%)</title><rect x="1991.6" y="198" width="0.1" height="23.0" fill="rgb(213,40,9)" rx="2" ry="2" />
+<text  x="1994.59" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap 'trap - TERM INT HUP USR1 (27,054 us, 0.02%)</title><rect x="3661.9" y="150" width="0.8" height="23.0" fill="rgb(209,22,5)" rx="2" ry="2" />
+<text  x="3664.90" y="164.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p16 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p16 (9,057 us, 0.01%)</title><rect x="2120.7" y="222" width="0.2" height="23.0" fill="rgb(230,116,27)" rx="2" ry="2" />
+<text  x="2123.66" y="236.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,553 us, 0.00%)</title><rect x="800.0" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="802.98" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (19,562 us, 0.01%)</title><rect x="800.4" y="198" width="0.5" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="803.38" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (20,623 us, 0.02%)</title><rect x="143.7" y="198" width="0.6" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="146.70" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'            esac (1,350 us, 0.00%)</title><rect x="10.4" y="1398" width="0.0" height="23.0" fill="rgb(230,115,27)" rx="2" ry="2" />
+<text  x="13.40" y="1412.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p2 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p2 (8,496 us, 0.01%)</title><rect x="274.2" y="222" width="0.2" height="23.0" fill="rgb(215,46,11)" rx="2" ry="2" />
+<text  x="277.16" y="236.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (8,739 us, 0.01%)</title><rect x="3028.9" y="198" width="0.3" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="3031.94" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (8,496 us, 0.01%)</title><rect x="274.2" y="246" width="0.2" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="277.16" y="260.5" ></text>
+</g>
+<g >
+<title>$'\n'            fi$'\n'         (1,350 us, 0.00%)</title><rect x="10.4" y="894" width="0.0" height="23.0" fill="rgb(209,20,4)" rx="2" ry="2" />
+<text  x="13.40" y="908.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,518,977 us, 2.66%)</title><rect x="2377.5" y="198" width="101.5" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="2380.51" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (983,751 us, 0.74%)</title><rect x="901.8" y="198" width="28.4" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="904.82" y="212.5" >sh..</text>
+</g>
+<g >
+<title>local p27 p27_PID (&amp;) (932 us, 0.00%)</title><rect x="11.0" y="174" width="0.1" height="23.0" fill="rgb(251,212,50)" rx="2" ry="2" />
+<text  x="14.03" y="188.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p9 (2,115 us, 0.00%)</title><rect x="1202.3" y="198" width="0.0" height="23.0" fill="rgb(211,27,6)" rx="2" ry="2" />
+<text  x="1205.28" y="212.5" ></text>
+</g>
+<g >
+<title> }$'\n'                else$'\n'                    trailingNullFlag=false$'\n'                    [[ \${REPLY} ]] &amp;&amp; A+=(\&quot;\${REPLY}\&quot;)$'\n'                    { (( \${nBytesRead} &gt;= ${nBytes} )) \|\| ${doneIndicatorFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="654" width="0.0" height="23.0" fill="rgb(208,14,3)" rx="2" ry="2" />
+<text  x="13.40" y="668.5" ></text>
+</g>
+<g >
+<title>true (2,409 us, 0.00%)</title><rect x="1594.1" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="1597.13" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330718) (132,404,047 us, 100.00%)</title><rect x="10.0" y="54" width="3820.0" height="23.0" fill="rgb(240,163,39)" rx="2" ry="2" />
+<text  x="13.00" y="68.5" >SUBSHELL (330718)</text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,580 us, 0.00%)</title><rect x="273.4" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="276.42" y="212.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (1,079,002 us, 0.81%)</title><rect x="1563.0" y="198" width="31.1" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="1566.00" y="212.5" >sha..</text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (8,711 us, 0.01%)</title><rect x="800.1" y="246" width="0.3" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="803.13" y="260.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,451,924 us, 2.61%)</title><rect x="13.2" y="198" width="99.6" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="16.22" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,631 us, 0.00%)</title><rect x="1201.9" y="198" width="0.1" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="1204.91" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,702 us, 0.00%)</title><rect x="799.4" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="802.37" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p24 (2,383 us, 0.00%)</title><rect x="3154.9" y="198" width="0.1" height="23.0" fill="rgb(220,70,16)" rx="2" ry="2" />
+<text  x="3157.89" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (8,789 us, 0.01%)</title><rect x="931.2" y="198" width="0.2" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="934.18" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,186 us, 0.00%)</title><rect x="1464.9" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="1467.91" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p0 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p0 (9,753 us, 0.01%)</title><rect x="12.2" y="222" width="0.3" height="23.0" fill="rgb(241,165,39)" rx="2" ry="2" />
+<text  x="15.20" y="236.5" ></text>
+</g>
+<g >
+<title>break (2,005 us, 0.00%)</title><rect x="1594.6" y="198" width="0.0" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="1597.55" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;${tmpDir}&quot;/.quit ]] (33,679 us, 0.03%)</title><rect x="3673.9" y="174" width="1.0" height="23.0" fill="rgb(247,195,46)" rx="2" ry="2" />
+<text  x="3676.90" y="188.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,753 us, 0.00%)</title><rect x="2902.2" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="2905.21" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'        kill -INT $(cat &lt;/dev/null &quot;'&quot;${tmpDir}&quot;'&quot;/.run/p* 2&gt;/dev/null) '&quot;${PID0}&quot; INT &gt;&gt; (9,111 us, 0.01%)</title><rect x="3662.2" y="222" width="0.2" height="23.0" fill="rgb(210,23,5)" rx="2" ry="2" />
+<text  x="3665.16" y="236.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330792) (4,354,373 us, 3.29%)</title><rect x="3154.4" y="174" width="125.6" height="23.0" fill="rgb(227,103,24)" rx="2" ry="2" />
+<text  x="3157.38" y="188.5" >SUBSHELL (330792)</text>
+</g>
+<g >
+<title> } &amp;&amp; { trailingNullFlag=false (1,350 us, 0.00%)</title><rect x="10.4" y="678" width="0.0" height="23.0" fill="rgb(231,122,29)" rx="2" ry="2" />
+<text  x="13.40" y="692.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,312,707 us, 2.50%)</title><rect x="1992.8" y="198" width="95.6" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="1995.79" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,688 us, 0.00%)</title><rect x="2376.0" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="2378.98" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p27 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p27 (8,722 us, 0.01%)</title><rect x="3536.3" y="222" width="0.2" height="23.0" fill="rgb(254,228,54)" rx="2" ry="2" />
+<text  x="3539.29" y="236.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,595 us, 0.00%)</title><rect x="2648.1" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="2651.11" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,599 us, 0.00%)</title><rect x="1724.4" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="1727.44" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (11,110 us, 0.01%)</title><rect x="668.2" y="198" width="0.3" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="671.16" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (8,700 us, 0.01%)</title><rect x="1465.1" y="246" width="0.2" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="1468.05" y="260.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330737) (19,288 us, 0.01%)</title><rect x="3663.0" y="150" width="0.6" height="23.0" fill="rgb(234,133,31)" rx="2" ry="2" />
+<text  x="3666.02" y="164.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (18,553 us, 0.01%)</title><rect x="405.8" y="198" width="0.6" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="408.83" y="212.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,495 us, 0.00%)</title><rect x="3154.8" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="3157.81" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (16,452 us, 0.01%)</title><rect x="1061.8" y="198" width="0.5" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="1064.83" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (4,119 us, 0.00%)</title><rect x="11.3" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="14.27" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,361 us, 0.00%)</title><rect x="2248.3" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="2251.31" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330791) (4,378,166 us, 3.31%)</title><rect x="3028.1" y="174" width="126.3" height="23.0" fill="rgb(234,133,31)" rx="2" ry="2" />
+<text  x="3031.07" y="188.5" >SUBSHELL (330791)</text>
+</g>
+<g >
+<title>evfd_wait (2,374 us, 0.00%; +0.00%)</title><rect x="273.9" y="198" width="0.1" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="276.91" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (3,372 us, 0.00%)</title><rect x="3155.2" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="3158.19" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (10,043 us, 0.01%)</title><rect x="1202.6" y="198" width="0.3" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="1205.58" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (8,751 us, 0.01%)</title><rect x="3155.3" y="246" width="0.2" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="3158.28" y="260.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (1,662 us, 0.00%)</title><rect x="3408.2" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="3411.23" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,317,586 us, 2.51%)</title><rect x="2121.7" y="198" width="95.7" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="2124.66" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,684 us, 0.00%)</title><rect x="1203.3" y="198" width="0.1" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="1206.32" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,421,446 us, 2.58%)</title><rect x="3281.9" y="198" width="98.7" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="3284.86" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p22 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p22 (8,711 us, 0.01%)</title><rect x="2902.3" y="222" width="0.2" height="23.0" fill="rgb(219,65,15)" rx="2" ry="2" />
+<text  x="2905.29" y="236.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,777 us, 0.00%)</title><rect x="799.4" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="802.42" y="212.5" ></text>
+</g>
+<g >
+<title> then$'\n'            printf &quot;&lt;&lt;&lt;\&quot;\${A[*]%s}\&quot;&quot; &quot;${delimiterRemoveStr}&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="2118" width="0.0" height="23.0" fill="rgb(250,210,50)" rx="2" ry="2" />
+<text  x="13.40" y="2132.5" ></text>
+</g>
+<g >
+<title>$'\n'                'bash')$'\n'                    echo &quot;&quot;&quot;$'\n'                IFS=\$'\\t' read -r _ fd_read_pos0 &lt;/proc/self/fdinfo/${fd_read0}$'\n'                nBytes=\$(( fd_read_pos - fd_read_pos0 - \${#A[@]} ))&quot;&quot;&quot;$'\n'if ${ddAvailableFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="1230" width="0.0" height="23.0" fill="rgb(240,162,38)" rx="2" ry="2" />
+<text  x="13.40" y="1244.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,359 us, 0.00%; +0.00%)</title><rect x="799.9" y="198" width="0.1" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="802.90" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (8,834 us, 0.01%)</title><rect x="2648.2" y="246" width="0.2" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="2651.18" y="260.5" ></text>
+</g>
+<g >
+<title>true (2,248 us, 0.00%)</title><rect x="3407.6" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="3410.60" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330795) (4,424,727 us, 3.34%)</title><rect x="3280.0" y="174" width="127.7" height="23.0" fill="rgb(208,14,3)" rx="2" ry="2" />
+<text  x="3283.01" y="188.5" >SUBSHELL (330795)</text>
+</g>
+<g >
+<title>evfd_wait (2,477 us, 0.00%; +0.00%)</title><rect x="405.4" y="198" width="0.0" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="408.35" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,021 us, 0.00%)</title><rect x="2248.3" y="198" width="0.0" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="2251.25" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'else$'\n'    ${nLinesReadLimitFlag} &amp;&amp; printf '%s' &quot;&quot;&quot;read -r nLinesRead &lt;\&quot;${tmpDir}\&quot;/.nLinesRead$'\n'    (( ( nLinesReadLimit - nLinesRead ) &lt; nLinesCur )) &amp;&amp; nLinesCur=\$(( nLinesReadLimit - nLinesRead ))$'\n'    (( nLinesCur == 0 )) &amp;&amp; A=() \|\| &quot;&quot;&quot;$'\n'echo &quot;{&quot;$'\n'${nOrderFlag} &amp;&amp; echo &quot;order_get nOrder&quot;$'\n'${pipeReadFlag} \|\| echo &quot;evfd_wait ${fd_nSpawn}&quot;$'\n'printf '%s ' &quot;mapfile&quot;$'\n'${lseekFlag} &amp;&amp; printf '%s ' '-t'$'\n'printf '%s ' '-n' &quot;\${nLinesCur}&quot; '-u'$'\n'${pipeReadFlag} &amp;&amp; printf '%s ' ${fd_stdin} \|\| printf '%s ' ${fd_read}$'\n'{ ${pipeReadFlag} \|\| ${nullDelimiterFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="966" width="0.0" height="23.0" fill="rgb(238,155,37)" rx="2" ry="2" />
+<text  x="13.40" y="980.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p23 (2,443 us, 0.00%)</title><rect x="3028.6" y="198" width="0.0" height="23.0" fill="rgb(226,100,24)" rx="2" ry="2" />
+<text  x="3031.56" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (20,109 us, 0.02%)</title><rect x="3029.2" y="198" width="0.6" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="3032.19" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (18,595 us, 0.01%)</title><rect x="1334.3" y="198" width="0.6" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="1337.35" y="212.5" ></text>
+</g>
+<g >
+<title>break (2,736 us, 0.00%)</title><rect x="2515.2" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="2518.20" y="212.5" ></text>
+</g>
+<g >
+<title>break (2,212 us, 0.00%)</title><rect x="2901.8" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="2904.81" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p10 (2,260 us, 0.00%)</title><rect x="1333.7" y="198" width="0.0" height="23.0" fill="rgb(252,219,52)" rx="2" ry="2" />
+<text  x="1336.68" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,504 us, 0.00%)</title><rect x="1333.9" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="1336.94" y="212.5" ></text>
+</g>
+<g >
+<title>mktemp -p &quot;${tmpDirRoot}&quot; -d .forkrun.XXXXXX (2,180 us, 0.00%)</title><rect x="10.1" y="150" width="0.1" height="23.0" fill="rgb(231,121,29)" rx="2" ry="2" />
+<text  x="13.10" y="164.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330742) (4,556,958 us, 3.44%)</title><rect x="273.3" y="174" width="131.4" height="23.0" fill="rgb(209,22,5)" rx="2" ry="2" />
+<text  x="276.26" y="188.5" >SUBSHELL (330742)</text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,499 us, 0.00%)</title><rect x="1991.3" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="1994.28" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,733,563 us, 2.82%)</title><rect x="538.5" y="198" width="107.7" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="541.50" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,370 us, 0.00%)</title><rect x="1594.9" y="198" width="0.0" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="1597.88" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330723) (2,180 us, 0.00%)</title><rect x="10.1" y="126" width="0.1" height="23.0" fill="rgb(216,52,12)" rx="2" ry="2" />
+<text  x="13.10" y="140.5" ></text>
+</g>
+<g >
+<title> (1,350 us, 0.00%)</title><rect x="10.4" y="1206" width="0.0" height="23.0" fill="rgb(213,39,9)" rx="2" ry="2" />
+<text  x="13.40" y="1220.5" ></text>
+</g>
+<g >
+<title>$'\n'    esac (1,350 us, 0.00%)</title><rect x="10.4" y="942" width="0.0" height="23.0" fill="rgb(233,132,31)" rx="2" ry="2" />
+<text  x="13.40" y="956.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p27 (2,546 us, 0.00%)</title><rect x="3536.0" y="198" width="0.1" height="23.0" fill="rgb(244,181,43)" rx="2" ry="2" />
+<text  x="3539.02" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (331489) (4,786 us, 0.00%)</title><rect x="3683.1" y="150" width="0.2" height="23.0" fill="rgb(251,214,51)" rx="2" ry="2" />
+<text  x="3686.12" y="164.5" ></text>
+</g>
+<g >
+<title> }$'\n'                    break$'\n'                fi$'\n'            done$'\n'        }&quot;&quot;&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="726" width="0.0" height="23.0" fill="rgb(238,154,36)" rx="2" ry="2" />
+<text  x="13.40" y="740.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,536 us, 0.00%)</title><rect x="404.7" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="407.73" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p27 (2,357 us, 0.00%)</title><rect x="3535.9" y="198" width="0.1" height="23.0" fill="rgb(250,211,50)" rx="2" ry="2" />
+<text  x="3538.95" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,894 us, 0.00%)</title><rect x="274.0" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="276.99" y="212.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,604 us, 0.00%)</title><rect x="1060.9" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="1063.93" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,989 us, 0.00%)</title><rect x="273.4" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="276.36" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,652 us, 0.00%)</title><rect x="1464.5" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="1467.48" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (1,776 us, 0.00%)</title><rect x="1061.5" y="198" width="0.0" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="1064.46" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (16,811 us, 0.01%)</title><rect x="3280.8" y="246" width="0.5" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="3283.78" y="260.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (4,031 us, 0.00%)</title><rect x="142.6" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="145.60" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (8,700 us, 0.01%)</title><rect x="1465.1" y="198" width="0.2" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="1468.05" y="212.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,222 us, 0.00%)</title><rect x="2901.9" y="198" width="0.0" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="2904.87" y="212.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,040 us, 0.00%; +0.00%)</title><rect x="2515.5" y="198" width="0.0" height="23.0" fill="rgb(255,207,207)" rx="2" ry="2" />
+<text  x="2518.48" y="212.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (1,893 us, 0.00%)</title><rect x="1724.9" y="198" width="0.0" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="1727.88" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,778 us, 0.00%)</title><rect x="1854.2" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="1857.22" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330781) (4,592,010 us, 3.47%)</title><rect x="2514.9" y="174" width="132.5" height="23.0" fill="rgb(240,163,39)" rx="2" ry="2" />
+<text  x="2517.87" y="188.5" >SUBSHELL (330781)</text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (1,606,690 us, 1.21%)</title><rect x="1155.4" y="198" width="46.4" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="1158.40" y="212.5" >sha51..</text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p25 (2,198 us, 0.00%)</title><rect x="3280.5" y="198" width="0.0" height="23.0" fill="rgb(213,40,9)" rx="2" ry="2" />
+<text  x="3283.45" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,976 us, 0.00%)</title><rect x="2903.1" y="198" width="0.0" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="2906.08" y="212.5" ></text>
+</g>
+<g >
+<title>nWait=$(( 16 + ( ${nProcs} / 2 ) )) (1,241 us, 0.00%)</title><rect x="3678.6" y="174" width="0.0" height="23.0" fill="rgb(218,64,15)" rx="2" ry="2" />
+<text  x="3681.56" y="188.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,507 us, 0.00%)</title><rect x="1333.2" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="1336.20" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,042 us, 0.00%)</title><rect x="406.4" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="409.42" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,669 us, 0.00%)</title><rect x="667.5" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="670.47" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,648,622 us, 2.76%)</title><rect x="932.2" y="198" width="105.2" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="935.17" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,930 us, 0.00%)</title><rect x="3154.5" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="3157.49" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (12,621 us, 0.01%)</title><rect x="2248.4" y="198" width="0.3" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="2251.38" y="212.5" ></text>
+</g>
+<g >
+<title> } &amp;&amp; echo &quot;{ \${nLinesAutoFlag} \|\| \${nSpawnFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="318" width="0.0" height="23.0" fill="rgb(236,146,35)" rx="2" ry="2" />
+<text  x="13.40" y="332.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p8 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p8 (8,714 us, 0.01%)</title><rect x="1061.6" y="222" width="0.2" height="23.0" fill="rgb(237,150,35)" rx="2" ry="2" />
+<text  x="1064.58" y="236.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,856 us, 0.00%)</title><rect x="1991.1" y="198" width="0.1" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="1994.12" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (3,121 us, 0.00%)</title><rect x="537.4" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="540.39" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,482,950 us, 2.63%)</title><rect x="275.0" y="198" width="100.5" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="278.04" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,247 us, 0.00%)</title><rect x="3029.8" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="3032.83" y="212.5" ></text>
+</g>
+<g >
+<title>FUNCTION (source) (126,556,674 us, 95.58%)</title><rect x="10.6" y="150" width="3651.3" height="23.0" fill="rgb(223,83,19)" rx="2" ry="2" />
+<text  x="13.60" y="164.5" >FUNCTION (source)</text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p3 (2,363 us, 0.00%)</title><rect x="405.3" y="198" width="0.1" height="23.0" fill="rgb(243,176,42)" rx="2" ry="2" />
+<text  x="408.29" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'        else$'\n'            echo &quot;[[ \&quot;\${A[-1]: -1}\&quot; == ${delimiterVal} ]] \|\| {&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="1422" width="0.0" height="23.0" fill="rgb(212,35,8)" rx="2" ry="2" />
+<text  x="13.40" y="1436.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,826 us, 0.00%)</title><rect x="536.7" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="539.73" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'        else$'\n'            if ! ${substituteStringFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="2142" width="0.0" height="23.0" fill="rgb(225,94,22)" rx="2" ry="2" />
+<text  x="13.40" y="2156.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,336 us, 0.00%; +0.00%)</title><rect x="2775.1" y="198" width="0.0" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="2778.07" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330749) (4,553,770 us, 3.44%)</title><rect x="1201.8" y="174" width="131.4" height="23.0" fill="rgb(214,44,10)" rx="2" ry="2" />
+<text  x="1204.82" y="188.5" >SUBSHELL (330749)</text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,548 us, 0.00%)</title><rect x="1991.2" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="1994.17" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,624,623 us, 2.74%)</title><rect x="1203.4" y="198" width="104.6" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="1206.43" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (8,596 us, 0.01%)</title><rect x="405.6" y="198" width="0.2" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="408.58" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,469 us, 0.00%)</title><rect x="1594.2" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="1597.20" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (4,040 us, 0.00%)</title><rect x="536.6" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="539.55" y="212.5" ></text>
+</g>
+<g >
+<title> then$'\n'                [[ \${REPLY} ]] &amp;&amp; A=(\&quot;\${REPLY}\&quot;) \|\| A=('')$'\n'                trailingNullFlag=true&quot;&quot;&quot;$'\n'${readBytesExactFlag} &amp;&amp; echo 'nBytesRead=1'$'\n'echo &quot;&quot;&quot;$'\n'            else$'\n'                [[ \${REPLY} ]] &amp;&amp; A=(\&quot;\${REPLY}\&quot;) \|\| A=()$'\n'                trailingNullFlag=false&quot;&quot;&quot;$'\n'${readBytesExactFlag} &amp;&amp; echo 'nBytesRead=0'$'\n'echo 'fi'$'\n'if ${readBytesExactFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="510" width="0.0" height="23.0" fill="rgb(248,201,48)" rx="2" ry="2" />
+<text  x="13.40" y="524.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (1,878 us, 0.00%)</title><rect x="1333.6" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="1336.62" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p15 (2,375 us, 0.00%)</title><rect x="1991.5" y="198" width="0.1" height="23.0" fill="rgb(220,70,16)" rx="2" ry="2" />
+<text  x="1994.52" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,783 us, 0.00%)</title><rect x="273.3" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="276.26" y="212.5" ></text>
+</g>
+<g >
+<title>fd_read_pos=$(( 4096 * ( ${fd_read_pos} / 4096 ) )) (1,012 us, 0.00%)</title><rect x="3675.6" y="174" width="0.0" height="23.0" fill="rgb(223,84,20)" rx="2" ry="2" />
+<text  x="3678.59" y="188.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,216 us, 0.00%)</title><rect x="2376.2" y="198" width="0.0" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="2379.18" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (2,831 us, 0.00%)</title><rect x="3407.9" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="3410.88" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,927 us, 0.00%)</title><rect x="2120.1" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="2123.05" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (16,792 us, 0.01%)</title><rect x="1855.1" y="198" width="0.5" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="1858.10" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,361,954 us, 2.54%)</title><rect x="1466.0" y="198" width="97.0" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="1469.00" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>$'\n'        'head')$'\n'            printf 'head -c %s ' &quot;${nBytes}&quot;$'\n'${pipeReadFlag} &amp;&amp; printf '&lt;&amp;%s ' &quot;${fd_stdin}&quot; \|\| printf '&lt;&amp;%s ' &quot;${fd_read}&quot;$'\n'printf '&gt;&quot;%s&quot;/.stdin.tmp.{&lt;#&gt;}\n' &quot;${tmpDir}&quot;$'\n'printf '[[ $(&lt;&quot;%s&quot;/.stdin.tmp.{&lt;#&gt;}) ]] 2&gt;/dev/null &amp;&amp; A[0]=1 \|\| A=()\n' &quot;${tmpDir}&quot;$'\n'         (1,350 us, 0.00%)</title><rect x="10.4" y="414" width="0.0" height="23.0" fill="rgb(227,103,24)" rx="2" ry="2" />
+<text  x="13.40" y="428.5" ></text>
+</g>
+<g >
+<title>: | cat &quot;${tmpDir}&quot;/.wait 2&gt; /dev/null (3,223 us, 0.00%)</title><rect x="3682.9" y="198" width="0.1" height="23.0" fill="rgb(207,9,2)" rx="2" ry="2" />
+<text  x="3685.86" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (2,033 us, 0.00%)</title><rect x="536.7" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="539.67" y="212.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p2 (2,450 us, 0.00%)</title><rect x="273.8" y="198" width="0.1" height="23.0" fill="rgb(249,206,49)" rx="2" ry="2" />
+<text  x="276.84" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (3,164 us, 0.00%)</title><rect x="3028.8" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="3031.85" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330746) (4,540,733 us, 3.43%)</title><rect x="799.3" y="174" width="131.0" height="23.0" fill="rgb(234,133,31)" rx="2" ry="2" />
+<text  x="802.27" y="188.5" >SUBSHELL (330746)</text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,898 us, 0.00%)</title><rect x="2247.7" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="2250.70" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,853 us, 0.00%)</title><rect x="2375.8" y="198" width="0.1" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="2378.82" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,761 us, 0.00%)</title><rect x="11.6" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="14.58" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,861 us, 0.00%)</title><rect x="406.4" y="198" width="0.0" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="409.37" y="212.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,475 us, 0.00%)</title><rect x="3028.5" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="3031.48" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (19,384 us, 0.01%)</title><rect x="537.8" y="198" width="0.6" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="540.80" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (2,129 us, 0.00%)</title><rect x="11.4" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="14.39" y="212.5" ></text>
+</g>
+<g >
+<title> } &amp;&amp; { printf '%s' &quot;&quot;&quot;$'\n'    { \${nLinesAutoFlag} \|\| \${nSpawnFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="1758" width="0.0" height="23.0" fill="rgb(209,20,4)" rx="2" ry="2" />
+<text  x="13.40" y="1772.5" ></text>
+</g>
+<g >
+<title> } \|\| ${readBytesFlag} \|\| echo &quot;}&quot;$'\n'${nLinesReadLimitFlag} &amp;&amp; echo &quot;&quot;&quot;$'\n'nLinesRead+=\${#A[@]}$'\n'echo \${nLinesRead} &gt;\&quot;${tmpDir}\&quot;/.nLinesRead$'\n'(( nLinesRead == nLinesReadLimit )) &amp;&amp; {$'\n'    : &gt;\&quot;${tmpDir}\&quot;/.quit$'\n'    echo '0' &gt;\&quot;${tmpDir}\&quot;/.nLines$'\n'}$'\n'&quot;&quot;&quot;$'\n'echo &quot;&quot;&quot;$'\n'    printf '\\n' &gt;&amp;${fd_continue}$'\n'    echo 0 &gt;\&quot;${tmpDir}\&quot;/.wait/p{&lt;#&gt;}$'\n'    [[ \${#A[@]} == 0 ]] &amp;&amp; {$'\n'        \${doneIndicatorFlag} \|\| { $'\n'          [[ -f \&quot;${tmpDir}\&quot;/.done ]] &amp;&amp; {&quot;&quot;&quot;$'\n'if ${lseekPosFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="1590" width="0.0" height="23.0" fill="rgb(233,133,31)" rx="2" ry="2" />
+<text  x="13.40" y="1604.5" ></text>
+</g>
+<g >
+<title>break (2,132 us, 0.00%)</title><rect x="1333.6" y="198" width="0.0" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="1336.56" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,697 us, 0.00%)</title><rect x="1465.0" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="1467.98" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p20 (2,312 us, 0.00%)</title><rect x="2647.8" y="198" width="0.1" height="23.0" fill="rgb(246,189,45)" rx="2" ry="2" />
+<text  x="2650.84" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330739) (5,759 us, 0.00%)</title><rect x="3683.0" y="150" width="0.1" height="23.0" fill="rgb(221,74,17)" rx="2" ry="2" />
+<text  x="3685.96" y="164.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (11,124 us, 0.01%)</title><rect x="537.5" y="198" width="0.3" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="540.48" y="212.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (1,239,498 us, 0.94%)</title><rect x="2479.0" y="198" width="35.8" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="2482.04" y="212.5" >sha5..</text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,681 us, 0.00%)</title><rect x="273.7" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="276.69" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330765) (4,741,612 us, 3.58%)</title><rect x="1854.2" y="174" width="136.8" height="23.0" fill="rgb(227,103,24)" rx="2" ry="2" />
+<text  x="1857.22" y="188.5" >SUBSHELL (330765)</text>
+</g>
+<g >
+<title>fallocate -p -o ${fd_read_pos_old} -l $(( ${fd_read_pos} - ${fd_read_pos_old} )) &quot;${fPath}&quot; (24,913 us, 0.02%)</title><rect x="3674.9" y="174" width="0.7" height="23.0" fill="rgb(218,64,15)" rx="2" ry="2" />
+<text  x="3677.87" y="188.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (1,008,506 us, 0.76%)</title><rect x="1695.3" y="198" width="29.1" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="1698.27" y="212.5" >sh..</text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,008 us, 0.00%)</title><rect x="1855.0" y="198" width="0.0" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="1857.97" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (8,722 us, 0.01%)</title><rect x="3536.3" y="198" width="0.2" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="3539.29" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'                done&quot;&quot;&quot;$'\n'printf '%s' &quot;A[-1]+=\&quot;\${REPLY}\&quot;&quot;$'\n'${lseekFlag} &amp;&amp; printf '\n' \|\| printf '%s\n' &quot;${delimiterVal}&quot;$'\n'(( ${verboseLevel} &gt; 2 )) &amp;&amp; echo &quot;echo \&quot;Partial read fixed to: \${A[-1]}\&quot; &gt;&amp;${fd_stderr}&quot;$'\n'echo &quot;}&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="1518" width="0.0" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="13.40" y="1532.5" ></text>
+</g>
+<g >
+<title>true (2,168 us, 0.00%)</title><rect x="1464.1" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="1467.14" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,389 us, 0.00%)</title><rect x="13.1" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="16.13" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (19,853 us, 0.01%)</title><rect x="1465.3" y="198" width="0.6" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="1468.30" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'    else$'\n'        if ${nullDelimiterFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="1134" width="0.0" height="23.0" fill="rgb(234,135,32)" rx="2" ry="2" />
+<text  x="13.40" y="1148.5" ></text>
+</g>
+<g >
+<title> then$'\n'                        echo &quot;&quot;&quot;$'\n'                    {$'\n'                        if (( \${nBytes}  &gt; 65535 )) (1,350 us, 0.00%)</title><rect x="10.4" y="1254" width="0.0" height="23.0" fill="rgb(228,109,26)" rx="2" ry="2" />
+<text  x="13.40" y="1268.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,866 us, 0.00%)</title><rect x="1724.6" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="1727.60" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'            fi (1,350 us, 0.00%)</title><rect x="10.4" y="2190" width="0.0" height="23.0" fill="rgb(254,227,54)" rx="2" ry="2" />
+<text  x="13.40" y="2204.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,325 us, 0.00%; +0.00%)</title><rect x="1991.7" y="198" width="0.0" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="1994.66" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (8,812 us, 0.01%)</title><rect x="1725.3" y="246" width="0.2" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="1728.28" y="260.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,317 us, 0.00%)</title><rect x="2902.1" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="2905.15" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'    fi (1,350 us, 0.00%)</title><rect x="10.4" y="2238" width="0.0" height="23.0" fill="rgb(208,14,3)" rx="2" ry="2" />
+<text  x="13.40" y="2252.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,013 us, 0.00%)</title><rect x="3281.8" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="3284.79" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (17,947 us, 0.01%)</title><rect x="1595.3" y="198" width="0.5" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="1598.28" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (1,764 us, 0.00%)</title><rect x="1202.5" y="198" width="0.0" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="1205.47" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'        else$'\n'            echo &quot;[[ \&quot;\${REPLY}\&quot; == ${delimiterVal} ]] \|\| {&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="1086" width="0.0" height="23.0" fill="rgb(209,18,4)" rx="2" ry="2" />
+<text  x="13.40" y="1100.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (8,711 us, 0.01%)</title><rect x="2902.3" y="198" width="0.2" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="2905.29" y="212.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,203 us, 0.00%; +0.00%)</title><rect x="1594.8" y="198" width="0.1" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="1597.81" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (1,812 us, 0.00%)</title><rect x="2516.5" y="198" width="0.0" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="2519.47" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (20,918 us, 0.02%)</title><rect x="2120.9" y="198" width="0.6" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="2123.92" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,764 us, 0.00%)</title><rect x="3535.6" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="3538.58" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,711 us, 0.00%)</title><rect x="143.2" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="146.20" y="212.5" ></text>
+</g>
+<g >
+<title>true (2,312 us, 0.00%)</title><rect x="1333.1" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="1336.13" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,148 us, 0.00%)</title><rect x="1202.5" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="1205.52" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p22 (2,311 us, 0.00%)</title><rect x="2901.9" y="198" width="0.1" height="23.0" fill="rgb(233,130,31)" rx="2" ry="2" />
+<text  x="2904.94" y="212.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (803,685 us, 0.61%)</title><rect x="3638.7" y="198" width="23.1" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="3641.65" y="212.5" >s..</text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p15 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p15 (9,206 us, 0.01%)</title><rect x="1991.9" y="222" width="0.3" height="23.0" fill="rgb(243,176,42)" rx="2" ry="2" />
+<text  x="1994.91" y="236.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (9,753 us, 0.01%)</title><rect x="12.2" y="198" width="0.3" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="15.20" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p19 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p19 (8,751 us, 0.01%)</title><rect x="2515.7" y="222" width="0.2" height="23.0" fill="rgb(241,168,40)" rx="2" ry="2" />
+<text  x="2518.70" y="236.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p6 (2,234 us, 0.00%)</title><rect x="799.8" y="198" width="0.0" height="23.0" fill="rgb(230,117,27)" rx="2" ry="2" />
+<text  x="802.76" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,485 us, 0.00%)</title><rect x="1061.0" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="1064.03" y="212.5" ></text>
+</g>
+<g >
+<title>local p18 p18_PID (&amp;) (912 us, 0.00%)</title><rect x="10.8" y="174" width="0.0" height="23.0" fill="rgb(251,212,50)" rx="2" ry="2" />
+<text  x="13.81" y="188.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,996 us, 0.00%)</title><rect x="2775.2" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="2778.21" y="212.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,657 us, 0.00%)</title><rect x="1991.4" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="1994.44" y="212.5" ></text>
+</g>
+<g >
+<title>break (2,042 us, 0.00%)</title><rect x="3154.8" y="198" width="0.0" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="3157.76" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,993 us, 0.00%)</title><rect x="801.0" y="198" width="0.0" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="803.95" y="212.5" ></text>
+</g>
+<g >
+<title>break (2,305 us, 0.00%)</title><rect x="2647.7" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="2650.72" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,173 us, 0.00%)</title><rect x="3156.2" y="198" width="0.0" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="3159.17" y="212.5" ></text>
+</g>
+<g >
+<title>declare -p &gt; &quot;${tmpDir}&quot;/.vars (1,085 us, 0.00%)</title><rect x="10.4" y="150" width="0.1" height="23.0" fill="rgb(253,224,53)" rx="2" ry="2" />
+<text  x="13.44" y="164.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (8,834 us, 0.01%)</title><rect x="2648.2" y="198" width="0.2" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="2651.18" y="212.5" ></text>
+</g>
+<g >
+<title>local p23 p23_PID (&amp;) (722 us, 0.00%)</title><rect x="10.9" y="174" width="0.1" height="23.0" fill="rgb(252,220,52)" rx="2" ry="2" />
+<text  x="13.94" y="188.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p5 (2,080 us, 0.00%)</title><rect x="667.8" y="198" width="0.1" height="23.0" fill="rgb(236,146,35)" rx="2" ry="2" />
+<text  x="670.83" y="212.5" ></text>
+</g>
+<g >
+<title>coprocSrcCode=&quot;$(echo &quot;&quot;&quot;$'\n'local p{&lt;#&gt;} p{&lt;#&gt;}_PID$'\n'$'\n'{ coproc p{&lt;#&gt;} {$'\n'export LC_ALL=C LANG=C IFS= FORKRUN_TMPDIR=\&quot;${tmpDir}\&quot;$'\n'$'\n'echo \&quot;\${BASH_PID}\&quot; &gt;\&quot;${tmpDir}\&quot;/.run/p{&lt;#&gt;}$'\n'$'\n'trap ': &gt;\&quot;${tmpDir}\&quot;/.quit (1,350 us, 0.00%)</title><rect x="10.4" y="150" width="0.0" height="23.0" fill="rgb(239,157,37)" rx="2" ry="2" />
+<text  x="13.40" y="164.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (11,639 us, 0.01%)</title><rect x="1334.0" y="246" width="0.3" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="1337.01" y="260.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (2,080 us, 0.00%)</title><rect x="2249.3" y="198" width="0.0" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="2252.27" y="212.5" ></text>
+</g>
+<g >
+<title> } &amp;&amp; echo 'nOrder0=&quot;${nOrder:1}&quot;'$'\n'${exportOrderFlag} &amp;&amp; echo &quot;printf '\034%s:\035\n' \&quot;\${nOrder0}\&quot;&quot;$'\n'printf '%s ' &quot;${runCmd[@]}&quot;$'\n'if ${readBytesFlag} &amp;&amp; ! { [[ ${readBytesProg} == 'bash' ]] &amp;&amp; ! ${stdinRunFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="1902" width="0.0" height="23.0" fill="rgb(228,106,25)" rx="2" ry="2" />
+<text  x="13.40" y="1916.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (8,596 us, 0.01%)</title><rect x="405.6" y="246" width="0.2" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="408.58" y="260.5" ></text>
+</g>
+<g >
+<title>break (1,722 us, 0.00%)</title><rect x="799.6" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="802.64" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,973 us, 0.00%)</title><rect x="1726.0" y="198" width="0.1" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="1729.02" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (9,781 us, 0.01%)</title><rect x="2376.6" y="198" width="0.3" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="2379.60" y="212.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (1,022,962 us, 0.77%)</title><rect x="112.8" y="198" width="29.5" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="115.81" y="212.5" >sha..</text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (1,999 us, 0.00%)</title><rect x="2776.1" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="2779.10" y="212.5" ></text>
+</g>
+<g >
+<title> then$'\n'                printf '%s\0' \&quot;\${A[@]}\&quot; $'\n'            else$'\n'                printf '%s' \&quot;\${A[0]}\&quot; $'\n'                printf '\0%s' \&quot;\${A[@]:1}\&quot;$'\n'            fi $'\n'        } &gt;\&quot;${tmpDir}\&quot;/.stdin.tmp.{&lt;#&gt;}&quot;&quot;&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="774" width="0.0" height="23.0" fill="rgb(250,208,49)" rx="2" ry="2" />
+<text  x="13.40" y="788.5" ></text>
+</g>
+<g >
+<title> } &amp;&amp; {&quot;&quot;&quot;$'\n'(( ${verboseLevel} &gt; 2 )) &amp;&amp; echo &quot;echo \&quot;FIXING SPLIT READ\&quot; &gt;&amp;${fd_stderr}&quot;$'\n'echo &quot;&quot;&quot;$'\n'            A[-1]=\&quot;\${A[-1]%${delimiterVal}}\&quot;$'\n'            IFS=$'\n'            mapfile ${delimiterReadStr} A &lt;&lt;&lt;\&quot;\${A[*]}\&quot;$'\n'        }&quot;&quot;&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="1830" width="0.0" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="13.40" y="1844.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p10 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p10 (11,639 us, 0.01%)</title><rect x="1334.0" y="222" width="0.3" height="23.0" fill="rgb(207,13,3)" rx="2" ry="2" />
+<text  x="1337.01" y="236.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,837 us, 0.00%)</title><rect x="2901.6" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="2904.55" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'        kill -HUP $(cat &lt;/dev/null &quot;'&quot;${tmpDir}&quot;'&quot;/.run/p* 2&gt;/dev/null) '&quot;${PID0}&quot; HUP &gt;&gt; (8,897 us, 0.01%)</title><rect x="3661.9" y="222" width="0.3" height="23.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="3664.90" y="236.5" ></text>
+</g>
+<g >
+<title> then$'\n'        printf '&lt;&quot;%s&quot;/%s' &quot;${tmpDir}&quot; '.stdin.tmp.{&lt;#&gt;}' (1,350 us, 0.00%)</title><rect x="10.4" y="1974" width="0.0" height="23.0" fill="rgb(231,122,29)" rx="2" ry="2" />
+<text  x="13.40" y="1988.5" ></text>
+</g>
+<g >
+<title>local p16 p16_PID (&amp;) (934 us, 0.00%)</title><rect x="10.8" y="174" width="0.0" height="23.0" fill="rgb(227,101,24)" rx="2" ry="2" />
+<text  x="13.75" y="188.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;${tmpDir}&quot;/.quit ]] (2,230 us, 0.00%)</title><rect x="10.5" y="150" width="0.1" height="23.0" fill="rgb(247,195,46)" rx="2" ry="2" />
+<text  x="13.51" y="164.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,323 us, 0.00%)</title><rect x="2515.3" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="2518.28" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,965 us, 0.00%)</title><rect x="1854.5" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="1857.50" y="212.5" ></text>
+</g>
+<g >
+<title> (1,350 us, 0.00%)</title><rect x="10.4" y="1374" width="0.0" height="23.0" fill="rgb(213,39,9)" rx="2" ry="2" />
+<text  x="13.40" y="1388.5" ></text>
+</g>
+<g >
+<title>true (2,165 us, 0.00%)</title><rect x="3661.8" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="3664.84" y="212.5" ></text>
+</g>
+<g >
+<title>nproc (1,348 us, 0.00%)</title><rect x="3663.0" y="174" width="0.0" height="23.0" fill="rgb(236,144,34)" rx="2" ry="2" />
+<text  x="3665.98" y="188.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (16,792 us, 0.01%)</title><rect x="1855.1" y="246" width="0.5" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="1858.10" y="260.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,151 us, 0.00%)</title><rect x="1594.6" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="1597.61" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,935 us, 0.00%)</title><rect x="13.1" y="198" width="0.0" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="16.08" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (9,753 us, 0.01%)</title><rect x="12.2" y="246" width="0.3" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="15.20" y="260.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,716 us, 0.00%; +0.00%)</title><rect x="143.1" y="198" width="0.1" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="146.12" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (2,414 us, 0.00%)</title><rect x="142.5" y="198" width="0.1" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="145.53" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p8 (2,226 us, 0.00%)</title><rect x="1061.3" y="198" width="0.0" height="23.0" fill="rgb(217,57,13)" rx="2" ry="2" />
+<text  x="1064.27" y="212.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (841,204 us, 0.64%)</title><rect x="2877.1" y="198" width="24.3" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="2880.12" y="212.5" >sh..</text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,445 us, 0.00%)</title><rect x="2515.0" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="2518.01" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'    else$'\n'        if ${noFuncFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="2094" width="0.0" height="23.0" fill="rgb(248,201,48)" rx="2" ry="2" />
+<text  x="13.40" y="2108.5" ></text>
+</g>
+<g >
+<title> } (1,350 us, 0.00%)</title><rect x="10.4" y="1926" width="0.0" height="23.0" fill="rgb(249,203,48)" rx="2" ry="2" />
+<text  x="13.40" y="1940.5" ></text>
+</g>
+<g >
+<title>true (2,229 us, 0.00%)</title><rect x="667.3" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="670.31" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p0 (2,758 us, 0.00%)</title><rect x="11.8" y="198" width="0.1" height="23.0" fill="rgb(219,65,15)" rx="2" ry="2" />
+<text  x="14.82" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,810 us, 0.00%)</title><rect x="1854.3" y="198" width="0.1" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="1857.33" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (331493) (2,120 us, 0.00%)</title><rect x="3683.3" y="150" width="0.1" height="23.0" fill="rgb(234,133,31)" rx="2" ry="2" />
+<text  x="3686.33" y="164.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (1,047,696 us, 0.79%)</title><rect x="1960.7" y="198" width="30.2" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="1963.72" y="212.5" >sha..</text>
+</g>
+<g >
+<title>SUBSHELL (331491) (2,343 us, 0.00%)</title><rect x="3683.3" y="150" width="0.0" height="23.0" fill="rgb(246,192,46)" rx="2" ry="2" />
+<text  x="3686.26" y="164.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p18 (2,247 us, 0.00%)</title><rect x="2376.2" y="198" width="0.1" height="23.0" fill="rgb(250,211,50)" rx="2" ry="2" />
+<text  x="2379.24" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (9,057 us, 0.01%)</title><rect x="2120.7" y="246" width="0.2" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="2123.66" y="260.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p10 (2,497 us, 0.00%)</title><rect x="1333.7" y="198" width="0.1" height="23.0" fill="rgb(246,189,45)" rx="2" ry="2" />
+<text  x="1336.74" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (15,424 us, 0.01%)</title><rect x="1202.9" y="198" width="0.4" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="1205.87" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (1,953 us, 0.00%)</title><rect x="1062.4" y="198" width="0.0" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="1065.36" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,628 us, 0.00%)</title><rect x="1464.2" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="1467.20" y="212.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,630 us, 0.00%)</title><rect x="404.9" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="407.88" y="212.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p21 (2,543 us, 0.00%)</title><rect x="2775.0" y="198" width="0.1" height="23.0" fill="rgb(233,130,31)" rx="2" ry="2" />
+<text  x="2778.00" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,389 us, 0.00%)</title><rect x="2515.5" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="2518.54" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (8,711 us, 0.01%)</title><rect x="2902.3" y="246" width="0.2" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="2905.29" y="260.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p20 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p20 (8,834 us, 0.01%)</title><rect x="2648.2" y="222" width="0.2" height="23.0" fill="rgb(245,184,44)" rx="2" ry="2" />
+<text  x="2651.18" y="236.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,609 us, 0.00%)</title><rect x="536.8" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="539.84" y="212.5" ></text>
+</g>
+<g >
+<title>break (2,094 us, 0.00%)</title><rect x="1991.4" y="198" width="0.0" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="1994.38" y="212.5" ></text>
+</g>
+<g >
+<title>evfd_copy ${fd_write} ${fd_stdin} (18,942 us, 0.01%)</title><rect x="3663.0" y="174" width="0.6" height="23.0" fill="rgb(236,144,34)" rx="2" ry="2" />
+<text  x="3666.03" y="188.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (11,391 us, 0.01%)</title><rect x="3408.6" y="198" width="0.3" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="3411.59" y="212.5" ></text>
+</g>
+<g >
+<title>break (2,874 us, 0.00%)</title><rect x="1061.1" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="1064.13" y="212.5" ></text>
+</g>
+<g >
+<title> do&quot;$'\n'echo &quot;[[ -f \&quot;${tmpDir}\&quot;/.done ]] &amp;&amp; doneIndicatorFlag=true&quot;$'\n'printf &quot;if read -r -d '' -n \$(( ${nBytes} - \${nBytesRead} )) -u ${fd_read}&quot;$'\n'[[ -n ${tTimeout} ]] &amp;&amp; printf ' -t %s' &quot;${tTimeout}&quot;$'\n'echo &quot;&quot;&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="582" width="0.0" height="23.0" fill="rgb(241,169,40)" rx="2" ry="2" />
+<text  x="13.40" y="596.5" ></text>
+</g>
+<g >
+<title> break (1,350 us, 0.00%)</title><rect x="10.4" y="630" width="0.0" height="23.0" fill="rgb(217,55,13)" rx="2" ry="2" />
+<text  x="13.40" y="644.5" ></text>
+</g>
+<g >
+<title>wait &quot;${p_PID[@]}&quot; &amp;&gt; /dev/null (5,078,099 us, 3.84%)</title><rect x="3683.4" y="150" width="146.5" height="23.0" fill="rgb(254,225,53)" rx="2" ry="2" />
+<text  x="3686.40" y="164.5" >wait "${p_PID[@]}" &amp;&gt; ..</text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,148 us, 0.00%)</title><rect x="2249.3" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="2252.33" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (11,639 us, 0.01%)</title><rect x="1334.0" y="198" width="0.3" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="1337.01" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,621 us, 0.00%)</title><rect x="2120.5" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="2123.50" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '\&quot;'\&quot;'\n'\&quot;'\&quot;' &gt;&amp;${fd_continue}' EXIT$'\n'$'\n'trap 'trap - TERM INT HUP USR1 (1,350 us, 0.00%)</title><rect x="10.4" y="198" width="0.0" height="23.0" fill="rgb(239,158,37)" rx="2" ry="2" />
+<text  x="13.40" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (8,722 us, 0.01%)</title><rect x="3536.3" y="246" width="0.2" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="3539.29" y="260.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,606 us, 0.00%; +0.00%)</title><rect x="930.9" y="198" width="0.1" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="933.94" y="212.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,535 us, 0.00%)</title><rect x="667.5" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="670.52" y="212.5" ></text>
+</g>
+<g >
+<title> then$'\n'        echo &quot;&quot;&quot;$'\n'                lseek ${fd_read} -1 SEEK_CUR ''$'\n'                read -r -u ${fd_read} -N 1&quot;&quot;&quot;$'\n'if ${nullDelimiterFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="1038" width="0.0" height="23.0" fill="rgb(241,168,40)" rx="2" ry="2" />
+<text  x="13.40" y="1052.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,022 us, 0.00%)</title><rect x="801.0" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="804.01" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (16,173 us, 0.01%)</title><rect x="1855.6" y="198" width="0.4" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="1858.58" y="212.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,205 us, 0.00%)</title><rect x="11.8" y="198" width="0.0" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="14.76" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (8,711 us, 0.01%)</title><rect x="800.1" y="198" width="0.3" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="803.13" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,368,407 us, 2.54%)</title><rect x="669.1" y="198" width="97.2" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="672.11" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,728 us, 0.00%)</title><rect x="404.8" y="198" width="0.1" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="407.83" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p17 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p17 (12,621 us, 0.01%)</title><rect x="2248.4" y="222" width="0.3" height="23.0" fill="rgb(217,57,13)" rx="2" ry="2" />
+<text  x="2251.38" y="236.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330741) (4,535,336 us, 3.43%)</title><rect x="142.4" y="174" width="130.9" height="23.0" fill="rgb(216,52,12)" rx="2" ry="2" />
+<text  x="145.41" y="188.5" >SUBSHELL (330741)</text>
+</g>
+<g >
+<title>SUBSHELL (330800) (4,381,855 us, 3.31%)</title><rect x="3535.5" y="174" width="126.4" height="23.0" fill="rgb(242,170,40)" rx="2" ry="2" />
+<text  x="3538.48" y="188.5" >SUBSHELL (330800)</text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (1,917 us, 0.00%)</title><rect x="2248.0" y="198" width="0.0" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="2250.99" y="212.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (1,272,087 us, 0.96%)</title><rect x="499.8" y="198" width="36.7" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="502.79" y="212.5" >sha5..</text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,254 us, 0.00%)</title><rect x="3280.3" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="3283.26" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (2,075 us, 0.00%)</title><rect x="538.4" y="198" width="0.0" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="541.37" y="212.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,606 us, 0.00%)</title><rect x="2647.5" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="2650.51" y="212.5" ></text>
+</g>
+<g >
+<title> then$'\n'                    ((nBytesRead++))$'\n'                    nBytesRead+=\${#REPLY}$'\n'                    [[ \${REPLY} ]] &amp;&amp; A+=(\&quot;\${REPLY}\&quot;) \|\| A+=('')$'\n'                    (( \${nBytesRead} &gt;= ${nBytes} )) &amp;&amp; { trailingNullFlag=true (1,350 us, 0.00%)</title><rect x="10.4" y="606" width="0.0" height="23.0" fill="rgb(216,51,12)" rx="2" ry="2" />
+<text  x="13.40" y="620.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (1,984 us, 0.00%)</title><rect x="1725.1" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="1728.15" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (97,575 us, 0.07%)</title><rect x="3669.2" y="174" width="2.8" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="3672.20" y="188.5" ></text>
+</g>
+<g >
+<title>$'\n'                fi$'\n'echo &quot;&quot;&quot;$'\n'        {$'\n'            if \${trailingNullFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="750" width="0.0" height="23.0" fill="rgb(215,50,12)" rx="2" ry="2" />
+<text  x="13.40" y="764.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (9,206 us, 0.01%)</title><rect x="1991.9" y="198" width="0.3" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="1994.91" y="212.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,849 us, 0.00%)</title><rect x="1464.4" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="1467.36" y="212.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (848,466 us, 0.64%)</title><rect x="1829.7" y="198" width="24.4" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="1832.66" y="212.5" >sh..</text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p9 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p9 (10,043 us, 0.01%)</title><rect x="1202.6" y="222" width="0.3" height="23.0" fill="rgb(224,90,21)" rx="2" ry="2" />
+<text  x="1205.58" y="236.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,268 us, 0.00%)</title><rect x="2376.5" y="198" width="0.0" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="2379.46" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,951 us, 0.00%)</title><rect x="1465.9" y="198" width="0.0" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="1468.88" y="212.5" ></text>
+</g>
+<g >
+<title>FUNCTION (_forkrun_getVal) (828 us, 0.00%)</title><rect x="10.6" y="150" width="0.0" height="23.0" fill="rgb(236,144,34)" rx="2" ry="2" />
+<text  x="13.58" y="164.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330743) (4,569,065 us, 3.45%)</title><rect x="404.7" y="174" width="131.9" height="23.0" fill="rgb(253,222,53)" rx="2" ry="2" />
+<text  x="407.73" y="188.5" >SUBSHELL (330743)</text>
+</g>
+<g >
+<title> then$'\n'    if ${stdinRunFlag} \|\| ${noFuncFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="1950" width="0.0" height="23.0" fill="rgb(244,182,43)" rx="2" ry="2" />
+<text  x="13.40" y="1964.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (8,751 us, 0.01%)</title><rect x="2515.7" y="198" width="0.2" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="2518.70" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,254 us, 0.00%)</title><rect x="2514.9" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="2517.87" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,928 us, 0.00%)</title><rect x="3028.1" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="3031.07" y="212.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (660,067 us, 0.50%)</title><rect x="3135.3" y="198" width="19.0" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="3138.28" y="212.5" >s..</text>
+</g>
+<g >
+<title>break (1,954 us, 0.00%)</title><rect x="1724.8" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="1727.82" y="212.5" ></text>
+</g>
+<g >
+<title>true (2,134 us, 0.00%)</title><rect x="3154.3" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="3157.32" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (2,125 us, 0.00%)</title><rect x="2121.5" y="198" width="0.1" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="2124.53" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330747) (4,523,547 us, 3.42%)</title><rect x="930.3" y="174" width="130.5" height="23.0" fill="rgb(227,103,24)" rx="2" ry="2" />
+<text  x="933.27" y="188.5" >SUBSHELL (330747)</text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,523 us, 0.00%)</title><rect x="3535.5" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="3538.48" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p13 (2,371 us, 0.00%)</title><rect x="1724.9" y="198" width="0.1" height="23.0" fill="rgb(233,130,31)" rx="2" ry="2" />
+<text  x="1727.93" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,149 us, 0.00%)</title><rect x="2377.4" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="2380.44" y="212.5" ></text>
+</g>
+<g >
+<title>break (2,139 us, 0.00%)</title><rect x="2774.8" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="2777.80" y="212.5" ></text>
+</g>
+<g >
+<title>break (1,342 us, 0.00%)</title><rect x="3280.4" y="198" width="0.0" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="3283.35" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (18,081 us, 0.01%)</title><rect x="668.5" y="198" width="0.5" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="671.48" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,517,858 us, 2.66%)</title><rect x="3537.2" y="198" width="101.5" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="3540.16" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (731,052 us, 0.55%)</title><rect x="646.2" y="198" width="21.1" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="649.22" y="212.5" >s..</text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,492 us, 0.00%)</title><rect x="2901.6" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="2904.61" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,274 us, 0.00%)</title><rect x="273.5" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="276.53" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,931 us, 0.00%)</title><rect x="10.2" y="150" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="13.22" y="164.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,010 us, 0.00%; +0.00%)</title><rect x="2248.2" y="198" width="0.0" height="23.0" fill="rgb(255,207,207)" rx="2" ry="2" />
+<text  x="2251.19" y="212.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,934 us, 0.00%)</title><rect x="1854.4" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="1857.38" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,706 us, 0.00%)</title><rect x="1060.9" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="1063.88" y="212.5" ></text>
+</g>
+<g >
+<title>break (2,032 us, 0.00%)</title><rect x="11.7" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="14.70" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p17 (2,472 us, 0.00%)</title><rect x="2248.0" y="198" width="0.1" height="23.0" fill="rgb(207,11,2)" rx="2" ry="2" />
+<text  x="2251.05" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (18,096 us, 0.01%)</title><rect x="2248.7" y="198" width="0.6" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="2251.74" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,070 us, 0.00%)</title><rect x="1465.9" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="1468.94" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p3 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p3 (8,596 us, 0.01%)</title><rect x="405.6" y="222" width="0.2" height="23.0" fill="rgb(252,217,51)" rx="2" ry="2" />
+<text  x="408.58" y="236.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,878 us, 0.00%)</title><rect x="1464.3" y="198" width="0.1" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="1467.31" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,909 us, 0.00%)</title><rect x="932.0" y="198" width="0.1" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="935.05" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p26 (2,021 us, 0.00%)</title><rect x="3408.1" y="198" width="0.0" height="23.0" fill="rgb(207,11,2)" rx="2" ry="2" />
+<text  x="3411.07" y="212.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p5 (2,472 us, 0.00%)</title><rect x="667.9" y="198" width="0.1" height="23.0" fill="rgb(230,117,27)" rx="2" ry="2" />
+<text  x="670.89" y="212.5" ></text>
+</g>
+<g >
+<title>true (2,192 us, 0.00%)</title><rect x="404.7" y="198" width="0.0" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="407.67" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,891 us, 0.00%)</title><rect x="2247.6" y="198" width="0.1" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="2250.65" y="212.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p9 (2,546 us, 0.00%)</title><rect x="1202.3" y="198" width="0.1" height="23.0" fill="rgb(254,228,54)" rx="2" ry="2" />
+<text  x="1205.34" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,750 us, 0.00%)</title><rect x="2776.0" y="198" width="0.1" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="2779.05" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'                    fi$'\n'                 (1,350 us, 0.00%)</title><rect x="10.4" y="1350" width="0.0" height="23.0" fill="rgb(251,215,51)" rx="2" ry="2" />
+<text  x="13.40" y="1364.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (9,781 us, 0.01%)</title><rect x="2376.6" y="246" width="0.3" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="2379.60" y="260.5" ></text>
+</g>
+<g >
+<title>$'\n'            IFS=\$'\\t' read -r _ fd_write_pos &lt;/proc/self/fdinfo/${fd_write} (1,350 us, 0.00%)</title><rect x="10.4" y="1662" width="0.0" height="23.0" fill="rgb(253,223,53)" rx="2" ry="2" />
+<text  x="13.40" y="1676.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (8,719 us, 0.01%)</title><rect x="3408.3" y="198" width="0.3" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="3411.34" y="212.5" ></text>
+</g>
+<g >
+<title>break (1,389 us, 0.00%)</title><rect x="3028.4" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="3031.44" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (9,206 us, 0.01%)</title><rect x="1991.9" y="246" width="0.3" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="1994.91" y="260.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p12 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p12 (8,726 us, 0.01%)</title><rect x="1595.0" y="222" width="0.3" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="1598.03" y="236.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,785 us, 0.00%)</title><rect x="2247.8" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="2250.82" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (8,812 us, 0.01%)</title><rect x="1725.3" y="198" width="0.2" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="1728.28" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,479 us, 0.00%)</title><rect x="1855.0" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="1858.03" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,579,163 us, 2.70%)</title><rect x="2649.1" y="198" width="103.2" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="2652.08" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>true (2,611 us, 0.00%)</title><rect x="1854.1" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="1857.14" y="212.5" ></text>
+</g>
+<g >
+<title>break (2,294 us, 0.00%)</title><rect x="1202.2" y="198" width="0.0" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="1205.16" y="212.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,344 us, 0.00%)</title><rect x="799.7" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="802.69" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,954 us, 0.00%)</title><rect x="144.3" y="198" width="0.1" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="147.31" y="212.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (948,042 us, 0.72%)</title><rect x="2348.3" y="198" width="27.4" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="2351.30" y="212.5" >sh..</text>
+</g>
+<g >
+<title>evfd_wait (2,382 us, 0.00%; +0.00%)</title><rect x="12.0" y="198" width="0.1" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="14.98" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (8,751 us, 0.01%)</title><rect x="2515.7" y="246" width="0.2" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="2518.70" y="260.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,158 us, 0.00%)</title><rect x="1992.7" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="1995.72" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (17,197 us, 0.01%)</title><rect x="3536.5" y="198" width="0.5" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="3539.54" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p14 (2,432 us, 0.00%)</title><rect x="1854.8" y="198" width="0.0" height="23.0" fill="rgb(226,100,24)" rx="2" ry="2" />
+<text  x="1857.75" y="212.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,562 us, 0.00%)</title><rect x="3028.2" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="3031.24" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,684 us, 0.00%)</title><rect x="3028.8" y="198" width="0.0" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="3031.77" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330761) (4,498,310 us, 3.40%)</title><rect x="1724.4" y="174" width="129.8" height="23.0" fill="rgb(253,222,53)" rx="2" ry="2" />
+<text  x="1727.44" y="188.5" >SUBSHELL (330761)</text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,045 us, 0.00%)</title><rect x="1595.9" y="198" width="0.0" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="1598.86" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p4 (2,656 us, 0.00%)</title><rect x="537.1" y="198" width="0.1" height="23.0" fill="rgb(243,176,42)" rx="2" ry="2" />
+<text  x="540.09" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,755 us, 0.00%)</title><rect x="3155.1" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="3158.11" y="212.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (1,999 us, 0.00%)</title><rect x="667.8" y="198" width="0.0" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="670.77" y="212.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p19 (2,413 us, 0.00%)</title><rect x="2515.4" y="198" width="0.1" height="23.0" fill="rgb(238,152,36)" rx="2" ry="2" />
+<text  x="2518.41" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p26 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p26 (8,719 us, 0.01%)</title><rect x="3408.3" y="222" width="0.3" height="23.0" fill="rgb(217,57,13)" rx="2" ry="2" />
+<text  x="3411.34" y="236.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,610 us, 0.00%)</title><rect x="2647.4" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="2650.35" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (8,726 us, 0.01%)</title><rect x="1595.0" y="198" width="0.3" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="1598.03" y="212.5" ></text>
+</g>
+<g >
+<title>lseek $fd_write 0 SEEK_CUR fd_write_pos (33,933 us, 0.03%)</title><rect x="3676.6" y="174" width="1.0" height="23.0" fill="rgb(215,46,11)" rx="2" ry="2" />
+<text  x="3679.63" y="188.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330750) (4,540,704 us, 3.43%)</title><rect x="1333.2" y="174" width="131.0" height="23.0" fill="rgb(216,52,12)" rx="2" ry="2" />
+<text  x="1336.20" y="188.5" >SUBSHELL (330750)</text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,626 us, 0.00%)</title><rect x="931.0" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="934.02" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330745) (4,571,382 us, 3.45%)</title><rect x="667.4" y="174" width="131.9" height="23.0" fill="rgb(240,163,39)" rx="2" ry="2" />
+<text  x="670.38" y="188.5" >SUBSHELL (330745)</text>
+</g>
+<g >
+<title> $'\n'        kill -TERM $(cat &lt;/dev/null &quot;'&quot;${tmpDir}&quot;'&quot;/.run/p* 2&gt;/dev/null) '&quot;${PID0}&quot; TERM &gt;&gt; (9,046 us, 0.01%)</title><rect x="3662.4" y="222" width="0.3" height="23.0" fill="rgb(215,47,11)" rx="2" ry="2" />
+<text  x="3665.42" y="236.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p1 (2,675 us, 0.00%)</title><rect x="143.0" y="198" width="0.0" height="23.0" fill="rgb(212,35,8)" rx="2" ry="2" />
+<text  x="145.96" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'        kill -USR1 $(cat &lt;/dev/null &quot;'&quot;${tmpDir}&quot;'&quot;/.run/p* 2&gt;/dev/null) (27,054 us, 0.02%)</title><rect x="3661.9" y="198" width="0.8" height="23.0" fill="rgb(249,204,48)" rx="2" ry="2" />
+<text  x="3664.90" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'        'bash')$'\n'            if ${stdinRunFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="462" width="0.0" height="23.0" fill="rgb(209,22,5)" rx="2" ry="2" />
+<text  x="13.40" y="476.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330738) (671,662 us, 0.51%)</title><rect x="3663.6" y="150" width="19.4" height="23.0" fill="rgb(227,103,24)" rx="2" ry="2" />
+<text  x="3666.58" y="164.5" >S..</text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,901 us, 0.00%)</title><rect x="3537.0" y="198" width="0.1" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="3540.04" y="212.5" ></text>
+</g>
+<g >
+<title>local p21 p21_PID (&amp;) (701 us, 0.00%)</title><rect x="10.9" y="174" width="0.0" height="23.0" fill="rgb(228,109,26)" rx="2" ry="2" />
+<text  x="13.90" y="188.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330725) (132,395,101 us, 99.99%)</title><rect x="10.2" y="126" width="3819.7" height="23.0" fill="rgb(253,222,53)" rx="2" ry="2" />
+<text  x="13.17" y="140.5" >SUBSHELL (330725)</text>
+</g>
+<g >
+<title>evfd_wait (2,172 us, 0.00%; +0.00%)</title><rect x="668.0" y="198" width="0.0" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="670.96" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330748) (4,888,539 us, 3.69%)</title><rect x="1060.8" y="174" width="141.0" height="23.0" fill="rgb(221,74,17)" rx="2" ry="2" />
+<text  x="1063.78" y="188.5" >SUBSHELL (330748)</text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,650 us, 0.00%)</title><rect x="2376.5" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="2379.52" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'                fi$'\n'echo '-a A' (1,350 us, 0.00%)</title><rect x="10.4" y="870" width="0.0" height="23.0" fill="rgb(250,211,50)" rx="2" ry="2" />
+<text  x="13.40" y="884.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p6 (2,624 us, 0.00%)</title><rect x="799.8" y="198" width="0.1" height="23.0" fill="rgb(223,87,20)" rx="2" ry="2" />
+<text  x="802.82" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,428,099 us, 2.59%)</title><rect x="2249.4" y="198" width="98.9" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="2252.40" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p12 (2,557 us, 0.00%)</title><rect x="1594.7" y="198" width="0.1" height="23.0" fill="rgb(233,130,31)" rx="2" ry="2" />
+<text  x="1597.74" y="212.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,279 us, 0.00%)</title><rect x="2774.9" y="198" width="0.0" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="2777.86" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,499,389 us, 2.64%)</title><rect x="2776.2" y="198" width="100.9" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="2779.16" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,670 us, 0.00%)</title><rect x="142.9" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="145.88" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,296 us, 0.00%)</title><rect x="405.0" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="407.99" y="212.5" ></text>
+</g>
+<g >
+<title> (1,350 us, 0.00%)</title><rect x="10.4" y="390" width="0.0" height="23.0" fill="rgb(213,39,9)" rx="2" ry="2" />
+<text  x="13.40" y="404.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (8,789 us, 0.01%)</title><rect x="931.2" y="246" width="0.2" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="934.18" y="260.5" ></text>
+</g>
+<g >
+<title> (1,350 us, 0.00%)</title><rect x="10.4" y="918" width="0.0" height="23.0" fill="rgb(213,39,9)" rx="2" ry="2" />
+<text  x="13.40" y="932.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,507 us, 0.00%)</title><rect x="668.1" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="671.09" y="212.5" ></text>
+</g>
+<g >
+<title>mkdir -p &quot;${tmpDir}&quot;/.{run,wait} (1,265 us, 0.00%)</title><rect x="3662.8" y="150" width="0.1" height="23.0" fill="rgb(212,33,7)" rx="2" ry="2" />
+<text  x="3665.84" y="164.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (8,829 us, 0.01%)</title><rect x="2775.3" y="198" width="0.3" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="2778.30" y="212.5" ></text>
+</g>
+<g >
+<title>true (2,319 us, 0.00%)</title><rect x="1201.8" y="198" width="0.0" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="1204.75" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,704 us, 0.00%)</title><rect x="1991.7" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="1994.73" y="212.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,015 us, 0.00%)</title><rect x="3407.8" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="3410.80" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,945 us, 0.00%)</title><rect x="1594.9" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="1597.95" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,084 us, 0.00%)</title><rect x="3280.6" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="3283.65" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,039,680 us, 2.30%)</title><rect x="3409.0" y="198" width="87.7" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="3412.02" y="212.5" >read -r -u 1..</text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,628,562 us, 2.74%)</title><rect x="3156.2" y="198" width="104.7" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="3159.24" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (19,706 us, 0.01%)</title><rect x="3155.5" y="198" width="0.6" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="3158.54" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (8,739 us, 0.01%)</title><rect x="3028.9" y="246" width="0.3" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="3031.94" y="260.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,436 us, 0.00%)</title><rect x="1202.0" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="1204.96" y="212.5" ></text>
+</g>
+<g >
+<title>true (2,824 us, 0.00%)</title><rect x="142.3" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="145.32" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,996 us, 0.00%)</title><rect x="930.4" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="933.38" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,962 us, 0.00%)</title><rect x="2120.6" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="2123.58" y="212.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p16 (2,872 us, 0.00%)</title><rect x="2120.4" y="198" width="0.0" height="23.0" fill="rgb(207,11,2)" rx="2" ry="2" />
+<text  x="2123.35" y="212.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (95,808 us, 0.07%)</title><rect x="3666.4" y="174" width="2.8" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="3669.42" y="188.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,585 us, 0.00%)</title><rect x="142.7" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="145.72" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330784) (4,405,782 us, 3.33%)</title><rect x="2647.4" y="174" width="127.1" height="23.0" fill="rgb(221,74,17)" rx="2" ry="2" />
+<text  x="2650.35" y="188.5" >SUBSHELL (330784)</text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,362 us, 0.00%)</title><rect x="2120.2" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="2123.21" y="212.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,420 us, 0.00%; +0.00%)</title><rect x="537.2" y="198" width="0.1" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="540.24" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,676 us, 0.00%)</title><rect x="1725.2" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="1728.20" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'                &quot;&quot;&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="1686" width="0.0" height="23.0" fill="rgb(249,203,48)" rx="2" ry="2" />
+<text  x="13.40" y="1700.5" ></text>
+</g>
+<g >
+<title>true (2,195 us, 0.00%)</title><rect x="2119.7" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="2122.69" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (16,225 us, 0.01%)</title><rect x="3281.3" y="198" width="0.4" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="3284.27" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,355 us, 0.00%)</title><rect x="538.4" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="541.43" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (11,572 us, 0.01%)</title><rect x="143.4" y="198" width="0.3" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="146.37" y="212.5" ></text>
+</g>
+<g >
+<title>break (1,372 us, 0.00%)</title><rect x="142.8" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="145.83" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330775) (4,442,734 us, 3.36%)</title><rect x="2247.5" y="174" width="128.2" height="23.0" fill="rgb(221,74,17)" rx="2" ry="2" />
+<text  x="2250.54" y="188.5" >SUBSHELL (330775)</text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,022 us, 0.00%)</title><rect x="1333.9" y="198" width="0.0" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="1336.88" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,986 us, 0.00%)</title><rect x="3028.2" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="3031.18" y="212.5" ></text>
+</g>
+<g >
+<title> } &amp;&amp; read -r &lt;\&quot;${tmpDir}\&quot;/.nLines &amp;&amp; [[ \${REPLY} == +([0-9]) ]] &amp;&amp; nLinesCur=\${REPLY}&quot;$'\n'echo &quot;&quot;&quot;$'\n'    echo 1 &gt;\&quot;${tmpDir}\&quot;/.wait/p{&lt;#&gt;}$'\n'    read -r -u ${fd_continue} _$'\n'    [[ -f \&quot;${tmpDir}\&quot;/.quit ]] &amp;&amp; {$'\n'        printf '\n' &gt;&amp;${fd_continue}$'\n'        break$'\n'    }$'\n'    [[ -f \&quot;${tmpDir}\&quot;/.done ]] &amp;&amp; doneIndicatorFlag=true&quot;&quot;&quot;$'\n'if ${readBytesFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="342" width="0.0" height="23.0" fill="rgb(253,221,53)" rx="2" ry="2" />
+<text  x="13.40" y="356.5" ></text>
+</g>
+<g >
+<title>(( ${verboseLevel} &gt; 2 )) (1,234 us, 0.00%)</title><rect x="3672.0" y="174" width="0.0" height="23.0" fill="rgb(229,113,27)" rx="2" ry="2" />
+<text  x="3675.01" y="188.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p13 (2,933 us, 0.00%)</title><rect x="1725.0" y="198" width="0.1" height="23.0" fill="rgb(226,100,24)" rx="2" ry="2" />
+<text  x="1728.00" y="212.5" ></text>
+</g>
+<g >
+<title> kill -INT ${PID0} \${BASHPID}' INT$'\n'trap 'trap - TERM INT HUP USR1 (1,350 us, 0.00%)</title><rect x="10.4" y="222" width="0.0" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="13.40" y="236.5" ></text>
+</g>
+<g >
+<title>break (1,931 us, 0.00%)</title><rect x="3408.0" y="198" width="0.0" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="3410.97" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'fi$'\n'echo &quot;&quot;&quot;$'\n'            [[ \&quot;\${fd_read_pos}\&quot; == \&quot;\${fd_write_pos}\&quot; ]] &amp;&amp; doneIndicatorFlag=true$'\n'          }$'\n'        }$'\n'        if \${doneIndicatorFlag} \|\| [[ -f \&quot;${tmpDir}\&quot;/.quit ]] (1,350 us, 0.00%)</title><rect x="10.4" y="1710" width="0.0" height="23.0" fill="rgb(217,55,13)" rx="2" ry="2" />
+<text  x="13.40" y="1724.5" ></text>
+</g>
+<g >
+<title>true (2,067 us, 0.00%)</title><rect x="2774.4" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="2777.40" y="212.5" ></text>
+</g>
+<g >
+<title>((nWait--)) (31,404 us, 0.02%)</title><rect x="3677.7" y="174" width="0.9" height="23.0" fill="rgb(208,17,4)" rx="2" ry="2" />
+<text  x="3680.65" y="188.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,031 us, 0.00%; +0.00%)</title><rect x="1725.1" y="198" width="0.0" height="23.0" fill="rgb(255,207,207)" rx="2" ry="2" />
+<text  x="1728.09" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (16,811 us, 0.01%)</title><rect x="3280.8" y="198" width="0.5" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="3283.78" y="212.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p7 (2,683 us, 0.00%)</title><rect x="930.9" y="198" width="0.0" height="23.0" fill="rgb(217,57,13)" rx="2" ry="2" />
+<text  x="933.86" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (2,168 us, 0.00%)</title><rect x="1856.1" y="198" width="0.0" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="1859.05" y="212.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (4,258 us, 0.00%)</title><rect x="2119.9" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="2122.93" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p14 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p14 (16,792 us, 0.01%)</title><rect x="1855.1" y="222" width="0.5" height="23.0" fill="rgb(206,5,1)" rx="2" ry="2" />
+<text  x="1858.10" y="236.5" ></text>
+</g>
+<g >
+<title>local p14 p14_PID (&amp;) (839 us, 0.00%)</title><rect x="10.7" y="174" width="0.0" height="23.0" fill="rgb(252,220,52)" rx="2" ry="2" />
+<text  x="13.70" y="188.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,606 us, 0.00%)</title><rect x="3154.5" y="198" width="0.2" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="3157.55" y="212.5" ></text>
+</g>
+<g >
+<title>((kkProcs++ )) (2,166 us, 0.00%)</title><rect x="3662.7" y="150" width="0.0" height="23.0" fill="rgb(219,67,16)" rx="2" ry="2" />
+<text  x="3665.69" y="164.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,148 us, 0.00%)</title><rect x="1061.5" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="1064.51" y="212.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p25 (2,349 us, 0.00%)</title><rect x="3280.5" y="198" width="0.1" height="23.0" fill="rgb(207,11,2)" rx="2" ry="2" />
+<text  x="3283.52" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,765 us, 0.00%)</title><rect x="405.5" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="408.50" y="212.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (1,700 us, 0.00%)</title><rect x="1061.2" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="1064.22" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,744 us, 0.00%)</title><rect x="2516.4" y="198" width="0.1" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="2519.42" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,104 us, 0.00%)</title><rect x="3536.2" y="198" width="0.0" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="3539.15" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'        fi (1,350 us, 0.00%)</title><rect x="10.4" y="1110" width="0.0" height="23.0" fill="rgb(231,120,28)" rx="2" ry="2" />
+<text  x="13.40" y="1124.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,352 us, 0.00%)</title><rect x="405.4" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="408.43" y="212.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,143 us, 0.00%; +0.00%)</title><rect x="3536.1" y="198" width="0.1" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="3539.09" y="212.5" ></text>
+</g>
+<g >
+<title>local p26 p26_PID (&amp;) (936 us, 0.00%)</title><rect x="11.0" y="174" width="0.0" height="23.0" fill="rgb(214,42,10)" rx="2" ry="2" />
+<text  x="14.01" y="188.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330759) (4,514,207 us, 3.41%)</title><rect x="1594.2" y="174" width="130.2" height="23.0" fill="rgb(208,14,3)" rx="2" ry="2" />
+<text  x="1597.20" y="188.5" >SUBSHELL (330759)</text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (10,043 us, 0.01%)</title><rect x="1202.6" y="246" width="0.3" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="1205.58" y="260.5" ></text>
+</g>
+<g >
+<title>true (2,181 us, 0.00%)</title><rect x="2901.4" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="2904.39" y="212.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (806,518 us, 0.61%)</title><rect x="1037.4" y="198" width="23.3" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="1040.44" y="212.5" >s..</text>
+</g>
+<g >
+<title>local p20 p20_PID (&amp;) (914 us, 0.00%)</title><rect x="10.9" y="174" width="0.0" height="23.0" fill="rgb(241,168,40)" rx="2" ry="2" />
+<text  x="13.87" y="188.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,780 us, 0.00%)</title><rect x="1595.8" y="198" width="0.1" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="1598.81" y="212.5" ></text>
+</g>
+<g >
+<title>break (2,090 us, 0.00%)</title><rect x="536.9" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="539.95" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,799 us, 0.00%)</title><rect x="3281.7" y="198" width="0.1" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="3284.74" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,662 us, 0.00%)</title><rect x="3280.7" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="3283.71" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,726 us, 0.00%)</title><rect x="2247.5" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="2250.54" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,141 us, 0.00%)</title><rect x="1201.8" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="1204.82" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,369 us, 0.00%)</title><rect x="1202.1" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="1205.06" y="212.5" ></text>
+</g>
+<g >
+<title>local p19 p19_PID (&amp;) (908 us, 0.00%)</title><rect x="10.8" y="174" width="0.1" height="23.0" fill="rgb(238,153,36)" rx="2" ry="2" />
+<text  x="13.83" y="188.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (8,714 us, 0.01%)</title><rect x="1061.6" y="198" width="0.2" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="1064.58" y="212.5" ></text>
+</g>
+<g >
+<title>true (2,389 us, 0.00%)</title><rect x="2647.3" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="2650.28" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,361 us, 0.00%)</title><rect x="3280.0" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="3283.01" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,791 us, 0.00%)</title><rect x="2647.5" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="2650.46" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330754) (4,505,627 us, 3.40%)</title><rect x="1464.2" y="174" width="130.0" height="23.0" fill="rgb(240,163,39)" rx="2" ry="2" />
+<text  x="1467.20" y="188.5" >SUBSHELL (330754)</text>
+</g>
+<g >
+<title>SUBSHELL (330744) (4,534,488 us, 3.42%)</title><rect x="536.6" y="174" width="130.8" height="23.0" fill="rgb(246,192,46)" rx="2" ry="2" />
+<text  x="539.55" y="188.5" >SUBSHELL (330744)</text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (960,099 us, 0.73%)</title><rect x="1436.4" y="198" width="27.7" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="1439.44" y="212.5" >sh..</text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (1,009,807 us, 0.76%)</title><rect x="375.5" y="198" width="29.2" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="378.53" y="212.5" >sh..</text>
+</g>
+<g >
+<title> }$'\n'${fallocateFlag} &amp;&amp; echo &quot;printf '\\n' &gt;&amp;\${fd_nAuto0}&quot;$'\n'${pipeReadFlag} \|\| ${nullDelimiterFlag} \|\| ${readBytesFlag} \|\| ${lseekFlag} \|\| { echo &quot;&quot;&quot;$'\n'        { [[ \&quot;\${A[*]##*${delimiterVal}}\&quot; ]] \|\| [[ -z \${A[0]} ]] (1,350 us, 0.00%)</title><rect x="10.4" y="1806" width="0.0" height="23.0" fill="rgb(225,95,22)" rx="2" ry="2" />
+<text  x="13.40" y="1820.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p1 (2,922 us, 0.00%)</title><rect x="143.0" y="198" width="0.1" height="23.0" fill="rgb(206,5,1)" rx="2" ry="2" />
+<text  x="146.04" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,428 us, 0.00%)</title><rect x="1594.5" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="1597.45" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'else$'\n'    if ${stdinRunFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="2046" width="0.0" height="23.0" fill="rgb(215,46,11)" rx="2" ry="2" />
+<text  x="13.40" y="2060.5" ></text>
+</g>
+<g >
+<title>break (2,077 us, 0.00%)</title><rect x="930.7" y="198" width="0.0" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="933.66" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,480 us, 0.00%)</title><rect x="2775.1" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="2778.14" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f \&quot;${tmpDir}\&quot;/.run/p{&lt;#&gt;} ]] &amp;&amp; \\rm -f \&quot;${tmpDir}\&quot;/.run/p{&lt;#&gt;} (1,350 us, 0.00%)</title><rect x="10.4" y="174" width="0.0" height="23.0" fill="rgb(241,165,39)" rx="2" ry="2" />
+<text  x="13.40" y="188.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,613 us, 0.00%)</title><rect x="2515.0" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="2517.96" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,497 us, 0.00%)</title><rect x="2901.5" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="2904.45" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,289 us, 0.00%)</title><rect x="12.1" y="198" width="0.0" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="15.06" y="212.5" ></text>
+</g>
+<g >
+<title> then$'\n'                    echo &quot;&quot;&quot;$'\n'            nBytesRead+=\${#REPLY}$'\n'            [[ \${nBytesRead} == 0 ]] \|\| (( \${nBytesRead} &gt;= ${nBytes} )) \|\| {&quot;&quot;&quot;$'\n'[[ -n ${tTimeout} ]] &amp;&amp; echo &quot;while (( \${SECONDS} &lt; ${tTimeout} )) (1,350 us, 0.00%)</title><rect x="10.4" y="534" width="0.0" height="23.0" fill="rgb(241,166,39)" rx="2" ry="2" />
+<text  x="13.40" y="548.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,208 us, 0.00%)</title><rect x="2774.5" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="2777.46" y="212.5" ></text>
+</g>
+<g >
+<title>local p13 p13_PID (&amp;) (803 us, 0.00%)</title><rect x="10.7" y="174" width="0.0" height="23.0" fill="rgb(215,49,11)" rx="2" ry="2" />
+<text  x="13.68" y="188.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p22 (2,401 us, 0.00%)</title><rect x="2902.0" y="198" width="0.1" height="23.0" fill="rgb(226,100,24)" rx="2" ry="2" />
+<text  x="2905.01" y="212.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,053 us, 0.00%; +0.00%)</title><rect x="3280.6" y="198" width="0.0" height="23.0" fill="rgb(255,207,207)" rx="2" ry="2" />
+<text  x="3283.58" y="212.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (871,156 us, 0.66%)</title><rect x="1308.0" y="198" width="25.1" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="1311.00" y="212.5" >sh..</text>
+</g>
+<g >
+<title>true (2,317 us, 0.00%)</title><rect x="2375.7" y="198" width="0.0" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="2378.65" y="212.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (1,482 us, 0.00%)</title><rect x="3408.0" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="3411.02" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (2,120 us, 0.00%)</title><rect x="3683.3" y="174" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="3686.33" y="188.5" ></text>
+</g>
+<g >
+<title>true (2,417 us, 0.00%)</title><rect x="2514.8" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="2517.80" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (18,050 us, 0.01%)</title><rect x="2648.4" y="198" width="0.6" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="2651.44" y="212.5" ></text>
+</g>
+<g >
+<title>true (1,747 us, 0.00%)</title><rect x="3535.4" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="3538.43" y="212.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,262 us, 0.00%)</title><rect x="405.1" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="408.15" y="212.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,238 us, 0.00%; +0.00%)</title><rect x="1464.8" y="198" width="0.1" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="1467.85" y="212.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (883,260 us, 0.67%)</title><rect x="247.7" y="198" width="25.5" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="250.70" y="212.5" >sh..</text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p5 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p5 (11,110 us, 0.01%)</title><rect x="668.2" y="222" width="0.3" height="23.0" fill="rgb(226,98,23)" rx="2" ry="2" />
+<text  x="671.16" y="236.5" ></text>
+</g>
+<g >
+<title>break (1,718 us, 0.00%)</title><rect x="667.7" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="670.72" y="212.5" ></text>
+</g>
+<g >
+<title>true (2,480 us, 0.00%)</title><rect x="1060.7" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="1063.71" y="212.5" ></text>
+</g>
+<g >
+<title>lseek $fd_read 0 SEEK_CUR fd_read_pos (33,899 us, 0.03%)</title><rect x="3675.7" y="174" width="0.9" height="23.0" fill="rgb(212,35,8)" rx="2" ry="2" />
+<text  x="3678.65" y="188.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (8,714 us, 0.01%)</title><rect x="1061.6" y="246" width="0.2" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="1064.58" y="260.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,287 us, 0.00%)</title><rect x="2515.1" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="2518.11" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,891 us, 0.00%)</title><rect x="1334.9" y="198" width="0.0" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="1337.89" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,589 us, 0.00%)</title><rect x="2375.7" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="2378.72" y="212.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (1,085,797 us, 0.82%)</title><rect x="2088.4" y="198" width="31.3" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="2091.36" y="212.5" >sha..</text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,666 us, 0.00%)</title><rect x="669.0" y="198" width="0.1" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="672.01" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p21 (2,181 us, 0.00%)</title><rect x="2774.9" y="198" width="0.1" height="23.0" fill="rgb(239,159,38)" rx="2" ry="2" />
+<text  x="2777.93" y="212.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,231 us, 0.00%; +0.00%)</title><rect x="2120.4" y="198" width="0.1" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="2123.43" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,395 us, 0.00%)</title><rect x="1060.8" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="1063.78" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,898 us, 0.00%)</title><rect x="2649.0" y="198" width="0.0" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="2651.96" y="212.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,646 us, 0.00%; +0.00%)</title><rect x="3155.0" y="198" width="0.1" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="3158.03" y="212.5" ></text>
+</g>
+<g >
+<title>((kkProcs&lt;28 )) (2,345 us, 0.00%)</title><rect x="3662.8" y="150" width="0.0" height="23.0" fill="rgb(252,220,52)" rx="2" ry="2" />
+<text  x="3665.75" y="164.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p14 (2,909 us, 0.00%)</title><rect x="1854.8" y="198" width="0.1" height="23.0" fill="rgb(220,70,16)" rx="2" ry="2" />
+<text  x="1857.82" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,578,336 us, 2.70%)</title><rect x="144.5" y="198" width="103.2" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="147.46" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>local p25 p25_PID (&amp;) (839 us, 0.00%)</title><rect x="11.0" y="174" width="0.0" height="23.0" fill="rgb(227,101,24)" rx="2" ry="2" />
+<text  x="13.98" y="188.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,962 us, 0.00%)</title><rect x="3029.8" y="198" width="0.0" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="3032.78" y="212.5" ></text>
+</g>
+<g >
+<title>break (2,016 us, 0.00%)</title><rect x="405.1" y="198" width="0.0" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="408.09" y="212.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,043 us, 0.00%; +0.00%)</title><rect x="1333.8" y="198" width="0.1" height="23.0" fill="rgb(255,207,207)" rx="2" ry="2" />
+<text  x="1336.82" y="212.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,461 us, 0.00%; +0.00%)</title><rect x="2902.1" y="198" width="0.0" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="2905.07" y="212.5" ></text>
+</g>
+<g >
+<title> then$'\n'            echo &quot;&quot;&quot;$'\n'                IFS=\$'\\t' read -r _ fd_read_pos &lt;/proc/self/fdinfo/${fd_read}&quot;&quot;&quot;$'\n'case &quot;${nullDelimiterProg}&quot; in $'\n'                'dd')$'\n'                    echo &quot;&quot;&quot;$'\n'                { dd if=\&quot;${fPath}\&quot; bs=1 count=1 ${ddQuietStr} skip=\$(( fd_read_pos - 1 )) \| read -t 1 -r -d '' (1,350 us, 0.00%)</title><rect x="10.4" y="1158" width="0.0" height="23.0" fill="rgb(240,162,38)" rx="2" ry="2" />
+<text  x="13.40" y="1172.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,118 us, 0.00%)</title><rect x="275.0" y="198" width="0.0" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="277.97" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'                else$'\n'                    printf '%s ' ${fd_read} (1,350 us, 0.00%)</title><rect x="10.4" y="846" width="0.0" height="23.0" fill="rgb(216,50,12)" rx="2" ry="2" />
+<text  x="13.40" y="860.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (16,973 us, 0.01%)</title><rect x="1992.2" y="198" width="0.5" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="1995.17" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p24 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p24 (8,751 us, 0.01%)</title><rect x="3155.3" y="222" width="0.2" height="23.0" fill="rgb(243,176,42)" rx="2" ry="2" />
+<text  x="3158.28" y="236.5" ></text>
+</g>
+<g >
+<title>evfd_wait (1,943 us, 0.00%; +0.00%)</title><rect x="1854.9" y="198" width="0.1" height="23.0" fill="rgb(255,207,207)" rx="2" ry="2" />
+<text  x="1857.91" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,276 us, 0.00%)</title><rect x="667.6" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="670.62" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,149 us, 0.00%)</title><rect x="2648.0" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="2651.04" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,745 us, 0.00%)</title><rect x="12.1" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="15.12" y="212.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p18 (2,693 us, 0.00%)</title><rect x="2376.3" y="198" width="0.1" height="23.0" fill="rgb(244,181,43)" rx="2" ry="2" />
+<text  x="2379.31" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (1,904 us, 0.00%)</title><rect x="669.1" y="198" width="0.0" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="672.05" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,663 us, 0.00%)</title><rect x="537.3" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="540.31" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,987 us, 0.00%)</title><rect x="2119.9" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="2122.87" y="212.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (4,372 us, 0.00%)</title><rect x="11.4" y="198" width="0.2" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="14.45" y="212.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,416 us, 0.00%)</title><rect x="537.0" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="540.01" y="212.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,409 us, 0.00%)</title><rect x="2774.6" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="2777.60" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'        returnVal=1 (27,054 us, 0.02%)</title><rect x="3661.9" y="174" width="0.8" height="23.0" fill="rgb(230,116,27)" rx="2" ry="2" />
+<text  x="3664.90" y="188.5" ></text>
+</g>
+<g >
+<title>local p12 p12_PID (&amp;) (800 us, 0.00%)</title><rect x="10.7" y="174" width="0.0" height="23.0" fill="rgb(228,109,26)" rx="2" ry="2" />
+<text  x="13.66" y="188.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,832 us, 0.00%)</title><rect x="1062.3" y="198" width="0.1" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="1065.30" y="212.5" ></text>
+</g>
+<g >
+<title>${fallocateFlag} (65,216 us, 0.05%)</title><rect x="3663.6" y="174" width="1.9" height="23.0" fill="rgb(221,74,17)" rx="2" ry="2" />
+<text  x="3666.58" y="188.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p18 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p18 (9,781 us, 0.01%)</title><rect x="2376.6" y="222" width="0.3" height="23.0" fill="rgb(254,228,54)" rx="2" ry="2" />
+<text  x="2379.60" y="236.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (17,178 us, 0.01%)</title><rect x="274.4" y="198" width="0.5" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="277.41" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'    fi$'\n'(( ${verboseLevel} &gt; 2 )) &amp;&amp; echo &quot;&quot;&quot;$'\n'                echo \&quot;Partial read at: \${A[-1]}\&quot; &gt;&amp;${fd_stderr}&quot;&quot;&quot;$'\n'echo &quot;&quot;&quot;$'\n'                until read -r -u ${fd_read} ${delimiterReadStr} (1,350 us, 0.00%)</title><rect x="10.4" y="1470" width="0.0" height="23.0" fill="rgb(212,36,8)" rx="2" ry="2" />
+<text  x="13.40" y="1484.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (4,786 us, 0.00%)</title><rect x="3683.1" y="174" width="0.2" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="3686.12" y="188.5" ></text>
+</g>
+<g >
+<title> do&quot;&quot;&quot;$'\n'{ ${nLinesAutoFlag} \|\| ${nSpawnFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="294" width="0.0" height="23.0" fill="rgb(231,120,28)" rx="2" ry="2" />
+<text  x="13.40" y="308.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (1,826 us, 0.00%)</title><rect x="3409.0" y="198" width="0.0" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="3411.97" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,515,867 us, 2.66%)</title><rect x="1335.0" y="198" width="101.4" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="1338.01" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,818 us, 0.00%)</title><rect x="930.4" y="198" width="0.2" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="933.44" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,233,687 us, 2.44%)</title><rect x="406.5" y="198" width="93.3" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="409.49" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>$'\n'            else$'\n'                printf 'read -r -N %s -u ' &quot;${nBytes}&quot;$'\n'if ${readBytesExactFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="798" width="0.0" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="13.40" y="812.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (17,485 us, 0.01%)</title><rect x="2376.9" y="198" width="0.5" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="2379.88" y="212.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (1,042,687 us, 0.79%)</title><rect x="2217.4" y="198" width="30.1" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="2220.38" y="212.5" >sha..</text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (18,309 us, 0.01%)</title><rect x="2902.5" y="198" width="0.6" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="2905.55" y="212.5" ></text>
+</g>
+<g >
+<title> } $'\n'                        else$'\n'                            read -r -u ${fd_read0} -N \${nBytes} _$'\n'                            read -r -u ${fd_read0} -d ''$'\n'                            [[ \${#REPLY} == 0 ]]$'\n'                        fi$'\n'                    } \|\| {&quot;&quot;&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="1302" width="0.0" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="13.40" y="1316.5" ></text>
+</g>
+<g >
+<title>break (3,112 us, 0.00%)</title><rect x="1854.6" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="1857.61" y="212.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,464 us, 0.00%; +0.00%)</title><rect x="3028.7" y="198" width="0.1" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="3031.70" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,587,844 us, 2.71%)</title><rect x="1726.2" y="198" width="103.5" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="1729.15" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p17 (2,519 us, 0.00%)</title><rect x="2248.1" y="198" width="0.1" height="23.0" fill="rgb(250,211,50)" rx="2" ry="2" />
+<text  x="2251.12" y="212.5" ></text>
+</g>
+<g >
+<title> then&quot;&quot;&quot;$'\n'${nLinesAutoFlag} &amp;&amp; echo &quot;printf 'x\\n' &gt;&amp;\${fd_nAuto0}&quot;$'\n'${nOrderFlag} &amp;&amp; echo &quot;: &gt;\&quot;${tmpDir}\&quot;/.out/.quit{&lt;#&gt;}&quot;$'\n'${nSpawnFlag} &amp;&amp; echo &quot;&quot;&quot;printf 'q\\n' &gt;&amp;${fd_nSpawn}$'\n'            printf 'q\\n' &gt;&amp;\${fd_nAuto0}&quot;&quot;&quot;$'\n'echo &quot;&quot;&quot;$'\n'            : &gt;\&quot;${tmpDir}\&quot;/.quit$'\n'            printf '%.0s\\n' \&quot;${tmpDir}\&quot;/.run/p* &gt;&amp;${fd_continue}$'\n'            break&quot;&quot;&quot;$'\n'${nOrderFlag} &amp;&amp; echo &quot;&quot;&quot;else$'\n'            printf 'x%s\n' \&quot;\${nOrder}\&quot; &gt;&amp;\${fd_nOrder0}&quot;&quot;&quot;$'\n'echo &quot;&quot;&quot;fi$'\n'        continue$'\n'    }&quot;&quot;&quot;$'\n'{ ${nLinesAutoFlag} \|\| ${nSpawnFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="1734" width="0.0" height="23.0" fill="rgb(231,120,28)" rx="2" ry="2" />
+<text  x="13.40" y="1748.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p6 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p6 (8,711 us, 0.01%)</title><rect x="800.1" y="222" width="0.3" height="23.0" fill="rgb(213,39,9)" rx="2" ry="2" />
+<text  x="803.13" y="236.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p20 (2,410 us, 0.00%)</title><rect x="2647.9" y="198" width="0.1" height="23.0" fill="rgb(239,159,38)" rx="2" ry="2" />
+<text  x="2650.91" y="212.5" ></text>
+</g>
+<g >
+<title> then$'\n'                            { dd if=\&quot;${fPath}\&quot; bs=1 count=1 ${ddQuietStr} skip=\$(( fd_read_pos - 1 )) \| read -t 1 -r -d '' (1,350 us, 0.00%)</title><rect x="10.4" y="1278" width="0.0" height="23.0" fill="rgb(229,112,26)" rx="2" ry="2" />
+<text  x="13.40" y="1292.5" ></text>
+</g>
+<g >
+<title>$'\n'                    else$'\n'                        echo &quot;&quot;&quot;$'\n'                    read -r -u ${fd_read0} -N \${nBytes} _$'\n'                    read -r -u ${fd_read0} -d ''$'\n'                    [[ \${#REPLY} == 0 ]] \|\| {&quot;&quot;&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="1326" width="0.0" height="23.0" fill="rgb(208,18,4)" rx="2" ry="2" />
+<text  x="13.40" y="1340.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (764,515 us, 0.58%)</title><rect x="2752.3" y="198" width="22.1" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="2755.35" y="212.5" >s..</text>
+</g>
+<g >
+<title>SUBSHELL (330733) (1,494 us, 0.00%)</title><rect x="3663.0" y="150" width="0.0" height="23.0" fill="rgb(209,22,5)" rx="2" ry="2" />
+<text  x="3665.98" y="164.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,443,586 us, 2.60%)</title><rect x="1595.9" y="198" width="99.4" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="1598.92" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (21,156 us, 0.02%)</title><rect x="931.4" y="198" width="0.6" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="934.43" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,378 us, 0.00%)</title><rect x="3028.3" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="3031.34" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330778) (4,822,979 us, 3.64%)</title><rect x="2375.7" y="174" width="139.2" height="23.0" fill="rgb(251,214,51)" rx="2" ry="2" />
+<text  x="2378.72" y="188.5" >SUBSHELL (330778)</text>
+</g>
+<g >
+<title> } \|\| {&quot;&quot;&quot;$'\n'                 (1,350 us, 0.00%)</title><rect x="10.4" y="1182" width="0.0" height="23.0" fill="rgb(242,174,41)" rx="2" ry="2" />
+<text  x="13.40" y="1196.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,195 us, 0.00%)</title><rect x="667.4" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="670.38" y="212.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (1,140,389 us, 0.86%)</title><rect x="766.3" y="198" width="32.9" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="769.30" y="212.5" >sha..</text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,801 us, 0.00%)</title><rect x="1333.3" y="198" width="0.1" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="1336.30" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (8,496 us, 0.01%)</title><rect x="274.2" y="198" width="0.2" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="277.16" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (3,215 us, 0.00%)</title><rect x="274.1" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="277.07" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (4,289 us, 0.00%)</title><rect x="142.4" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="145.41" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,291 us, 0.00%)</title><rect x="1726.1" y="198" width="0.0" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="1729.08" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,326 us, 0.00%)</title><rect x="3407.8" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="3410.76" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,623,370 us, 2.74%)</title><rect x="1856.2" y="198" width="104.5" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="1859.18" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title> } &amp;&amp; printf '\n\\rm -f &quot;'&quot;${tmpDir}&quot;'&quot;/.stdin.tmp.{&lt;#&gt;}\n'$'\n'${subshellRunFlag} &amp;&amp; printf '\n%s ' ')' \|\| printf '\n%s ' '}'$'\n'echo &quot;${outStr}&quot;$'\n'${nOrderFlag} &amp;&amp; echo &quot;printf '%s\\n' \&quot;\${nOrder}\&quot; &gt;&amp;${fd_nOrder0}&quot;$'\n'${nSpawnFlag} &amp;&amp; echo &quot;printf 'l%s\\nt%s\\n' \${#A[@]} \${EPOCHREALTIME//./} &gt;&amp;${fd_nSpawn}&quot;$'\n'echo &quot;&quot;&quot;$'\n'done$'\n'} 2&gt;&amp;${fd_stderr} {fd_nAuto0}&gt;&amp;${fd_nAuto}$'\n'} 2&gt;/dev/null$'\n'p_PID+=(\${p{&lt;#&gt;}_PID})&quot;&quot;&quot;)&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="2286" width="0.0" height="23.0" fill="rgb(251,211,50)" rx="2" ry="2" />
+<text  x="13.40" y="2300.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (12,621 us, 0.01%)</title><rect x="2248.4" y="246" width="0.3" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="2251.38" y="260.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,917 us, 0.00%)</title><rect x="930.3" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="933.27" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,053 us, 0.00%)</title><rect x="3407.7" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="3410.67" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,431 us, 0.00%)</title><rect x="1333.5" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="1336.46" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (2,343 us, 0.00%)</title><rect x="3683.3" y="174" width="0.0" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="3686.26" y="188.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,025 us, 0.00%)</title><rect x="2647.8" y="198" width="0.0" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="2650.78" y="212.5" ></text>
+</g>
+<g >
+<title> then$'\n'                    printf '%s ' &quot;${fd_stdin}&quot;$'\n'[[ -n ${tTimeout} ]] &amp;&amp; printf '-t %s ' &quot;${tTimeout} &quot; (1,350 us, 0.00%)</title><rect x="10.4" y="822" width="0.0" height="23.0" fill="rgb(247,193,46)" rx="2" ry="2" />
+<text  x="13.40" y="836.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p7 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p7 (8,789 us, 0.01%)</title><rect x="931.2" y="222" width="0.2" height="23.0" fill="rgb(250,209,50)" rx="2" ry="2" />
+<text  x="934.18" y="236.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,691 us, 0.00%)</title><rect x="799.3" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="802.27" y="212.5" ></text>
+</g>
+<g >
+<title>true (2,148 us, 0.00%)</title><rect x="536.5" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="539.49" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,070 us, 0.00%)</title><rect x="3408.3" y="198" width="0.0" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="3411.28" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330753) (3,223 us, 0.00%)</title><rect x="3682.9" y="174" width="0.1" height="23.0" fill="rgb(246,192,46)" rx="2" ry="2" />
+<text  x="3685.86" y="188.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (16,752 us, 0.01%)</title><rect x="1725.5" y="198" width="0.5" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="1728.54" y="212.5" ></text>
+</g>
+<g >
+<title>case ${nWait} in (31,717 us, 0.02%)</title><rect x="3672.0" y="174" width="1.0" height="23.0" fill="rgb(238,153,36)" rx="2" ry="2" />
+<text  x="3675.05" y="188.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p13 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p13 (8,812 us, 0.01%)</title><rect x="1725.3" y="222" width="0.2" height="23.0" fill="rgb(219,65,15)" rx="2" ry="2" />
+<text  x="1728.28" y="236.5" ></text>
+</g>
+<g >
+<title>case ${REPLY} in (32,078 us, 0.02%)</title><rect x="3673.0" y="174" width="0.9" height="23.0" fill="rgb(207,9,2)" rx="2" ry="2" />
+<text  x="3675.96" y="188.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,567 us, 0.00%)</title><rect x="1991.0" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="1994.02" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'    fi (1,350 us, 0.00%)</title><rect x="10.4" y="2022" width="0.0" height="23.0" fill="rgb(208,14,3)" rx="2" ry="2" />
+<text  x="13.40" y="2036.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,675 us, 0.00%)</title><rect x="930.6" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="933.55" y="212.5" ></text>
+</g>
+<g >
+<title> break (1,350 us, 0.00%)</title><rect x="10.4" y="702" width="0.0" height="23.0" fill="rgb(217,55,13)" rx="2" ry="2" />
+<text  x="13.40" y="716.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,108 us, 0.00%)</title><rect x="1334.9" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="1337.94" y="212.5" ></text>
+</g>
+<g >
+<title>true (2,354 us, 0.00%)</title><rect x="799.2" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="802.20" y="212.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (1,998 us, 0.00%)</title><rect x="3535.9" y="198" width="0.0" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="3538.89" y="212.5" ></text>
+</g>
+<g >
+<title>break (1,980 us, 0.00%)</title><rect x="1464.6" y="198" width="0.0" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="1467.58" y="212.5" ></text>
+</g>
+<g >
+<title> then$'\n'        printf '&lt;&lt;&lt;%s' &quot;\&quot;\${A[@]${delimiterRemoveStr}}\&quot;&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="2070" width="0.0" height="23.0" fill="rgb(220,72,17)" rx="2" ry="2" />
+<text  x="13.40" y="2084.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,978 us, 0.00%)</title><rect x="931.1" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="934.09" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (3,026 us, 0.00%)</title><rect x="143.3" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="146.28" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'        fi (1,350 us, 0.00%)</title><rect x="10.4" y="2214" width="0.0" height="23.0" fill="rgb(231,120,28)" rx="2" ry="2" />
+<text  x="13.40" y="2228.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,652,350 us, 2.76%)</title><rect x="3029.9" y="198" width="105.4" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="3032.90" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>local p22 p22_PID (&amp;) (697 us, 0.00%)</title><rect x="10.9" y="174" width="0.0" height="23.0" fill="rgb(215,49,11)" rx="2" ry="2" />
+<text  x="13.92" y="188.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330797) (4,430,011 us, 3.35%)</title><rect x="3407.7" y="174" width="127.8" height="23.0" fill="rgb(245,185,44)" rx="2" ry="2" />
+<text  x="3410.67" y="188.5" >SUBSHELL (330797)</text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (9,057 us, 0.01%)</title><rect x="2120.7" y="198" width="0.2" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="2123.66" y="212.5" ></text>
+</g>
+<g >
+<title>break (1,989 us, 0.00%)</title><rect x="273.6" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="276.63" y="212.5" ></text>
+</g>
+<g >
+<title> do $'\n'                    A[-1]+=\&quot;\${REPLY}\&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="1494" width="0.0" height="23.0" fill="rgb(208,18,4)" rx="2" ry="2" />
+<text  x="13.40" y="1508.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (16,999 us, 0.01%)</title><rect x="2775.6" y="198" width="0.4" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="2778.55" y="212.5" ></text>
+</g>
+<g >
+<title>evfd_wait (2,144 us, 0.00%; +0.00%)</title><rect x="2648.0" y="198" width="0.0" height="23.0" fill="rgb(255,206,206)" rx="2" ry="2" />
+<text  x="2650.98" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (11,124 us, 0.01%)</title><rect x="537.5" y="246" width="0.3" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="540.48" y="260.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,950 us, 0.00%)</title><rect x="2119.8" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="2122.75" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (11,110 us, 0.01%)</title><rect x="668.2" y="246" width="0.3" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="671.16" y="260.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (2,353 us, 0.00%)</title><rect x="930.7" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="933.72" y="212.5" ></text>
+</g>
+<g >
+<title> do&quot; \|\| echo &quot;while true (1,350 us, 0.00%)</title><rect x="10.4" y="558" width="0.0" height="23.0" fill="rgb(243,175,41)" rx="2" ry="2" />
+<text  x="13.40" y="572.5" ></text>
+</g>
+<g >
+<title>$'\n'    else$'\n'        printf '&quot;$(&lt;&quot;%s&quot;/%s)&quot;' &quot;${tmpDir}&quot; '.stdin.tmp.{&lt;#&gt;}' (1,350 us, 0.00%)</title><rect x="10.4" y="1998" width="0.0" height="23.0" fill="rgb(213,40,9)" rx="2" ry="2" />
+<text  x="13.40" y="2012.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,649 us, 0.00%)</title><rect x="799.5" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="802.53" y="212.5" ></text>
+</g>
+<g >
+<title> kill -TERM ${PID0} \${BASHPID}' TERM$'\n'trap 'trap - TERM INT HUP USR1 (1,350 us, 0.00%)</title><rect x="10.4" y="246" width="0.0" height="23.0" fill="rgb(223,83,19)" rx="2" ry="2" />
+<text  x="13.40" y="260.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p24 (2,481 us, 0.00%)</title><rect x="3155.0" y="198" width="0.0" height="23.0" fill="rgb(213,40,9)" rx="2" ry="2" />
+<text  x="3157.96" y="212.5" ></text>
+</g>
+<g >
+<title>wait (2,310 us, 0.00%)</title><rect x="3829.9" y="126" width="0.1" height="23.0" fill="rgb(240,163,39)" rx="2" ry="2" />
+<text  x="3832.93" y="140.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p8 (2,417 us, 0.00%)</title><rect x="1061.3" y="198" width="0.1" height="23.0" fill="rgb(211,27,6)" rx="2" ry="2" />
+<text  x="1064.34" y="212.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p26 (1,865 us, 0.00%)</title><rect x="3408.1" y="198" width="0.1" height="23.0" fill="rgb(250,211,50)" rx="2" ry="2" />
+<text  x="3411.13" y="212.5" ></text>
+</g>
+<g >
+<title>read -u ${fd_nAuto} -t (147,795 us, 0.11%; +0.11%)</title><rect x="3678.6" y="174" width="4.3" height="23.0" fill="rgb(255,0,0)" rx="2" ry="2" />
+<text  x="3681.60" y="188.5" ></text>
+</g>
+<g >
+<title>break (2,058 us, 0.00%)</title><rect x="2247.9" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="2250.93" y="212.5" ></text>
+</g>
+<g >
+<title> }$'\n'${subshellRunFlag} &amp;&amp; echo '(' \|\| echo '{'$'\n'{ ${exportOrderFlag} \|\| { ${nOrderFlag} &amp;&amp; ${substituteStringIDFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="1854" width="0.0" height="23.0" fill="rgb(241,166,39)" rx="2" ry="2" />
+<text  x="13.40" y="1868.5" ></text>
+</g>
+<g >
+<title>$'\n'        fi (1,350 us, 0.00%)</title><rect x="10.4" y="1446" width="0.0" height="23.0" fill="rgb(231,120,28)" rx="2" ry="2" />
+<text  x="13.40" y="1460.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p23 (2,403 us, 0.00%)</title><rect x="3028.6" y="198" width="0.1" height="23.0" fill="rgb(220,70,16)" rx="2" ry="2" />
+<text  x="3031.63" y="212.5" ></text>
+</g>
+<g >
+<title>mapfile -t -n ${nLinesCur} -u 23 A (20,182 us, 0.02%)</title><rect x="12.5" y="198" width="0.6" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="15.48" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330740) (4,545,383 us, 3.43%)</title><rect x="11.3" y="174" width="131.1" height="23.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="14.27" y="188.5" >SUBSHELL (330740)</text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,116 us, 0.00%)</title><rect x="1856.1" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="1859.12" y="212.5" ></text>
+</g>
+<g >
+<title>true (2,410 us, 0.00%)</title><rect x="930.2" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="933.20" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p3 (2,281 us, 0.00%)</title><rect x="405.2" y="198" width="0.1" height="23.0" fill="rgb(249,206,49)" rx="2" ry="2" />
+<text  x="408.22" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (2,045 us, 0.00%)</title><rect x="3156.1" y="198" width="0.1" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="3159.11" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.done ]] (2,100 us, 0.00%)</title><rect x="668.0" y="198" width="0.1" height="23.0" fill="rgb(217,59,14)" rx="2" ry="2" />
+<text  x="671.03" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p2 (2,455 us, 0.00%)</title><rect x="273.8" y="198" width="0.0" height="23.0" fill="rgb(206,5,1)" rx="2" ry="2" />
+<text  x="276.77" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,265 us, 0.00%)</title><rect x="2121.6" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="2124.59" y="212.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,651 us, 0.00%)</title><rect x="3535.6" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="3538.63" y="212.5" ></text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p19 (2,029 us, 0.00%)</title><rect x="2515.4" y="198" width="0.0" height="23.0" fill="rgb(244,181,43)" rx="2" ry="2" />
+<text  x="2518.35" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,109 us, 0.00%)</title><rect x="2649.0" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="2652.02" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,910 us, 0.00%)</title><rect x="1724.5" y="198" width="0.1" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="1727.54" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (11,572 us, 0.01%)</title><rect x="143.4" y="246" width="0.3" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="146.37" y="260.5" ></text>
+</g>
+<g >
+<title>$'\n'fi$'\n'(( ${verboseLevel} &gt; 2 )) &amp;&amp; echo &quot;&quot;&quot; \|\| {$'\n'        {$'\n'            printf '\\n\\n----------------------------------------------\\n\\n'$'\n'            echo 'ERROR DURING \&quot;${runCmd[*]}\&quot; CALL'$'\n'            declare -p A nLinesCur nLinesAutoFlag$'\n'            echo 'fd_read:'$'\n'            cat /proc/self/fdinfo/${fd_read}$'\n'            echo 'fd_write:'$'\n'            cat /proc/self/fdinfo/${fd_write}$'\n'            echo$'\n'        } &gt;&amp;${fd_stderr}$'\n'    }&quot;&quot;&quot;$'\n'${readBytesFlag} &amp;&amp; { [[ -n ${readBytesProg//bash/} ]] \|\| ${stdinRunFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="2262" width="0.0" height="23.0" fill="rgb(248,201,48)" rx="2" ry="2" />
+<text  x="13.40" y="2276.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p11 (2,698 us, 0.00%)</title><rect x="1464.8" y="198" width="0.0" height="23.0" fill="rgb(239,159,38)" rx="2" ry="2" />
+<text  x="1467.77" y="212.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (1,636 us, 0.00%)</title><rect x="1202.2" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="1205.22" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,468 us, 0.00%)</title><rect x="3536.2" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="3539.22" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'printf '&quot;'&quot;'\n'&quot;'&quot;' &gt;&amp;11' EXIT &gt;&gt; (8,719 us, 0.01%)</title><rect x="3408.3" y="246" width="0.3" height="23.0" fill="rgb(226,97,23)" rx="2" ry="2" />
+<text  x="3411.34" y="260.5" ></text>
+</g>
+<g >
+<title>fd_read_pos_old=${fd_read_pos} (1,123 us, 0.00%)</title><rect x="3675.6" y="174" width="0.1" height="23.0" fill="rgb(206,5,1)" rx="2" ry="2" />
+<text  x="3678.62" y="188.5" ></text>
+</g>
+<g >
+<title>break (1,561 us, 0.00%)</title><rect x="3535.8" y="198" width="0.1" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="3538.84" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,529 us, 0.00%)</title><rect x="3154.7" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="3157.65" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,916 us, 0.00%)</title><rect x="2515.6" y="198" width="0.1" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="2518.61" y="212.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (1,341,659 us, 1.01%)</title><rect x="3496.7" y="198" width="38.7" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="3499.72" y="212.5" >sha5..</text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p21 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p21 (8,829 us, 0.01%)</title><rect x="2775.3" y="222" width="0.3" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="2778.30" y="236.5" ></text>
+</g>
+<g >
+<title>true (2,713 us, 0.00%)</title><rect x="2247.5" y="198" width="0.0" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="2250.46" y="212.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p25 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p25 (16,811 us, 0.01%)</title><rect x="3280.8" y="222" width="0.5" height="23.0" fill="rgb(230,116,27)" rx="2" ry="2" />
+<text  x="3283.78" y="236.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (764,110 us, 0.58%)</title><rect x="3006.0" y="198" width="22.0" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="3008.96" y="212.5" >s..</text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,124 us, 0.00%)</title><rect x="2903.1" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="2906.14" y="212.5" ></text>
+</g>
+<g >
+<title>$'\n'else$'\n'    echo &quot;&quot;&quot;$'\n'            IFS=\$'\\t' read -r _ fd_read_pos &lt;/proc/self/fdinfo/${fd_read} (1,350 us, 0.00%)</title><rect x="10.4" y="1638" width="0.0" height="23.0" fill="rgb(249,205,49)" rx="2" ry="2" />
+<text  x="13.40" y="1652.5" ></text>
+</g>
+<g >
+<title> } \|\| { echo &quot;[[ \${#A[@]} == 0 ]] \|\| \${doneIndicatorFlag} \|\| {&quot;$'\n'if ${lseekFlag} (1,350 us, 0.00%)</title><rect x="10.4" y="1014" width="0.0" height="23.0" fill="rgb(214,43,10)" rx="2" ry="2" />
+<text  x="13.40" y="1028.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,533 us, 0.00%)</title><rect x="1333.4" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="1336.35" y="212.5" ></text>
+</g>
+<g >
+<title>SUBSHELL (330722) (132,403,303 us, 100.00%)</title><rect x="10.0" y="102" width="3820.0" height="23.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="13.02" y="116.5" >SUBSHELL (330722)</text>
+</g>
+<g >
+<title>echo 0 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p7 (2,493 us, 0.00%)</title><rect x="930.8" y="198" width="0.1" height="23.0" fill="rgb(223,87,20)" rx="2" ry="2" />
+<text  x="933.79" y="212.5" ></text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,423 us, 0.00%)</title><rect x="2647.6" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="2650.61" y="212.5" ></text>
+</g>
+<g >
+<title>[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit ]] (2,830 us, 0.00%)</title><rect x="800.1" y="198" width="0.0" height="23.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="803.05" y="212.5" ></text>
+</g>
+<g >
+<title> then$'\n'    case &quot;${readBytesProg}&quot; in $'\n'        'dd')$'\n'            printf 'dd bs=32768 count=%sB of=&quot;%s&quot;/.stdin.tmp.{&lt;#&gt;} 2&gt;&quot;%s&quot;/.stdin.tmp-status.{&lt;#&gt;} ' &quot;${nBytes}&quot; &quot;${tmpDir}&quot; &quot;${tmpDir}&quot;$'\n'${pipeReadFlag} &amp;&amp; printf 'iflag=fullblock &lt;&amp;%s\n' &quot;${fd_stdin}&quot; \|\| printf '&lt;&amp;%s\n' &quot;${fd_read}&quot;$'\n'printf '[[ &quot;$(&lt;&quot;%s&quot;/.stdin.tmp-status.{&lt;#&gt;})&quot; == *$'&quot;'&quot;'\\n'&quot;'&quot;'&quot;0 bytes&quot;* ]] &amp;&amp; A=() \|\| A[0]=1\n' &quot;${tmpDir}&quot;$'\n'         (1,350 us, 0.00%)</title><rect x="10.4" y="366" width="0.0" height="23.0" fill="rgb(253,224,53)" rx="2" ry="2" />
+<text  x="13.40" y="380.5" ></text>
+</g>
+<g >
+<title> $'\n'[[ -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p4 ]] &amp;&amp; \rm -f &quot;/dev/shm/.forkrun.iCzTKH&quot;/.run/p4 (11,124 us, 0.01%)</title><rect x="537.5" y="222" width="0.3" height="23.0" fill="rgb(239,157,37)" rx="2" ry="2" />
+<text  x="540.48" y="236.5" ></text>
+</g>
+<g >
+<title>local p17 p17_PID (&amp;) (934 us, 0.00%)</title><rect x="10.8" y="174" width="0.0" height="23.0" fill="rgb(214,42,10)" rx="2" ry="2" />
+<text  x="13.78" y="188.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,736 us, 0.00%)</title><rect x="3280.1" y="198" width="0.1" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="3283.11" y="212.5" ></text>
+</g>
+<g >
+<title>${doneIndicatorFlag} (1,757 us, 0.00%)</title><rect x="1594.3" y="198" width="0.0" height="23.0" fill="rgb(235,140,33)" rx="2" ry="2" />
+<text  x="1597.30" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,626 us, 0.00%)</title><rect x="3408.9" y="198" width="0.1" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="3411.92" y="212.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p0 (2,779 us, 0.00%)</title><rect x="11.9" y="198" width="0.1" height="23.0" fill="rgb(212,35,8)" rx="2" ry="2" />
+<text  x="14.90" y="212.5" ></text>
+</g>
+<g >
+<title> then$'\n'    echo &quot;&quot;&quot;$'\n'            lseek $fd_read 0 SEEK_CUR fd_read_pos $'\n'            lseek $fd_write 0 SEEK_CUR fd_write_pos&quot;&quot;&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="1614" width="0.0" height="23.0" fill="rgb(249,203,48)" rx="2" ry="2" />
+<text  x="13.40" y="1628.5" ></text>
+</g>
+<g >
+<title>tmpDir=&quot;$(mktemp -p &quot;${tmpDirRoot}&quot; -d .forkrun.XXXXXX)&quot; (755 us, 0.00%)</title><rect x="3829.9" y="126" width="0.0" height="23.0" fill="rgb(211,29,7)" rx="2" ry="2" />
+<text  x="3832.91" y="140.5" ></text>
+</g>
+<g >
+<title>${lseekPosFlag} (32,282 us, 0.02%)</title><rect x="3665.5" y="174" width="0.9" height="23.0" fill="rgb(223,86,20)" rx="2" ry="2" />
+<text  x="3668.49" y="188.5" ></text>
+</g>
+<g >
+<title>true (2,640 us, 0.00%)</title><rect x="273.2" y="198" width="0.1" height="23.0" fill="rgb(219,66,15)" rx="2" ry="2" />
+<text  x="276.18" y="212.5" ></text>
+</g>
+<g >
+<title>echo 1 &gt; &quot;/dev/shm/.forkrun.iCzTKH&quot;/.wait/p4 (2,598 us, 0.00%)</title><rect x="537.2" y="198" width="0.0" height="23.0" fill="rgb(236,146,35)" rx="2" ry="2" />
+<text  x="540.16" y="212.5" ></text>
+</g>
+<g >
+<title>read -r -u 11 _ (3,561,710 us, 2.69%)</title><rect x="2903.2" y="198" width="102.8" height="23.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="2906.20" y="212.5" >read -r -u 11 _</text>
+</g>
+<g >
+<title>${nSpawnFlag} (3,422 us, 0.00%)</title><rect x="2901.7" y="198" width="0.1" height="23.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="2904.71" y="212.5" ></text>
+</g>
+<g >
+<title> then$'\n'                printf '%s' &quot;\&quot;\${A[@]${delimiterRemoveStr}}\&quot;&quot; (1,350 us, 0.00%)</title><rect x="10.4" y="2166" width="0.0" height="23.0" fill="rgb(229,114,27)" rx="2" ry="2" />
+<text  x="13.40" y="2180.5" ></text>
+</g>
+<g >
+<title>printf '\n' 1&gt;&amp;11 (2,260 us, 0.00%)</title><rect x="932.1" y="198" width="0.1" height="23.0" fill="rgb(238,154,37)" rx="2" ry="2" />
+<text  x="935.10" y="212.5" ></text>
+</g>
+<g >
+<title>&lt;&lt; (FUNCTION): trap ': &gt;&quot;/dev/shm/.forkrun.iCzTKH&quot;/.quit (8,751 us, 0.01%)</title><rect x="3155.3" y="198" width="0.2" height="23.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="3158.28" y="212.5" ></text>
+</g>
+<g >
+<title>local p24 p24_PID (&amp;) (706 us, 0.00%)</title><rect x="11.0" y="174" width="0.0" height="23.0" fill="rgb(239,160,38)" rx="2" ry="2" />
+<text  x="13.96" y="188.5" ></text>
+</g>
+<g >
+<title>sha512sum &quot;${A[@]}&quot; (1,266,950 us, 0.96%)</title><rect x="2610.7" y="198" width="36.6" height="23.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="2613.73" y="212.5" >sha5..</text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (1,928 us, 0.00%)</title><rect x="3280.4" y="198" width="0.0" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="3283.39" y="212.5" ></text>
+</g>
+<g >
+<title>[[ ${#A[@]} == 0 ]] (3,731 us, 0.00%)</title><rect x="3154.4" y="198" width="0.1" height="23.0" fill="rgb(228,108,25)" rx="2" ry="2" />
+<text  x="3157.38" y="212.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,450 us, 0.00%)</title><rect x="3280.2" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="3283.16" y="212.5" ></text>
+</g>
+<g >
+<title>doneIndicatorFlag=true (1,776 us, 0.00%)</title><rect x="1854.7" y="198" width="0.1" height="23.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="1857.70" y="212.5" ></text>
+</g>
+<g >
+<title>${nLinesAutoFlag} (3,733 us, 0.00%)</title><rect x="2375.9" y="198" width="0.1" height="23.0" fill="rgb(209,19,4)" rx="2" ry="2" />
+<text  x="2378.88" y="212.5" ></text>
+</g>
+<g >
+<title>printf '\n' &gt;&amp;${fd_nAuto0} (1,872 us, 0.00%)</title><rect x="274.9" y="198" width="0.1" height="23.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="277.91" y="212.5" ></text>
+</g>
+</g>
+</svg>
